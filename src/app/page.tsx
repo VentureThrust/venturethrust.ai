@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, FolderKanban, Scale, FileQuestion, Clock, Lock, Fingerprint, DatabaseZap, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
 
 function HeroSection() {
   return (
@@ -17,7 +18,9 @@ function HeroSection() {
           Venture Trust is a secure, centralized platform for founders and investors to manage documents, identify red flags, and make decisions with confidence.
         </p>
         <div className="mt-10 flex items-center justify-center gap-x-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
-          <Button size="lg">Get Started</Button>
+          <Button size="lg" asChild>
+            <Link href="/signup">Get Started</Link>
+          </Button>
           <Button size="lg" variant="outline" asChild>
             <a href="#how-it-works">How It Works</a>
           </Button>
@@ -224,7 +227,9 @@ function CtaSection() {
           Get started with Venture Trust today and experience a calmer, more confident way to invest.
         </p>
         <div className="mt-10">
-          <Button size="lg">Get Started Free</Button>
+          <Button size="lg" asChild>
+            <Link href="/signup">Get Started Free</Link>
+          </Button>
         </div>
       </div>
     </section>
