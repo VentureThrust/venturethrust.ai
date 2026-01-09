@@ -29,17 +29,17 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to log in to your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} suppressHydrationWarning>
+          <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" type="email" placeholder="m@example.com" required suppressHydrationWarning />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input id="password" type="password" required suppressHydrationWarning />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" suppressHydrationWarning>
                 Log in
               </Button>
             </div>

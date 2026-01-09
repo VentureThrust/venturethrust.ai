@@ -29,17 +29,17 @@ export default function SignupPage() {
           <CardDescription>Enter your information to get started.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup} suppressHydrationWarning>
+          <form onSubmit={handleSignup}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" type="email" placeholder="m@example.com" required suppressHydrationWarning />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input id="password" type="password" required suppressHydrationWarning />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" suppressHydrationWarning>
                 Create Account
               </Button>
             </div>
