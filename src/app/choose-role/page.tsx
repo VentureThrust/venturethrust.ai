@@ -24,29 +24,31 @@ export default function ChooseRolePage() {
             To help us tailor your experience, please tell us who you are.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row">
-          <Button
-            variant="outline"
-            className="h-auto w-full flex-col gap-4 p-6 text-base"
-            onClick={() => handleRoleSelection('founder')}
-          >
-            <Building className="h-10 w-10 text-primary" />
-            <span>I am a Founder</span>
-            <p className="text-xs font-normal text-muted-foreground">
-              I am seeking funding and want to build a data room for investors.
-            </p>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto w-full flex-col gap-4 p-6 text-base"
-            onClick={() => handleRoleSelection('investor')}
-          >
-            <Briefcase className="h-10 w-10 text-primary" />
-            <span>I am an Investor</span>
-            <p className="text-xs font-normal text-muted-foreground">
-              I want to review startups and manage my deal flow.
-            </p>
-          </Button>
+        <CardContent>
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <Button
+              variant="outline"
+              className="h-auto w-full flex-col gap-4 p-6 text-base"
+              onClick={() => handleRoleSelection('founder')}
+            >
+              <Building className="h-10 w-10 text-primary" />
+              <span>I am a Founder</span>
+              <p className="text-xs font-normal text-muted-foreground">
+                I am seeking funding and want to build a data room for investors.
+              </p>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto w-full flex-col gap-4 p-6 text-base"
+              onClick={() => handleRoleSelection('investor')}
+            >
+              <Briefcase className="h-10 w-10 text-primary" />
+              <span>I am an Investor</span>
+              <p className="text-xs font-normal text-muted-foreground">
+                I want to review startups and manage my deal flow.
+              </p>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
