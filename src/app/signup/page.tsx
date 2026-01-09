@@ -29,7 +29,7 @@ export default function SignupPage() {
           <CardDescription>Enter your information to get started.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup}>
+          <form onSubmit={handleSignup} suppressHydrationWarning>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

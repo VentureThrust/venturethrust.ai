@@ -29,7 +29,7 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to log in to your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} suppressHydrationWarning>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
