@@ -9,7 +9,62 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
-const plans: any[] = [];
+const plans = [
+    {
+        name: 'Personal',
+        description: 'For individuals getting started with secure document sharing.',
+        price: { monthly: '$15', annually: '$12' },
+        buttonText: 'Get Started',
+        features: [
+            { icon: Folder, text: 'Up to 5 Data Rooms' },
+            { icon: Users, text: 'Up to 10 users per room' },
+            { icon: FileText, text: '5GB storage' },
+            { icon: Lock, text: 'Basic access controls' },
+            { icon: BarChart2, text: 'Basic analytics' },
+        ],
+    },
+    {
+        name: 'Standard',
+        description: 'For growing teams that need more control and collaboration features.',
+        price: { monthly: '$25', annually: '$20' },
+        buttonText: 'Get Started',
+        features: [
+            { icon: FolderLock, text: 'Unlimited Data Rooms' },
+            { icon: Users, text: 'Up to 25 users per room' },
+            { icon: FileUp, text: '50GB storage' },
+            { icon: LockKeyhole, text: 'Advanced access controls (view-only, download)' },
+            { icon: FileSignature, text: 'E-signature integration' },
+            { icon: BarChart2, text: 'Advanced analytics' },
+        ],
+    },
+    {
+        name: 'Advanced',
+        description: 'For organizations that require advanced security and compliance.',
+        price: { monthly: '$40', annually: '$30' },
+        buttonText: 'Get Started',
+        popular: true,
+        features: [
+            { icon: FileStack, text: 'Everything in Standard, plus:' },
+            { icon: ShieldCheck, text: 'Advanced security (watermarking, expiry)' },
+            { icon: List, text: 'Audit trails' },
+            { icon: FileKey2, text: 'Custom permissions' },
+            { icon: GanttChartSquare, text: 'Full branding customization' },
+        ],
+    },
+    {
+        name: 'Advanced Data Rooms',
+        description: 'AI-powered due diligence and automated risk assessment.',
+        price: { monthly: '$50', annually: '$40' },
+        buttonText: 'Get Started',
+        features: [
+            { icon: Bot, text: 'Everything in Advanced, plus:' },
+            { icon: Sparkles, text: 'AI document analysis' },
+            { icon: Shield, text: 'Automated red flag detection' },
+            { icon: Milestone, text: 'Smart summaries' },
+            { icon: Files, text: 'Document comparison' },
+        ],
+    },
+];
 
 export default function PricingPage() {
   const router = useRouter();
@@ -81,13 +136,14 @@ export default function PricingPage() {
                 >
                   {plan.buttonText}
                 </Button>
-                <p className='font-semibold text-sm mt-6 mb-4'>{plan.features[0].text ? 'Key Features:' : 'All Personal features, plus:'}</p>
+                
                 { plan.name === 'Personal' && <p className='font-semibold text-sm mt-6 mb-4'>Key Features:</p> }
                 { plan.name !== 'Personal' && <p className='font-semibold text-sm mt-6 mb-4'>All {plan.name === 'Standard' ? 'Personal' : (plan.name === 'Advanced' ? 'Standard' : 'Advanced')} features, plus:</p>}
                 
                 <ul className="space-y-4 text-sm">
                   {plan.features.map((feature: any, index: number) => {
                      if (feature.text.startsWith('All ')) return null;
+                     if (feature.text.startsWith('Everything in')) return null;
                      return (
                         <li key={index} className="flex items-start gap-3">
                           {feature.icon && (
