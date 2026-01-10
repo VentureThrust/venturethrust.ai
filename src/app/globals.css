@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 220 20% 96%; /* Lighter Gray */
+    --background: 240 25% 98%; /* Very light purplish-gray */
     --foreground: 223 15% 20%; /* Dark Blue/Gray */
     --card: 0 0% 100%;
     --card-foreground: 223 15% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 223 15% 20%;
-    --primary: 223 44% 41%; /* Muted Blue */
+    --primary: 212 87% 61%; /* Bright Blue */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 125 24% 49%; /* Darker Soft Green for contrast */
-    --accent-foreground: 210 40% 98%;
+    --accent: 160 35% 55%; /* Muted Teal/Green */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 223 44% 41%;
+    --ring: 212 87% 61%;
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -30,14 +30,11 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     
-    --sidebar-background: 0 0% 100%;
+    --sidebar-background: 220 20% 96%; /* Lighter Gray for sidebar */
     --sidebar-foreground: 223 15% 20%;
-    --sidebar-primary: 223 15% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 96%;
-    --sidebar-accent-foreground: 223 15% 20%;
+    --sidebar-active-background: 210 100% 97%;
+    --sidebar-active-foreground: 212 87% 61%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 223 44% 41%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -46,33 +43,30 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
+    --primary: 212 87% 61%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 125 24% 49%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 160 35% 55%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 212 87% 61%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-background: 225 10% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 88%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-active-background: 212 87% 61%;
+    --sidebar-active-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -82,6 +76,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 }
