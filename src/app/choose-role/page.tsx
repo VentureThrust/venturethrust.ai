@@ -25,10 +25,10 @@ export default function ChooseRolePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex flex-col items-stretch gap-4 sm:flex-row">
             <Button
               variant="outline"
-              className="h-auto w-full flex-col gap-4 p-6 text-base"
+              className="h-auto w-full flex-1 flex-col gap-4 p-6 text-base"
               onClick={() => handleRoleSelection('founder')}
             >
               <Building className="h-10 w-10 text-primary" />
@@ -39,7 +39,7 @@ export default function ChooseRolePage() {
             </Button>
             <Button
               variant="outline"
-              className="h-auto w-full flex-col gap-4 p-6 text-base"
+              className="h-auto w-full flex-1 flex-col gap-4 p-6 text-base"
               onClick={() => handleRoleSelection('investor')}
             >
               <Briefcase className="h-10 w-10 text-primary" />
