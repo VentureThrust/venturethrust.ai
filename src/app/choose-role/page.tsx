@@ -86,7 +86,7 @@ export default function PricingPage() {
     // In a real app, you would handle the subscription logic here
     console.log('Selected plan:', planName, 'Cycle:', billingCycle);
     // Then navigate to the dashboard or next onboarding step
-    // router.push('/dashboard');
+    router.push('/dashboard');
   };
 
   return (
