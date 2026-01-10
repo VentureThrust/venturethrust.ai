@@ -17,7 +17,7 @@ export default function ChooseRolePage() {
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg text-center">
+      <Card className="w-full max-w-2xl text-center">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl">One last step!</CardTitle>
           <CardDescription className="text-base">
