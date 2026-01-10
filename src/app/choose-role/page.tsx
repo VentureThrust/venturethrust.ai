@@ -16,15 +16,15 @@ export default function ChooseRolePage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-2xl text-center">
-        <CardHeader>
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <Card className="flex h-screen w-screen flex-col items-center justify-center rounded-none border-0">
+        <CardHeader className="text-center">
           <CardTitle className="text-2xl md:text-3xl">One last step!</CardTitle>
           <CardDescription className="text-base text-muted-foreground">
             To help us tailor your experience, please tell us who you are.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="w-full max-w-2xl">
           <div className="flex flex-col items-stretch gap-4 sm:flex-row">
             <Button
               variant="outline"
