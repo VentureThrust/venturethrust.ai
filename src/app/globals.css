@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    --background: 216 25% 95%; /* Light Gray */
+    --background: 0 0% 100%;
     --foreground: 223 15% 20%; /* Dark Blue/Gray */
-    --card: 0 0% 100%;
+    --card: 216 25% 97%; /* Lighter gray for card background */
     --card-foreground: 223 15% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 223 15% 20%;
@@ -64,5 +64,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 }
