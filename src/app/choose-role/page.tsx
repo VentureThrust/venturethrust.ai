@@ -144,6 +144,7 @@ export default function PricingPage() {
                   className="w-full bg-foreground text-background hover:bg-foreground/90"
                   size="lg"
                   onClick={() => handlePlanSelection(plan.name)}
+                  suppressHydrationWarning
                 >
                   {plan.buttonText}
                 </Button>
