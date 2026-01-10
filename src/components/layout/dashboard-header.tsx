@@ -29,7 +29,7 @@ export function DashboardHeader() {
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
   return (
-    <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-6">
+    <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-6 flex-shrink-0">
       <div className="flex items-center gap-4">
         <Sheet>
           <SheetTrigger asChild>
