@@ -61,7 +61,7 @@ function ProblemSection() {
 const investorFeatures: any[] = [];
 const founderFeatures: any[] = [];
 
-function FeatureGrid({ features }: { features: string[] }) {
+function FeatureGrid({ features }: { features: any[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
       {features.map((feature, index) => (
