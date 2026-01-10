@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Users, FileText, Lock, FileSignature, BarChart2, Shield, Sparkles, Folder, Mail, EyeOff, FolderLock, FileCheck, FileSearch, HelpCircle, Video, TrendingUp, Paintbrush, FileUp, LockKeyhole, FileStack, ShieldCheck, List, FileKey2, GanttChartSquare, Bot, Milestone, Files, CalendarClock, ListTodo, ClipboardCheck, Zap, Settings, BarChart, File, VideoIcon, Link as LinkIcon, Edit, FilePlus } from 'lucide-react';
+import { User, Users, FileText, Lock, FileSignature, BarChart2, Shield, Sparkles, Folder, Mail, EyeOff, FolderLock, FileCheck, FileSearch, HelpCircle, Video, TrendingUp, Paintbrush, FileUp, LockKeyhole, FileStack, ShieldCheck, List, FileKey2, GanttChartSquare, Bot, Milestone, Files, CalendarClock, ListTodo, ClipboardCheck, Zap, Settings, BarChart, File, VideoIcon, Link as LinkIcon, Edit, FilePlus, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -147,10 +147,11 @@ export default function PricingPage() {
                 
                 <ul className="space-y-4 text-sm">
                   {plan.features.map((feature: any, index: number) => {
+                     const Icon = feature.icon;
                      return (
                         <li key={index} className="flex items-start gap-3">
-                          {feature.icon && (
-                            <feature.icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                          {Icon && (
+                            <Icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                           )}
                           <span>{feature.text}</span>
                         </li>
