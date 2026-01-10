@@ -9,74 +9,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
-const plans = [
-  {
-    name: 'Personal',
-    price: { monthly: '$10', annually: '$8' },
-    description: 'For secure sharing',
-    features: [
-      { icon: User, text: '1 user included' },
-      { icon: Lock, text: 'Basic sharing controls' },
-      { icon: BarChart2, text: 'Document level analytics' },
-      { icon: FileSignature, text: '4 eSignatures per month' },
-      { icon: Users, text: 'Unlimited visitors' },
-    ],
-    buttonText: 'Select Plan',
-    variant: 'outline' as const,
-  },
-  {
-    name: 'Standard',
-    price: { monthly: '$45', annually: '$40' },
-    description: 'For multi-file secure sharing',
-    features: [
-      { text: 'All Personal features, plus:' },
-      { icon: User, text: '1 user included' },
-      { icon: Files, text: 'Multi-file sharing' },
-      { icon: Video, text: 'Video and rich media analytics' },
-      { icon: FileUp, text: 'File requests' },
-      { icon: Paintbrush, text: 'Customizable branding' },
-      { icon: FileSignature, text: 'Unlimited eSignature' },
-    ],
-    buttonText: 'Select Plan',
-    popular: true,
-    variant: 'default' as const,
-  },
-  {
-    name: 'Advanced',
-    price: { monthly: '$150', annually: '$125' },
-    description: 'For advanced security',
-    features: [
-      { text: 'All Standard features, plus:' },
-      { icon: Users, text: '3 users included' },
-      { icon: Folder, text: 'Lightweight data rooms (Spaces)' },
-      { icon: Mail, text: 'Email authentication for visitors' },
-      { icon: EyeOff, text: 'Allow/block visitors lists' },
-      { icon: FolderLock, text: 'Folder and file level security' },
-      { icon: Shield, text: 'Dynamic watermarking' },
-      { icon: FileCheck, text: 'NDAs and gating agreements' },
-    ],
-    buttonText: 'Select Plan',
-    variant: 'outline' as const,
-  },
-    {
-    name: 'Advanced Data Rooms',
-    price: { monthly: '$180', annually: '$150' },
-    description: 'For complete deal control',
-    features: [
-        { text: 'All Advanced features, plus:' },
-        { icon: Users, text: '3 users included' },
-        { icon: FileStack, text: 'Enhanced data rooms (Spaces)' },
-        { icon: LockKeyhole, text: 'Group visitor permissions' },
-        { icon: CalendarClock, text: 'Data room audit log' },
-        { icon: ListTodo, text: 'Automatic file indexing' },
-        { icon: BarChart2, text: 'Data room analytics' },
-        { icon: HelpCircle, text: 'Priority email support' },
-        { icon: Zap, text: '2X capacity per data room' },
-    ],
-    buttonText: 'Select Plan',
-    variant: 'outline' as const,
-  },
-];
+const plans: any[] = [];
 
 export default function PricingPage() {
   const router = useRouter();
@@ -153,7 +86,7 @@ export default function PricingPage() {
                 { plan.name !== 'Personal' && <p className='font-semibold text-sm mt-6 mb-4'>All {plan.name === 'Standard' ? 'Personal' : (plan.name === 'Advanced' ? 'Standard' : 'Advanced')} features, plus:</p>}
                 
                 <ul className="space-y-4 text-sm">
-                  {plan.features.map((feature, index) => {
+                  {plan.features.map((feature: any, index: number) => {
                      if (feature.text.startsWith('All ')) return null;
                      return (
                         <li key={index} className="flex items-start gap-3">

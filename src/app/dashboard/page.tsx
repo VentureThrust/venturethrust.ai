@@ -31,62 +31,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
-const dataRooms = [
-  {
-    icon: SquareGanttChart,
-    name: 'SeedRound Docs',
-    owner: 'Gran Chen',
-    status: 'In Review',
-    statusColor: 'bg-yellow-400',
-  },
-  {
-    icon: LineChart,
-    name: 'Series-A Room',
-    owner: 'Seel Acrive',
-    lastActive: 'Yesterday',
-  },
-  {
-    icon: SquareUser,
-    name: 'MVP Pitch Deck',
-    owner: 'MJ Williams',
-    lastActive: '2 days ago',
-  },
-  {
-    icon: DollarSign,
-    name: 'RetailPulse',
-    owner: 'Aames Singh',
-    lastActive: '5 days ago',
-  },
-  {
-    icon: Users,
-    name: 'EduNex',
-    owner: 'Sara Taylor',
-    lastActive: '1 week ago',
-  },
-];
-
-const quickActions = [
-  {
-    icon: Wallet,
-    name: 'PayFlow Pitch Deck',
-    status: 'No Major Issues',
-    statusColor: 'text-green-500',
-  },
-  {
-    icon: Folder,
-    name: 'FinTechCo Financials',
-    status: '4 Red Flags',
-    statusColor: 'text-red-500',
-    analyzed: 'Analyzed 2 days ago',
-  },
-  {
-    icon: File,
-    name: 'Sample NDA',
-    status: '4 Red Flags',
-    statusColor: 'text-red-500',
-    analyzed: 'Analyzed 4 days ago',
-  },
-];
+const dataRooms: any[] = [];
+const quickActions: any[] = [];
 
 export default function Dashboard() {
   return (

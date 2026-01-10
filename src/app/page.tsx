@@ -30,12 +30,7 @@ function HeroSection() {
   );
 }
 
-const problems = [
-  { icon: FolderKanban, title: 'Scattered Documents', description: 'Endless email threads and disorganized cloud folders create chaos.' },
-  { icon: Scale, title: 'Inconsistent Data', description: 'Comparing startups is difficult with non-standardized information.' },
-  { icon: FileQuestion, title: 'Missing Information', description: 'Critical details get lost, leading to incomplete evaluations.' },
-  { icon: Clock, title: 'Slow Decisions', description: 'Chasing down files and clarifications wastes valuable time for both sides.' },
-];
+const problems: any[] = [];
 
 function ProblemSection() {
   return (
@@ -63,19 +58,8 @@ function ProblemSection() {
   );
 }
 
-const investorFeatures = [
-  "Centralized deal rooms for every opportunity.",
-  "AI-powered analysis to surface potential red flags.",
-  "Standardized formats for easy side-by-side comparison.",
-  "Direct, secure communication with founders.",
-];
-
-const founderFeatures = [
-  "Upload your documents once, share infinitely.",
-  "Granular access controls for each investor.",
-  "A professional data room that builds trust.",
-  "Track engagement to see who is most interested.",
-];
+const investorFeatures: any[] = [];
+const founderFeatures: any[] = [];
 
 function FeatureGrid({ features }: { features: string[] }) {
   return (
@@ -121,24 +105,7 @@ function SolutionSection() {
   );
 }
 
-const steps = [
-  {
-    name: '1. Build Your Data Room',
-    description: 'Founders securely upload and organize pitch decks, financials, and legal documents into a standardized structure.',
-  },
-  {
-    name: '2. Invite & Review',
-    description: 'Investors receive a private invitation to a clean, consistent, and easy-to-navigate deal room.',
-  },
-  {
-    name: '3. Analyze & Flag',
-    description: 'Our system automatically checks for completeness and highlights potential red flags, saving hours of manual work.',
-  },
-  {
-    name: '4. Decide with Confidence',
-    description: 'With all information organized and verified, both sides can communicate clearly and make faster, smarter decisions.',
-  },
-];
+const steps: any[] = [];
 
 const productUiImage = PlaceHolderImages.find(img => img.id === 'product-ui');
 
@@ -181,12 +148,7 @@ function HowItWorksSection() {
   );
 }
 
-const securityFeatures = [
-  { icon: Lock, title: 'End-to-End Encryption', description: 'All data is encrypted in transit and at rest using industry-leading standards.' },
-  { icon: Fingerprint, title: 'Granular Access Controls', description: 'Founders control exactly who sees what, and for how long.' },
-  { icon: DatabaseZap, title: 'Secure Infrastructure', description: 'Built on world-class infrastructure with robust security protocols.' },
-  { icon: ShieldCheck, title: 'Compliance Focused', description: 'Designed to meet modern data privacy and security standards.' },
-];
+const securityFeatures: any[] = [];
 
 function TrustSection() {
   return (
