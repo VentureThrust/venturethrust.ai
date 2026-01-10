@@ -9,19 +9,19 @@ import Link from 'next/link';
 
 function HeroSection() {
   return (
-    <section className="py-24 sm:py-32 bg-card">
+    <section className="py-20 sm:py-24 lg:py-32">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl font-headline animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-headline animate-in fade-in slide-in-from-bottom-4 duration-1000">
           The Clear Path to Smarter Startup Investing.
         </h1>
         <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
           Venture Trust is a secure, centralized platform for founders and investors to manage documents, identify red flags, and make decisions with confidence.
         </p>
-        <div className="mt-10 flex items-center justify-center gap-x-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
-          <Button size="lg" asChild>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
+          <Button size="lg" className="w-full sm:w-auto" asChild>
             <Link href="/signup">Get Started</Link>
           </Button>
-          <Button size="lg" variant="outline" asChild>
+          <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
             <a href="#how-it-works">How It Works</a>
           </Button>
         </div>
@@ -39,7 +39,7 @@ const problems = [
 
 function ProblemSection() {
   return (
-    <section className="py-24 sm:py-32">
+    <section className="py-20 sm:py-24 lg:py-32 bg-card">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">
@@ -51,7 +51,7 @@ function ProblemSection() {
         </div>
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {problems.map((problem, i) => (
-            <div key={problem.title} className="p-6 bg-card rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-6 duration-1000" style={{ animationDelay: `${i * 100}ms` }}>
+            <div key={problem.title} className="p-6 bg-background/50 rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-6 duration-1000" style={{ animationDelay: `${i * 100}ms` }}>
               <problem.icon className="h-10 w-10 text-primary" />
               <h3 className="mt-6 text-lg font-semibold text-foreground">{problem.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{problem.description}</p>
@@ -92,7 +92,7 @@ function FeatureGrid({ features }: { features: string[] }) {
 
 function SolutionSection() {
   return (
-    <section id="features" className="py-24 sm:py-32 bg-card">
+    <section id="features" className="py-20 sm:py-24 lg:py-32">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">
@@ -144,7 +144,7 @@ const productUiImage = PlaceHolderImages.find(img => img.id === 'product-ui');
 
 function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-24 sm:py-32">
+    <section id="how-it-works" className="py-20 sm:py-24 lg:py-32 bg-card">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
@@ -163,7 +163,7 @@ function HowItWorksSection() {
               ))}
             </dl>
           </div>
-          <div className="bg-card p-2 rounded-lg shadow-lg -m-4">
+          <div className="bg-background/50 p-2 rounded-lg shadow-lg -m-4">
             {productUiImage && (
               <Image
                 src={productUiImage.imageUrl}
@@ -190,7 +190,7 @@ const securityFeatures = [
 
 function TrustSection() {
   return (
-    <section id="security" className="py-24 sm:py-32 bg-card">
+    <section id="security" className="py-20 sm:py-24 lg:py-32">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">
@@ -218,7 +218,7 @@ function TrustSection() {
 
 function CtaSection() {
   return (
-    <section className="py-24 sm:py-32">
+    <section className="py-20 sm:py-24 lg:py-32 bg-card">
       <div className="container mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">
           Ready to bring clarity to your process?

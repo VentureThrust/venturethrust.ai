@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
@@ -51,10 +51,16 @@ export function Header() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] p-0">
+            <SheetContent side="right" className="w-full max-w-xs p-0">
               <div className="flex flex-col h-full">
-                <div className="p-4 border-b">
+                <div className="flex items-center justify-between p-4 border-b">
                    <Logo />
+                   <SheetClose asChild>
+                     <Button variant="ghost" size="icon">
+                       <X className="h-6 w-6" />
+                       <span className="sr-only">Close menu</span>
+                     </Button>
+                   </SheetClose>
                 </div>
                 <nav className="flex flex-col gap-4 p-4">
                   {navLinks.map((link) => (
