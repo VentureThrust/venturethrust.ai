@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Star, Folder, FolderOpen, FolderPlus, Database, CheckCircle } from 'lucide-react';
+import { Check, Star, Folder, FolderOpen, FolderPlus, Database, CheckCircle, Search, FileSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from '@/components/layout/logo';
@@ -20,7 +20,7 @@ const vdrPlans = [
             { text: '1 Data Room', included: true },
             { text: 'Document level analytics', included: true },
             { text: 'Up to 4 Data Rooms at $29/mo each', included: true },
-            { text: '2GB of storage', included: false },
+            { text: '2GB of storage', included: true },
             { text: 'Customizable branding', included: true },
             { text: 'Unlimited visitors', included: true },
         ],
@@ -63,6 +63,58 @@ const vdrPlans = [
     },
 ];
 
+const comboPlans = [
+  {
+    name: 'Starter Combo',
+    price: { monthly: '$109', annually: '$129' },
+    buttonText: 'Select Plan',
+    features: [
+        { text: 'Unlimited rooms' },
+        { text: 'AI Risk Scanner' },
+        { text: 'Basic sharing controls' },
+        { text: 'Automated risk detection' },
+        { text: 'Up to 1 Data Room at $33/mo each' },
+        { text: '2GB of storage' },
+        { text: 'Customizable branding' },
+    ],
+    icon: FileSearch,
+    primary: false,
+  },
+  {
+      name: 'Founder Pro',
+      price: { monthly: '$149', annually: '$179' },
+      buttonText: 'Select Plan',
+      popular: true,
+      features: [
+          { text: 'All Basic AI Features plus' },
+          { text: 'Video and audio analysis' },
+          { text: 'Video and rich media sharing' },
+          { text: 'Auto-generated summaries' },
+          { text: 'Dynamic checklist questions' },
+          { text: 'Auto-generated report & summaries' },
+      ],
+      icon: FileSearch,
+      primary: true,
+  },
+  {
+      name: 'Enterprise',
+      price: { monthly: '$299', annually: '$359' },
+      buttonText: 'Select Plan',
+      bestValue: true,
+      features: [
+          { text: 'All Founder Pro features plus' },
+          { text: 'Enhanced security controls' },
+          { text: 'Advanced risk prioritization' },
+          { text: 'Custom AI training' },
+          { text: 'Group visitor permissions' },
+          { text: 'Dedicated account manager' },
+          { text: 'Priority email and phone support' },
+      ],
+      icon: FileSearch,
+      primary: true,
+  },
+];
+
 
 const PlanCard = ({ plan }: { plan: any }) => {
     const router = useRouter();
@@ -74,7 +126,7 @@ const PlanCard = ({ plan }: { plan: any }) => {
     return (
         <Card className={cn(
             'flex flex-col relative rounded-xl shadow-lg border w-[360px]',
-            plan.primary ? 'border-primary/50' : 'border-border'
+            plan.primary ? 'border-primary/50 bg-card' : 'border-border bg-card/60'
         )}>
              {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-yellow-100 text-yellow-800 px-4 py-1 text-sm font-semibold flex items-center gap-1.5">
@@ -82,7 +134,7 @@ const PlanCard = ({ plan }: { plan: any }) => {
                 </div>
               )}
                {plan.bestValue && (
-                <div className="absolute -top-4 right-6 rounded-full bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold">
+                <div className="absolute -top-3 right-6 rounded-full bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold shadow-md">
                   BEST VALUE
                 </div>
               )}
@@ -97,13 +149,14 @@ const PlanCard = ({ plan }: { plan: any }) => {
                     <plan.icon className={cn("w-8 h-8", plan.primary ? 'text-primary' : 'text-muted-foreground')} />
                     <div>
                         <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                        <p className="text-muted-foreground">{plan.description}</p>
+                        {plan.description && <p className="text-muted-foreground">{plan.description}</p>}
                     </div>
                 </div>
 
                 <div className="pt-4">
                   <span className="text-4xl font-extrabold">{plan.price.monthly}</span>
-                  <p className="text-sm text-muted-foreground">billed annually ({plan.price.annually}/month)</p>
+                  <span className="text-muted-foreground">/mo</span>
+                  <p className="text-sm text-muted-foreground">billed annually (${plan.price.annually}/month)</p>
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
@@ -112,7 +165,7 @@ const PlanCard = ({ plan }: { plan: any }) => {
                     <ul className="space-y-3 text-sm">
                     {plan.features.map((feature: any, index: number) => (
                         <li key={index} className="flex items-start gap-3">
-                         {feature.included ? <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary" /> : <Database className="h-5 w-5 flex-shrink-0 text-muted-foreground" />}
+                         {feature.included === false ? <Database className="h-5 w-5 flex-shrink-0 text-muted-foreground" /> : <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary" />}
                           <span>{feature.text}</span>
                         </li>
                     ))}
@@ -121,7 +174,7 @@ const PlanCard = ({ plan }: { plan: any }) => {
             </CardContent>
             <CardFooter>
             <Button
-                    className={cn("w-full text-lg h-12", plan.primary ? 'bg-primary hover:bg-primary/90' : 'bg-primary')}
+                    className={cn("w-full text-lg h-12", plan.primary ? 'bg-primary hover:bg-primary/90' : 'bg-primary/80 hover:bg-primary/90')}
                     onClick={() => handlePlanSelection(plan.name)}
                     suppressHydrationWarning
                  >
@@ -158,8 +211,10 @@ export default function PricingPage() {
                     </div>
                  </TabsContent>
                  <TabsContent value="combo" className="mt-12">
-                 <div className="text-center p-8">
-                        <p className="text-muted-foreground">Combo plans will be available soon.</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 justify-center">
+                        {comboPlans.map((plan) => (
+                            <PlanCard key={plan.name} plan={plan} />
+                        ))}
                     </div>
                  </TabsContent>
             </Tabs>
