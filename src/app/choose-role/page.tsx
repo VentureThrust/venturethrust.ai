@@ -63,6 +63,58 @@ const vdrPlans = [
     },
 ];
 
+const aiPlans = [
+  {
+      name: 'Basic AI',
+      description: 'Basic Scanner',
+      price: { monthly: '$99', annually: '$69' },
+      buttonText: 'Select Plan',
+      features: [
+          { text: 'AI Risk Scanner' , included: true },
+          { text: 'Upload DOCX, PDF, XLSX' , included: true },
+          { text: 'Automated risk detection' , included: true },
+          { text: 'Up to 1 Data Room at $2/mo each' , included: true },
+          { text: '2GB of storage' , included: true },
+          { text: 'Customizable branding' , included: true },
+      ],
+      icon: FileSearch,
+      primary: false,
+  },
+  {
+      name: 'Pro AI',
+      description: 'AI Due Diligence Staff',
+      price: { monthly: '$149', annually: '$169' },
+      buttonText: 'Select Plan',
+      popular: true,
+      features: [
+          { text: 'All Basic AI Features plus', included: true },
+          { text: 'Dynamic checklist questions', included: true },
+          { text: 'Custom risk scoring', included: true },
+          { text: 'Auto-generated report', included: true },
+          { text: 'Auto-generated report & summaries', included: true },
+      ],
+      icon: FileSearch,
+      primary: true,
+  },
+  {
+      name: 'Advanced AI',
+      description: 'AI Due Diligence Plus',
+      price: { monthly: '$299', annually: '$169' },
+      buttonText: 'Select Plan',
+      bestValue: true,
+      features: [
+          { text: 'All Pro AI Features plus', included: true },
+          { text: 'Advanced prioritization', included: true },
+          { text: 'Custom AI training', included: true },
+          { text: 'Dynamic risk highlighting', included: true },
+          { text: 'Dedicated AI support', included: true },
+      ],
+      icon: FileSearch,
+      primary: true,
+  },
+];
+
+
 const comboPlans = [
   {
     name: 'Starter Combo',
@@ -176,7 +228,6 @@ const PlanCard = ({ plan }: { plan: any }) => {
             <Button
                     className={cn("w-full text-lg h-12", plan.primary ? 'bg-primary hover:bg-primary/90' : 'bg-primary/80 hover:bg-primary/90')}
                     onClick={() => handlePlanSelection(plan.name)}
-                    suppressHydrationWarning
                  >
                     {plan.buttonText}
                  </Button>
@@ -206,8 +257,10 @@ export default function PricingPage() {
                     </div>
                  </TabsContent>
                  <TabsContent value="ai" className="mt-12">
-                    <div className="text-center p-8">
-                        <p className="text-muted-foreground">AI Due Diligence plans will be available soon.</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 justify-center">
+                        {aiPlans.map((plan) => (
+                            <PlanCard key={plan.name} plan={plan} />
+                        ))}
                     </div>
                  </TabsContent>
                  <TabsContent value="combo" className="mt-12">
