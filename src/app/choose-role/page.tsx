@@ -107,13 +107,6 @@ const PlanCard = ({ plan }: { plan: any }) => {
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                 <Button
-                    className={cn("w-full text-lg h-12", plan.primary ? 'bg-primary hover:bg-primary/90' : 'bg-gray-100 text-primary hover:bg-gray-200')}
-                    onClick={() => handlePlanSelection(plan.name)}
-                    suppressHydrationWarning
-                 >
-                    {plan.buttonText}
-                 </Button>
                 <div className='mt-6'>
                     <p className="font-semibold mb-4">Key Features:</p>
                     <ul className="space-y-3 text-sm">
