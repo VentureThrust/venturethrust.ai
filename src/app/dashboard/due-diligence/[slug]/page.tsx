@@ -70,6 +70,36 @@ const redFlags = [
   },
 ];
 
+const yellowFlags = [
+  {
+    title: 'Outdated Employee Handbook',
+    category: 'HR',
+    description: 'The employee handbook was last updated in 2021 and may not reflect current labor laws.',
+    icon: Users,
+  },
+  {
+    title: 'Single-Source Supplier Dependency',
+    category: 'Products',
+    description: 'The company relies on a single supplier for a critical component, posing a supply chain risk.',
+    icon: Package,
+  },
+];
+
+const greenChecks = [
+  {
+    title: 'Strong IP Portfolio',
+    category: 'Legal',
+    description: 'The company holds several key patents for its core technology, providing a competitive advantage.',
+    icon: Briefcase,
+  },
+  {
+    title: 'Consistent Revenue Growth',
+    category: 'Financial',
+    description: 'Financial statements show consistent year-over-year revenue growth for the past three fiscal years.',
+    icon: GitBranch,
+  },
+];
+
 const riskDistributionData = [
   { name: 'High Risk', value: 35, color: '#F44336' },
   { name: 'Moderate Risk', value: 20, color: '#FFC107' },
@@ -152,8 +182,10 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 <Card>
                     <CardContent className='p-3 flex items-center justify-between'>
                         <div className='flex items-center gap-4'>
-                            <Badge variant="destructive" className='text-sm h-8'>
-                                <AlertTriangle className='w-4 h-4 mr-2' /> Overall Risk: High <ChevronDown className='ml-2 h-4 w-4' />
+                            <Badge variant="destructive" className='text-sm h-8 px-3 flex items-center gap-2'>
+                                <AlertTriangle className='w-4 h-4' /> 
+                                <span>Overall Risk: High</span>
+                                <ChevronDown className='w-4 h-4' />
                             </Badge>
                             <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Legal</Button>
                             <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Financial <Badge className='ml-2'>5</Badge></Button>
@@ -201,6 +233,56 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                            <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags (7)</CardTitle>
                            <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                         </CardHeader>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="yellow-flags" className="mt-4 space-y-4">
+                    <Card className='border-l-4 border-yellow-500'>
+                        <CardHeader className='flex-row justify-between items-center'>
+                           <CardTitle className='text-base flex items-center gap-2'><Flag className='w-5 h-5 text-yellow-500' /> Yellow Flags (4)</CardTitle>
+                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                        </CardHeader>
+                        <CardContent className='space-y-6'>
+                            {yellowFlags.map((flag, index) => (
+                                <div key={index} className='flex items-start gap-4'>
+                                    <div className='w-5 h-5 bg-yellow-500 rounded-full mt-1 flex-shrink-0' />
+                                    <div className='flex-1'>
+                                        <div className='flex justify-between items-start'>
+                                            <p className='font-semibold'>{flag.title}</p>
+                                            <Badge variant="outline">{flag.category}</Badge>
+                                        </div>
+                                        <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
+                                            <flag.icon className='w-4 h-4' />
+                                            <p>{flag.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="green-checks" className="mt-4 space-y-4">
+                    <Card className='border-l-4 border-green-500'>
+                        <CardHeader className='flex-row justify-between items-center'>
+                           <CardTitle className='text-base flex items-center gap-2'><CheckCircle className='w-5 h-5 text-green-500' /> Green Checks (9)</CardTitle>
+                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                        </CardHeader>
+                        <CardContent className='space-y-6'>
+                            {greenChecks.map((flag, index) => (
+                                <div key={index} className='flex items-start gap-4'>
+                                    <div className='w-5 h-5 bg-green-500 rounded-full mt-1 flex-shrink-0' />
+                                    <div className='flex-1'>
+                                        <div className='flex justify-between items-start'>
+                                            <p className='font-semibold'>{flag.title}</p>
+                                            <Badge variant="outline">{flag.category}</Badge>
+                                        </div>
+                                        <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
+                                            <flag.icon className='w-4 h-4' />
+                                            <p>{flag.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
                     </Card>
                 </TabsContent>
               </Tabs>
