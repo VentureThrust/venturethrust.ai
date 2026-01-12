@@ -34,7 +34,7 @@ export function DashboardHeader() {
     return (
       <header className="flex h-20 items-center justify-between gap-4 border-b bg-background px-6 lg:px-8 flex-shrink-0">
           <div className='flex items-center gap-4'>
-            <Button variant="ghost" size="icon"><PanelLeft className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" suppressHydrationWarning><PanelLeft className="h-5 w-5" /></Button>
             <Logo isPen={true} />
           </div>
           <div className="flex items-center gap-4">
@@ -42,6 +42,7 @@ export function DashboardHeader() {
                   variant="ghost"
                   size="icon"
                   className="relative text-muted-foreground hover:text-foreground"
+                  suppressHydrationWarning
               >
                   <Mail className="h-5 w-5" />
                   <span className="sr-only">Messages</span>
@@ -126,6 +127,7 @@ export function DashboardHeader() {
           variant="ghost"
           size="icon"
           className="relative text-muted-foreground hover:text-foreground"
+          suppressHydrationWarning
         >
           <Bell className="h-5 w-5" />
           <span className="absolute top-2 right-2 flex h-2 w-2">
