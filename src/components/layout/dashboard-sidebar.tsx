@@ -37,6 +37,12 @@ const quickActionsLinks = [
 export function DashboardSidebar() {
   const pathname = usePathname();
 
+  const isDueDiligencePage = pathname.startsWith('/dashboard/due-diligence');
+
+  if (isDueDiligencePage) {
+    return null;
+  }
+
   return (
     <div className="flex h-full flex-col border-r bg-card text-card-foreground">
         <div className="flex h-20 items-center border-b px-6">

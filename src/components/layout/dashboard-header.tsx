@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { Bell, PanelLeft } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Bell, PanelLeft, Mail } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +21,81 @@ import { Button } from '@/components/ui/button';
 import { DashboardSidebar } from './dashboard-sidebar';
 import Image from 'next/image';
 import { useUser } from '@/hooks/use-user';
+import { Logo } from './logo';
+import { cn } from '@/lib/utils';
 
 export function DashboardHeader() {
   const { user } = useUser();
+  const pathname = usePathname();
+
+  const isDueDiligencePage = pathname.startsWith('/dashboard/due-diligence');
+
+  if (isDueDiligencePage) {
+    return (
+      <header className="flex h-20 items-center justify-between gap-4 border-b bg-background px-6 lg:px-8 flex-shrink-0">
+          <div className='flex items-center gap-4'>
+            <Button variant="ghost" size="icon"><PanelLeft className="h-5 w-5" /></Button>
+            <Logo isPen={true} />
+          </div>
+          <div className="flex items-center gap-4">
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-muted-foreground hover:text-foreground"
+              >
+                  <Mail className="h-5 w-5" />
+                  <span className="sr-only">Messages</span>
+              </Button>
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                  <Button
+                      variant="ghost"
+                      className="flex items-center gap-3"
+                      suppressHydrationWarning
+                  >
+                      <Image
+                        src="https://i.pravatar.cc/150?u=jackroberts"
+                        alt="Jack Roberts"
+                        data-ai-hint="user avatar"
+                        width={36}
+                        height={36}
+                        className="rounded-full"
+                      />
+                      <span className="hidden sm:inline font-medium">Jack Roberts</span>
+                      
+                      <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-muted-foreground"
+                      >
+                      <path
+                          d="M5 7.5L10 12.5L15 7.5"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                      />
+                      </svg>
+                  </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                      <Link href="/dashboard/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Support</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>Logout</DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+      </header>
+    )
+  }
 
   return (
     <header className="flex h-20 items-center justify-between gap-4 border-b bg-background px-6 lg:px-8 flex-shrink-0">
