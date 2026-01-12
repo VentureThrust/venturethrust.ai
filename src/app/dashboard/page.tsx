@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import { useUser } from '@/hooks/use-user';
 
 const dataRooms = [
   {
@@ -55,6 +56,7 @@ const dataRooms = [
 ];
 
 export default function Dashboard() {
+  const { user } = useUser();
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -115,7 +117,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold">Welcome, John</h1>
+        <h1 className="text-3xl font-bold">Welcome, {user.firstName}</h1>
         <p className="text-muted-foreground mt-1">
           Here's a summary of your recent activity and data rooms.
         </p>
