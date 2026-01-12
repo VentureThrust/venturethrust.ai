@@ -182,7 +182,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 <Card>
                     <CardContent className='p-3 flex items-center justify-between'>
                         <div className='flex items-center gap-4'>
-                             <Badge variant="outline" className='text-sm h-8 px-3 flex items-center gap-2 border-red-500 text-red-500'>
+                             <Badge variant="outline" className='text-sm h-8 px-3 flex items-center gap-2 border-0 text-red-500'>
                                 <AlertTriangle className='w-4 h-4' /> 
                                 <span>Overall Risk: High</span>
                                 <ChevronDown className='w-4 h-4' />
