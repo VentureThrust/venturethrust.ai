@@ -18,6 +18,8 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +41,9 @@ export function DashboardHeader() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="lg:hidden w-64 p-0">
+             <SheetHeader>
+                <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+             </SheetHeader>
             <DashboardSidebar />
           </SheetContent>
         </Sheet>
