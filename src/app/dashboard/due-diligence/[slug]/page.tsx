@@ -49,28 +49,52 @@ const sidebarNavItems = [
   { title: 'Products', icon: Package },
 ];
 
-const redFlags = [
-  {
-    title: 'Missing Pollution Control Board Certificate',
-    category: 'Licenses',
-    description: 'Pollution Control Board Certificate not found, required for MSME.',
-    icon: File,
-  },
-  {
-    title: 'Non-compete Violation with a key employee',
-    category: 'Legal',
-    description: 'John Choudhury (Key Account Manager) & John Choudhury has a non-compete agreement from his previous job.',
-    icon: Users,
-  },
-  {
-    title: 'Independent Revenue Projections not verified',
-    category: 'Financial',
-    description: "Company's future revenue projections have not been independently Varrted.",
-    icon: GitBranch,
-  },
-];
-
-const yellowFlags = [
+const allData = {
+  redFlags: [
+    {
+      title: 'Missing Pollution Control Board Certificate',
+      category: 'Licenses',
+      description: 'Pollution Control Board Certificate not found, required for MSME.',
+      icon: File,
+    },
+    {
+      title: 'Non-compete Violation with a key employee',
+      category: 'Legal',
+      description: 'John Choudhury (Key Account Manager) has a non-compete agreement from his previous job.',
+      icon: Users,
+    },
+    {
+      title: 'Independent Revenue Projections not verified',
+      category: 'Financials',
+      description: "Company's future revenue projections have not been independently Varrted.",
+      icon: GitBranch,
+    },
+    {
+      title: 'Unregistered Company Domain Name',
+      category: 'Legal',
+      description: 'The primary domain name for the company is not officially registered.',
+      icon: File,
+    },
+    {
+      title: 'High Employee Turnover Rate',
+      category: 'HR',
+      description: 'The company has a 45% employee turnover rate in the last fiscal year.',
+      icon: Users,
+    },
+     {
+      title: 'Lack of Formal Sales Process',
+      category: 'Sales',
+      description: 'There is no documented sales process or CRM in place.',
+      icon: ShoppingBag,
+    },
+    {
+      title: 'No Product Roadmap',
+      category: 'Products',
+      description: 'The company has not defined a product roadmap for the next 12-18 months.',
+      icon: Package,
+    },
+  ],
+  yellowFlags: [
     {
       title: 'Outdated Employee Handbook',
       category: 'HR',
@@ -83,9 +107,20 @@ const yellowFlags = [
       description: 'The company relies on a single supplier for a critical component, posing a supply chain risk.',
       icon: Package,
     },
-  ];
-
-  const greenChecks = [
+    {
+        title: 'Informal Credit Terms with Customers',
+        category: 'Financials',
+        description: 'Credit terms are negotiated on a case-by-case basis without a standard policy.',
+        icon: GitBranch,
+    },
+    {
+        title: 'Missing Service Level Agreement (SLA)',
+        category: 'Legal',
+        description: 'Key client contracts lack a formal Service Level Agreement.',
+        icon: Briefcase,
+    }
+  ],
+  greenChecks: [
     {
       title: 'Strong IP Portfolio',
       category: 'Legal',
@@ -94,11 +129,37 @@ const yellowFlags = [
     },
     {
       title: 'Consistent Revenue Growth',
-      category: 'Financial',
+      category: 'Financials',
       description: 'Financial statements show consistent year-over-year revenue growth for the past three fiscal years.',
       icon: GitBranch,
     },
-  ];
+    {
+        title: 'Positive Customer Feedback',
+        category: 'Sales',
+        description: 'Customer satisfaction surveys show an average score of 4.8/5.0.',
+        icon: ShoppingBag,
+    },
+    {
+        title: 'Experienced Leadership Team',
+        category: 'HR',
+        description: 'The founding team has a combined 30 years of experience in the industry.',
+        icon: Users,
+    },
+    {
+        title: 'Scalable Tech Stack',
+        category: 'Products',
+        description: 'The product is built on a modern, scalable architecture.',
+        icon: Package,
+    },
+     {
+      title: 'Business License in Good Standing',
+      category: 'Licenses',
+      description: 'All required local and state business licenses are active and in good standing.',
+      icon: Book,
+    },
+  ],
+};
+
 
 const riskDistributionData = [
   { name: 'High Risk', value: 35, color: '#F44336' },
@@ -116,6 +177,19 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
   const resolvedParams = use(params);
   const companyName = resolvedParams.slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   const [activeCategory, setActiveCategory] = useState('Overview');
+  
+  const filterByCategory = (items: any[]) => {
+    if (activeCategory === 'Overview' || activeCategory === 'Risks') {
+      return items;
+    }
+    return items.filter(item => item.category === activeCategory);
+  };
+
+  const redFlags = filterByCategory(allData.redFlags);
+  const yellowFlags = filterByCategory(allData.yellowFlags);
+  const greenChecks = filterByCategory(allData.greenChecks);
+
+  const topNavCategories = ['Legal', 'Financials', 'HR'];
 
   return (
     <div className="bg-background min-h-screen">
@@ -184,14 +258,25 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 <Card>
                     <CardContent className='p-3 flex items-center justify-between'>
                         <div className='flex items-center gap-4'>
-                            <div className='flex items-center gap-2 text-sm h-8 px-3 text-red-500'>
+                             <div className='flex items-center gap-2 text-sm h-8 px-3 text-red-500'>
                                 <AlertTriangle className='w-4 h-4' /> 
                                 <span>Overall Risk: High</span>
                                 <ChevronDown className='w-4 h-4' />
                             </div>
-                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Legal</Button>
-                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Financial <Badge className='ml-2'>5</Badge></Button>
-                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>HR & Employees <Badge className='ml-2'>4</Badge></Button>
+                            {topNavCategories.map(cat => {
+                                const count = allData.redFlags.filter(f => f.category === cat).length + allData.yellowFlags.filter(f => f.category === cat).length;
+                                return (
+                                <Button 
+                                    key={cat} 
+                                    variant={activeCategory === cat ? 'secondary' : 'ghost'} 
+                                    className='text-muted-foreground'
+                                    onClick={() => setActiveCategory(cat)}
+                                    suppressHydrationWarning
+                                >
+                                    {cat === 'HR' ? 'HR & Employees' : cat} {count > 0 && <Badge className='ml-2'>{count}</Badge>}
+                                </Button>
+                                )
+                            })}
                         </div>
                         <div className="relative w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -202,90 +287,96 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
 
               <Tabs defaultValue="red-flags" className="w-full">
                 <TabsList>
-                  <TabsTrigger value="red-flags">Red Flags (7)</TabsTrigger>
-                  <TabsTrigger value="yellow-flags">Yellow Flags (4)</TabsTrigger>
-                  <TabsTrigger value="green-checks">Green Checks (9)</TabsTrigger>
+                  <TabsTrigger value="red-flags">Red Flags ({redFlags.length})</TabsTrigger>
+                  <TabsTrigger value="yellow-flags">Yellow Flags ({yellowFlags.length})</TabsTrigger>
+                  <TabsTrigger value="green-checks">Green Checks ({greenChecks.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="red-flags" className="mt-4 space-y-4">
-                    <Card className='border-l-4 border-red-500'>
-                        <CardHeader className='flex-row justify-between items-center'>
-                           <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags (7)</CardTitle>
-                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
-                        </CardHeader>
-                        <CardContent className='space-y-6'>
-                            {redFlags.map((flag, index) => (
-                                <div key={index} className='flex items-start gap-4'>
-                                    <div className='w-5 h-5 bg-red-500 rounded-full mt-1 flex-shrink-0' />
-                                    <div className='flex-1'>
-                                        <div className='flex justify-between items-start'>
-                                            <p className='font-semibold'>{flag.title}</p>
-                                            <Badge variant="outline">{flag.category}</Badge>
-                                        </div>
-                                        <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
-                                            <flag.icon className='w-4 h-4' />
-                                            <p>{flag.description}</p>
+                    {redFlags.length > 0 ? (
+                        <Card className='border-l-4 border-red-500'>
+                            <CardHeader className='flex-row justify-between items-center'>
+                               <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags ({redFlags.length})</CardTitle>
+                               <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                            </CardHeader>
+                            <CardContent className='space-y-6'>
+                                {redFlags.map((flag, index) => (
+                                    <div key={index} className='flex items-start gap-4'>
+                                        <div className='w-5 h-5 bg-red-500 rounded-full mt-1 flex-shrink-0' />
+                                        <div className='flex-1'>
+                                            <div className='flex justify-between items-start'>
+                                                <p className='font-semibold'>{flag.title}</p>
+                                                <Badge variant="outline">{flag.category}</Badge>
+                                            </div>
+                                            <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
+                                                <flag.icon className='w-4 h-4' />
+                                                <p>{flag.description}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                     <Card className='border-l-4 border-red-500'>
-                        <CardHeader className='flex-row justify-between items-center'>
-                           <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> More Red Flags</CardTitle>
-                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
-                        </CardHeader>
-                    </Card>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card><CardContent><p className="text-muted-foreground p-4">No red flags found for {activeCategory}.</p></CardContent></Card>
+                    )}
                 </TabsContent>
                  <TabsContent value="yellow-flags" className="mt-4 space-y-4">
-                    <Card className='border-l-4 border-yellow-500'>
-                        <CardHeader className='flex-row justify-between items-center'>
-                           <CardTitle className='text-base flex items-center gap-2'><Flag className='w-5 h-5 text-yellow-500' /> Yellow Flags (4)</CardTitle>
-                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
-                        </CardHeader>
-                        <CardContent className='space-y-6'>
-                            {yellowFlags.map((flag, index) => (
-                                <div key={index} className='flex items-start gap-4'>
-                                    <div className='w-5 h-5 bg-yellow-500 rounded-full mt-1 flex-shrink-0' />
-                                    <div className='flex-1'>
-                                        <div className='flex justify-between items-start'>
-                                            <p className='font-semibold'>{flag.title}</p>
-                                            <Badge variant="outline">{flag.category}</Badge>
-                                        </div>
-                                        <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
-                                            <flag.icon className='w-4 h-4' />
-                                            <p>{flag.description}</p>
+                    {yellowFlags.length > 0 ? (
+                        <Card className='border-l-4 border-yellow-500'>
+                            <CardHeader className='flex-row justify-between items-center'>
+                            <CardTitle className='text-base flex items-center gap-2'><Flag className='w-5 h-5 text-yellow-500' /> Yellow Flags ({yellowFlags.length})</CardTitle>
+                            <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                            </CardHeader>
+                            <CardContent className='space-y-6'>
+                                {yellowFlags.map((flag, index) => (
+                                    <div key={index} className='flex items-start gap-4'>
+                                        <div className='w-5 h-5 bg-yellow-500 rounded-full mt-1 flex-shrink-0' />
+                                        <div className='flex-1'>
+                                            <div className='flex justify-between items-start'>
+                                                <p className='font-semibold'>{flag.title}</p>
+                                                <Badge variant="outline">{flag.category}</Badge>
+                                            </div>
+                                            <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
+                                                <flag.icon className='w-4 h-4' />
+                                                <p>{flag.description}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card><CardContent><p className="text-muted-foreground p-4">No yellow flags found for {activeCategory}.</p></CardContent></Card>
+                    )}
                 </TabsContent>
                  <TabsContent value="green-checks" className="mt-4 space-y-4">
-                    <Card className='border-l-4 border-green-500'>
-                        <CardHeader className='flex-row justify-between items-center'>
-                           <CardTitle className='text-base flex items-center gap-2'><CheckCircle className='w-5 h-5 text-green-500' /> Green Checks (9)</CardTitle>
-                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
-                        </CardHeader>
-                        <CardContent className='space-y-6'>
-                            {greenChecks.map((flag, index) => (
-                                <div key={index} className='flex items-start gap-4'>
-                                    <div className='w-5 h-5 bg-green-500 rounded-full mt-1 flex-shrink-0' />
-                                    <div className='flex-1'>
-                                        <div className='flex justify-between items-start'>
-                                            <p className='font-semibold'>{flag.title}</p>
-                                            <Badge variant="outline">{flag.category}</Badge>
-                                        </div>
-                                        <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
-                                            <flag.icon className='w-4 h-4' />
-                                            <p>{flag.description}</p>
+                    {greenChecks.length > 0 ? (
+                        <Card className='border-l-4 border-green-500'>
+                            <CardHeader className='flex-row justify-between items-center'>
+                            <CardTitle className='text-base flex items-center gap-2'><CheckCircle className='w-5 h-5 text-green-500' /> Green Checks ({greenChecks.length})</CardTitle>
+                            <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                            </CardHeader>
+                            <CardContent className='space-y-6'>
+                                {greenChecks.map((flag, index) => (
+                                    <div key={index} className='flex items-start gap-4'>
+                                        <div className='w-5 h-5 bg-green-500 rounded-full mt-1 flex-shrink-0' />
+                                        <div className='flex-1'>
+                                            <div className='flex justify-between items-start'>
+                                                <p className='font-semibold'>{flag.title}</p>
+                                                <Badge variant="outline">{flag.category}</Badge>
+                                            </div>
+                                            <div className='flex items-center gap-2 mt-1 text-sm text-muted-foreground'>
+                                                <flag.icon className='w-4 h-4' />
+                                                <p>{flag.description}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                         <Card><CardContent><p className="text-muted-foreground p-4">No green checks found for {activeCategory}.</p></CardContent></Card>
+                    )}
                 </TabsContent>
               </Tabs>
             </div>
