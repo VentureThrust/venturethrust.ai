@@ -1,5 +1,5 @@
 'use client';
-import { use } from 'react';
+import { use, useState } from 'react';
 import {
   AlertTriangle,
   Book,
@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
 const sidebarNavItems = [
-  { title: 'Overview', icon: FileText, active: true },
+  { title: 'Overview', icon: FileText },
   { title: 'Risks', icon: Flag },
   { title: 'Licenses', icon: Book },
   { title: 'Legal', icon: Briefcase },
@@ -115,6 +115,7 @@ const insightsBreakdown = [
 export default function DueDiligencePage({ params }: { params: { slug: string } }) {
   const resolvedParams = use(params);
   const companyName = resolvedParams.slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const [activeCategory, setActiveCategory] = useState('Overview');
 
   return (
     <div className="bg-background min-h-screen">
@@ -141,19 +142,19 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
 
           <nav className="flex flex-col gap-2 mt-4">
             {sidebarNavItems.map((item) => (
-              <a
+              <button
                 key={item.title}
-                href="#"
+                onClick={() => setActiveCategory(item.title)}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium',
-                  item.active
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-left',
+                  activeCategory === item.title
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>
-              </a>
+              </button>
             ))}
           </nav>
         </div>
@@ -182,11 +183,11 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 <Card>
                     <CardContent className='p-3 flex items-center justify-between'>
                         <div className='flex items-center gap-4'>
-                             <Badge variant="outline" className='text-sm h-8 px-3 flex items-center gap-2 border-0 text-red-500'>
+                            <div className='flex items-center gap-2 text-sm h-8 px-3 text-red-500'>
                                 <AlertTriangle className='w-4 h-4' /> 
                                 <span>Overall Risk: High</span>
                                 <ChevronDown className='w-4 h-4' />
-                            </Badge>
+                            </div>
                             <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Legal</Button>
                             <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Financial <Badge className='ml-2'>5</Badge></Button>
                             <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>HR & Employees <Badge className='ml-2'>4</Badge></Button>
@@ -230,7 +231,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                     </Card>
                      <Card className='border-l-4 border-red-500'>
                         <CardHeader className='flex-row justify-between items-center'>
-                           <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags (7)</CardTitle>
+                           <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> More Red Flags</CardTitle>
                            <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                         </CardHeader>
                     </Card>
