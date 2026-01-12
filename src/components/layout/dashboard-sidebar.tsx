@@ -23,7 +23,7 @@ import { Logo } from './logo';
 const mainNavLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/data-rooms', label: 'Data Rooms', icon: Folder },
-  { href: '/ai-risk-scanner', label: 'AI Risk Scanner', icon: Cpu },
+  { href: '/dashboard/ai-risk-scanner', label: 'AI Risk Scanner', icon: Cpu },
   { href: '/saved-reports', label: 'Saved Reports', icon: Bookmark },
   { href: '/shared-with-me', label: 'Shared With Me', icon: Settings },
 ];
