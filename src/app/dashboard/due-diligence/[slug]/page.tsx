@@ -71,34 +71,34 @@ const redFlags = [
 ];
 
 const yellowFlags = [
-  {
-    title: 'Outdated Employee Handbook',
-    category: 'HR',
-    description: 'The employee handbook was last updated in 2021 and may not reflect current labor laws.',
-    icon: Users,
-  },
-  {
-    title: 'Single-Source Supplier Dependency',
-    category: 'Products',
-    description: 'The company relies on a single supplier for a critical component, posing a supply chain risk.',
-    icon: Package,
-  },
-];
+    {
+      title: 'Outdated Employee Handbook',
+      category: 'HR',
+      description: 'The employee handbook was last updated in 2021 and may not reflect current labor laws.',
+      icon: Users,
+    },
+    {
+      title: 'Single-Source Supplier Dependency',
+      category: 'Products',
+      description: 'The company relies on a single supplier for a critical component, posing a supply chain risk.',
+      icon: Package,
+    },
+  ];
 
-const greenChecks = [
-  {
-    title: 'Strong IP Portfolio',
-    category: 'Legal',
-    description: 'The company holds several key patents for its core technology, providing a competitive advantage.',
-    icon: Briefcase,
-  },
-  {
-    title: 'Consistent Revenue Growth',
-    category: 'Financial',
-    description: 'Financial statements show consistent year-over-year revenue growth for the past three fiscal years.',
-    icon: GitBranch,
-  },
-];
+  const greenChecks = [
+    {
+      title: 'Strong IP Portfolio',
+      category: 'Legal',
+      description: 'The company holds several key patents for its core technology, providing a competitive advantage.',
+      icon: Briefcase,
+    },
+    {
+      title: 'Consistent Revenue Growth',
+      category: 'Financial',
+      description: 'Financial statements show consistent year-over-year revenue growth for the past three fiscal years.',
+      icon: GitBranch,
+    },
+  ];
 
 const riskDistributionData = [
   { name: 'High Risk', value: 35, color: '#F44336' },
@@ -151,6 +151,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
+                suppressHydrationWarning
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>
