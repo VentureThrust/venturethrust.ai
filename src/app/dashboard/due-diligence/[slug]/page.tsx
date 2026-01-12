@@ -14,6 +14,7 @@ import {
   Users,
   Briefcase,
   GitBranch,
+  ShoppingBag,
   Package,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -44,7 +45,7 @@ const sidebarNavItems = [
   { title: 'Legal', icon: Briefcase },
   { title: 'Financials', icon: GitBranch },
   { title: 'HR', icon: Users },
-  { title: 'Sales', icon: Package },
+  { title: 'Sales', icon: ShoppingBag },
   { title: 'Products', icon: Package },
 ];
 
@@ -66,12 +67,6 @@ const redFlags = [
     category: 'Financial',
     description: "Company's future revenue projections have not been independently Varrted.",
     icon: GitBranch,
-  },
-  {
-    title: 'Missing Pollution Control Board Certificate',
-    category: 'Licenses',
-    description: 'Pollution Control Board Certificate not found, required for MSME.',
-    icon: File,
   },
 ];
 
@@ -104,7 +99,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 alt="Atlas Logistics"
                 className="rounded-lg"
               />
-              <h2 className="font-semibold text-lg">Atlas Logistics</h2>
+              <h2 className="font-semibold text-lg">{companyName}</h2>
           </div>
           <div className='flex flex-col gap-1 text-sm'>
             <span className='font-medium text-foreground'>MSME registration</span>
@@ -186,7 +181,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                         <CardContent className='space-y-6'>
                             {redFlags.map((flag, index) => (
                                 <div key={index} className='flex items-start gap-4'>
-                                    <div className='w-5 h-5 bg-red-500 rounded-full mt-1' />
+                                    <div className='w-5 h-5 bg-red-500 rounded-full mt-1 flex-shrink-0' />
                                     <div className='flex-1'>
                                         <div className='flex justify-between items-start'>
                                             <p className='font-semibold'>{flag.title}</p>
@@ -200,6 +195,12 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                                 </div>
                             ))}
                         </CardContent>
+                    </Card>
+                     <Card className='border-l-4 border-red-500'>
+                        <CardHeader className='flex-row justify-between items-center'>
+                           <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags (7)</CardTitle>
+                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
+                        </CardHeader>
                     </Card>
                 </TabsContent>
               </Tabs>

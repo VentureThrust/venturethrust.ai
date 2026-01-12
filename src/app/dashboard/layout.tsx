@@ -19,11 +19,11 @@ export default function DashboardLayout({
     <UserProvider>
       <div className={cn("flex h-screen w-full bg-background", isDueDiligencePage && "flex-col")}>
         {!isDueDiligencePage && (
-          <div className="hidden lg:block w-72">
+          <div className="hidden lg:block w-72 flex-shrink-0">
             <DashboardSidebar />
           </div>
         )}
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <DashboardHeader />
           <main className={cn(
             "flex-1 overflow-y-auto",

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, PanelLeft, Mail } from 'lucide-react';
+import { Bell, Menu, Mail } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +34,7 @@ export function DashboardHeader() {
     return (
       <header className="flex h-20 items-center justify-between gap-4 border-b bg-background px-6 lg:px-8 flex-shrink-0">
           <div className='flex items-center gap-4'>
-            <Button variant="ghost" size="icon" suppressHydrationWarning><PanelLeft className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" suppressHydrationWarning><Menu className="h-5 w-5" /></Button>
             <Logo isPen={true} />
           </div>
           <div className="flex items-center gap-4">
@@ -109,7 +109,7 @@ export function DashboardHeader() {
               className="lg:hidden"
               suppressHydrationWarning
             >
-              <PanelLeft className="h-5 w-5" />
+              <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
