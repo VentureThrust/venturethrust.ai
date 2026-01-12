@@ -22,38 +22,7 @@ import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/hooks/use-user';
 
-const dataRooms = [
-  {
-    icon: 'https://placehold.co/32x32/4285F4/FFFFFF/png?text=S',
-    name: 'SeedRound Docs',
-    owner: 'Gan Chen',
-    lastActive: 'In Review',
-  },
-  {
-    icon: 'https://placehold.co/32x32/34A853/FFFFFF/png?text=S',
-    name: 'Series-A Room',
-    owner: 'Seef Arche',
-    lastActive: 'Yesterday',
-  },
-  {
-    icon: 'https://placehold.co/32x32/A076F9/FFFFFF/png?text=M',
-    name: 'MVP Pitch Deck',
-    owner: 'MJ Williams',
-    lastActive: '2 days ago',
-  },
-  {
-    icon: 'https://placehold.co/32x32/FBBC05/FFFFFF/png?text=R',
-    name: 'RetailPulse',
-    owner: 'James Singh',
-    lastActive: '5 days ago',
-  },
-  {
-    icon: 'https://placehold.co/32x32/F28B82/FFFFFF/png?text=E',
-    name: 'EduNex',
-    owner: 'Sara Taylor',
-    lastActive: '1 week ago',
-  },
-];
+const dataRooms: any[] = [];
 
 export default function Dashboard() {
   const { user } = useUser();
