@@ -40,7 +40,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden lg:flex flex-col border-r w-64 flex-shrink-0 bg-sidebar text-sidebar-foreground">
+    <div className="flex flex-col border-r w-64 flex-shrink-0 bg-sidebar text-sidebar-foreground">
       <div className="flex h-full flex-col">
         <div className="flex h-20 items-center border-b px-6 flex-shrink-0">
            <Logo isPen={true} />
@@ -64,7 +64,7 @@ export function DashboardSidebar() {
             <div className="px-3 py-2 mt-4">
                 <Accordion type="single" collapsible defaultValue="item-1">
                     <AccordionItem value="item-1" className="border-b-0">
-                        <AccordionTrigger className="p-1 text-muted-foreground hover:no-underline font-semibold [&[data-state=open]>svg]:text-foreground [&>svg]:ml-auto">
+                        <AccordionTrigger suppressHydrationWarning className="p-1 text-muted-foreground hover:no-underline font-semibold [&[data-state=open]>svg]:text-foreground [&>svg]:ml-auto">
                          <div className='flex items-center gap-3'>
                             <Users className="h-5 w-5" /> Quick actions
                          </div>
