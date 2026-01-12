@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {
   Bell,
   PanelLeft,
-  Search,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -22,7 +21,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { DashboardSidebar } from './dashboard-sidebar';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -44,7 +42,7 @@ export function DashboardHeader() {
              <SheetHeader>
                 <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
              </SheetHeader>
-            <DashboardSidebar />
+             <DashboardSidebar />
           </SheetContent>
         </Sheet>
         <h1 className="text-2xl font-semibold hidden lg:block">Dashboard</h1>
@@ -60,7 +58,7 @@ export function DashboardHeader() {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-3">
+            <Button variant="ghost" className="flex items-center gap-3" suppressHydrationWarning>
               <span className="hidden sm:inline font-medium">John Doe</span>
               {userAvatar && (
                 <Image

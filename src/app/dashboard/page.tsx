@@ -1,18 +1,18 @@
 'use client';
+import { useState } from 'react';
 import {
   ChevronDown,
-  Lock,
-  Plus,
+  UploadCloud,
+  File,
   Users,
   Share2,
   BarChart2,
   ChevronRight,
   MoreVertical,
-  CheckSquare,
-  XSquare,
-  FileCheck
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
-
 import {
   Card,
   CardContent,
@@ -31,14 +31,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import Link from 'next/link';
+
+type PlanType = 'vdr' | 'ai' | 'combo';
 
 const dataRooms = [
   {
     icon: 'https://placehold.co/32x32/4285F4/FFFFFF/png?text=S',
     name: 'SeedRound Docs',
     owner: 'Gan Chen',
-    status: 'In Review',
-    statusColor: 'bg-yellow-500',
+    lastActive: 'In Review',
   },
   {
     icon: 'https://placehold.co/32x32/34A853/FFFFFF/png?text=S',
@@ -68,165 +70,196 @@ const dataRooms = [
 
 const quickActions = [
   {
-    icon: Users,
-    name: 'Invite Investors',
+    icon: 'https://placehold.co/32x32/4285F4/FFFFFF/png?text=P',
+    name: 'PayFlow Pitch Deck',
+    status: 'No Major Isues',
+    statusType: 'success',
+    lastAnalyzed: ''
   },
   {
-    icon: Share2,
-    name: 'Share Data Room',
+    icon: 'https://placehold.co/32x32/34A853/FFFFFF/png?text=F',
+    name: 'FinTechCo Financials',
+    status: '4 Red Flags',
+    statusType: 'error',
+    lastAnalyzed: 'Analyzed 2 days ago'
   },
   {
-    icon: MoreVertical,
-    name: 'View More',
+    icon: 'https://placehold.co/32x32/A076F9/FFFFFF/png?text=S',
+    name: 'Sample NDA',
+    status: '4 Red Flags',
+    statusType: 'error',
+    lastAnalyzed: 'Analyzed 4 days ago'
   },
 ];
 
-const recentActivity = [
-    {
-        avatar: 'https://i.pravatar.cc/40?u=a042581f4e29026704d',
-        name: 'Gan Chen',
-        action: 'accessed',
-        document: 'SeedRound Docs',
-        time: 'Seconds ago',
-    },
-    {
-        avatar: 'https://i.pravatar.cc/40?u=a042581f4e29026704e',
-        name: 'Seef Arche',
-        action: 'accessed',
-        document: 'Series-A Room',
-        time: 'Yesterday',
-    }
-];
+
+const VDRContent = ({ hasVDRPlan }: { hasVDRPlan: boolean }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>My Data Rooms</CardTitle>
+    </CardHeader>
+    {hasVDRPlan ? (
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data Room</TableHead>
+              <TableHead>Last Active</TableHead>
+              <TableHead className="text-right"> </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {dataRooms.map((room) => (
+              <TableRow key={room.name}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Image src={room.icon} width={32} height={32} alt={room.name} className='rounded-md'/>
+                    <div>
+                      <div className="font-medium">{room.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {room.owner}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {room.lastActive === 'In Review' ? (
+                     <Badge variant="outline" className='bg-yellow-100 text-yellow-800 border-yellow-200'>
+                       {room.lastActive}
+                     </Badge>
+                  ) : (
+                    <span className='text-muted-foreground text-sm'>{room.lastActive}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Button variant="outline" className="w-full mt-4 text-primary border-primary hover:bg-primary/5 hover:text-primary">
+          + New Data Room
+        </Button>
+      </CardContent>
+    ) : (
+      <CardContent className="flex flex-col items-center justify-center text-center p-8 m-6 mt-0">
+          <p className="mt-4 text-lg font-semibold">
+            This feature is not included in your plan
+          </p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+            Upgrade your plan to create and manage data rooms.
+          </p>
+          <Button className="mt-6">Upgrade Plan</Button>
+        </CardContent>
+    )}
+  </Card>
+);
+
+const AIRiskScannerContent = ({ hasAIPlan }: { hasAIPlan: boolean }) => (
+  <Card className="flex flex-col">
+    <CardHeader className='flex-row items-center justify-between'>
+      <CardTitle>AI Risk Scanner</CardTitle>
+      <div className='flex items-center gap-1.5'>
+          <AlertCircle className='h-5 w-5 text-yellow-500'/>
+          <XCircle className='h-5 w-5 text-red-500'/>
+          <CheckCircle className='h-5 w-5 text-green-500'/>
+      </div>
+    </CardHeader>
+    {hasAIPlan ? (
+      <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg m-6 mt-0 border-gray-200">
+        <UploadCloud className="h-8 w-8 text-gray-400" />
+        <p className="mt-4 text-sm text-gray-600">
+          Drag and drop a file here, or{' '}
+          <Link href="#" className="font-semibold text-primary">
+            Browse
+          </Link>
+        </p>
+        <p className="text-xs text-gray-400 mt-1">PDF, DOCX, XLSX, CSV</p>
+        <Button className="mt-6">Start Analysis</Button>
+        <p className="text-xs text-muted-foreground mt-4 max-w-xs mx-auto">
+          Upload a document to analyze potential risks. Identify missing info, red flags, and inconsistencies.
+        </p>
+      </CardContent>
+    ) : (
+      <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-8 m-6 mt-0">
+        <p className="mt-4 text-lg font-semibold">
+          This feature is not included in your plan
+        </p>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+          Upgrade your plan to unlock AI-powered document analysis.
+        </p>
+        <Button className="mt-6">Upgrade Plan</Button>
+      </CardContent>
+    )}
+  </Card>
+);
+
 
 export default function Dashboard() {
+  // Mock user plan. In a real app, this would come from user data.
+  const [plan, setPlan] = useState<PlanType>('combo'); 
+
+  const hasVDRPlan = plan === 'vdr' || plan === 'combo';
+  const hasAIPlan = plan === 'ai' || plan === 'combo';
+
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold">Welcome, I...</h1>
+        <h1 className="text-3xl font-bold">Welcome, John</h1>
         <p className="text-muted-foreground mt-1">
-          Get started with your data rooms and securely share documents.
+          Get started with your data rooms and AI due dilligence.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
         <div className="lg:col-span-3 flex flex-col gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Data Rooms</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  {dataRooms.map((room) => (
-                    <TableRow key={room.name}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-md">
-                            <Image src={room.icon} width={32} height={32} alt={room.name} className='rounded-md'/>
-                          </div>
-                          <div>
-                            <div className="font-medium">{room.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {room.owner}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className='text-right'>
-                        {room.status ? (
-                           <Badge variant="outline" className='bg-yellow-100 text-yellow-800 border-yellow-200'>
-                             {room.status}
-                           </Badge>
-                        ) : (
-                          <span className='text-muted-foreground text-sm'>{room.lastActive}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Button variant="outline" className="w-full mt-4 text-primary border-primary/20 hover:bg-primary/5 hover:text-primary">
-                <Plus className="mr-2 h-4 w-4" /> New Data Room
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-2'>
-              {quickActions.map((action) => (
-                 <div key={action.name} className='flex items-center justify-between p-3 rounded-lg hover:bg-muted/50'>
-                     <div className="flex items-center gap-3">
-                        <div className="bg-muted p-2 rounded-md">
-                           <action.icon className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <span className="font-medium">{action.name}</span>
-                     </div>
-                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                 </div>
-              ))}
-              </div>
-            </CardContent>
-          </Card>
-
+            <VDRContent hasVDRPlan={hasVDRPlan} />
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-8">
-            <Card className="flex flex-col">
-              <CardHeader className='flex-row items-center justify-between'>
-                <CardTitle>AI Due Diligence</CardTitle>
-                <div className='flex items-center gap-1.5'>
-                    <CheckSquare className='h-5 w-5 text-green-500'/>
-                    <XSquare className='h-5 w-5 text-red-500'/>
-                    <FileCheck className='h-5 w-5 text-blue-500'/>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-8 m-6 mt-0">
-                <div className='p-4 bg-muted rounded-full'>
-                    <Lock className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="mt-4 text-lg font-semibold">
-                  This feature is not included in your plan
-                </p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
-                  Upgrade your plan to unlock AI-powered document analysis and risk detection.
-                </p>
-                <Button className="mt-6 bg-primary hover:bg-primary/90">Upgrade Plan</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className='space-y-4'>
-                        {recentActivity.map((activity, index) => (
-                            <div key={index} className='flex items-center gap-3'>
-                                <Image src={activity.avatar} width={40} height={40} alt={activity.name} className='rounded-full'/>
-                                <div>
-                                    <p className='text-sm'>
-                                        <span className='font-semibold'>{activity.name}</span> {activity.action} <span className='font-semibold'>{activity.document}</span>
-                                    </p>
-                                    <p className='text-xs text-muted-foreground'>{activity.time}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className='text-right mt-4'>
-                      <Button variant="link" className='text-primary p-0 h-auto'>View More <ChevronRight className="ml-1 h-4 w-4" /></Button>
-                    </div>
-                </CardContent>
-            </Card>
+          <AIRiskScannerContent hasAIPlan={hasAIPlan} />
         </div>
-
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableBody>
+              {quickActions.map((action) => (
+                <TableRow key={action.name}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Image src={action.icon} width={32} height={32} alt={action.name} className='rounded-md'/>
+                      <span className="font-medium">{action.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className='flex items-center gap-2'>
+                      {action.statusType === 'success' && <CheckCircle className='h-4 w-4 text-green-500' />}
+                      {action.statusType === 'error' && <AlertCircle className='h-4 w-4 text-red-500' />}
+                      <span className={action.statusType === 'error' ? 'text-red-500 font-semibold' : 'text-green-500'}>{action.status}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {action.lastAnalyzed}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="link" className="text-primary p-0 h-auto">
+                      View Report <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
