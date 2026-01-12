@@ -1,5 +1,5 @@
 'use client';
-
+import { use } from 'react';
 import {
   AlertTriangle,
   Book,
@@ -88,7 +88,8 @@ const insightsBreakdown = [
 ]
 
 export default function DueDiligencePage({ params }: { params: { slug: string } }) {
-  const companyName = params.slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const resolvedParams = use(params);
+  const companyName = resolvedParams.slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return (
     <div className="bg-background min-h-screen">
