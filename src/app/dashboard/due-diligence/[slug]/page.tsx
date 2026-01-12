@@ -145,7 +145,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                     <p className="text-muted-foreground">April 23 - April 24, 2024 <ChevronDown className='inline h-4 w-4' /></p>
                 </div>
             </div>
-            <Button>
+            <Button suppressHydrationWarning>
               <Download className="mr-2 h-4 w-4" />
               Download PDF Report
             </Button>
@@ -160,13 +160,13 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                             <Badge variant="destructive" className='text-sm h-8'>
                                 <AlertTriangle className='w-4 h-4 mr-2' /> Overall Risk: High <ChevronDown className='ml-2 h-4 w-4' />
                             </Badge>
-                            <Button variant="ghost" className='text-muted-foreground'>Legal</Button>
-                            <Button variant="ghost" className='text-muted-foreground'>Financial <Badge className='ml-2'>5</Badge></Button>
-                            <Button variant="ghost" className='text-muted-foreground'>HR & Employees <Badge className='ml-2'>4</Badge></Button>
+                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Legal</Button>
+                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>Financial <Badge className='ml-2'>5</Badge></Button>
+                            <Button variant="ghost" className='text-muted-foreground' suppressHydrationWarning>HR & Employees <Badge className='ml-2'>4</Badge></Button>
                         </div>
                         <div className="relative w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search findings..." className="pl-10" />
+                            <Input placeholder="Search findings..." className="pl-10" suppressHydrationWarning/>
                         </div>
                     </CardContent>
                 </Card>
@@ -181,7 +181,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                     <Card className='border-l-4 border-red-500'>
                         <CardHeader className='flex-row justify-between items-center'>
                            <CardTitle className='text-base flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-red-500' /> Red Flags (7)</CardTitle>
-                           <Button variant="ghost" size="icon">&gt;</Button>
+                           <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                         </CardHeader>
                         <CardContent className='space-y-6'>
                             {redFlags.map((flag, index) => (
@@ -276,7 +276,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                     <AlertTriangle className='w-4 h-4 text-red-500 mt-0.5 flex-shrink-0' />
                     <span>Red flags indicate critical risks that require immediate attention & action.</span>
                   </p>
-                  <Button variant="link" className="p-0 h-auto mt-2 text-primary">
+                  <Button variant="link" className="p-0 h-auto mt-2 text-primary" suppressHydrationWarning>
                     Download Full Report &gt;
                   </Button>
                 </CardContent>
