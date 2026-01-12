@@ -17,9 +17,9 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // A mock user object. In a real app, this would come from an authentication provider.
 const defaultUser: User = {
-  name: 'John Doe',
-  firstName: 'John',
-  email: 'john.doe@example.com',
+  name: '',
+  firstName: '',
+  email: '',
   avatarUrl: 'https://images.unsplash.com/photo-1639149888905-fb39731f2e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx1c2VyJTIwYXZhdGFyfGVufDB8fHx8MTc2ODAwOTA4MHww&ixlib=rb-4.1.0&q=80&w=1080',
 };
 
