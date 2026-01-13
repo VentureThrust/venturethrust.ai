@@ -50,128 +50,15 @@ const sidebarNavItems = [
 ];
 
 const allData = {
-  redFlags: [
-    {
-      title: 'Missing Pollution Control Board Certificate',
-      category: 'Licenses',
-      description: 'Pollution Control Board Certificate not found, required for MSME.',
-      icon: File,
-    },
-    {
-      title: 'Non-compete Violation with a key employee',
-      category: 'Legal',
-      description: 'John Choudhury (Key Account Manager) has a non-compete agreement from his previous job.',
-      icon: Users,
-    },
-    {
-      title: 'Independent Revenue Projections not verified',
-      category: 'Financials',
-      description: "Company's future revenue projections have not been independently Varrted.",
-      icon: GitBranch,
-    },
-    {
-      title: 'Unregistered Company Domain Name',
-      category: 'Legal',
-      description: 'The primary domain name for the company is not officially registered.',
-      icon: File,
-    },
-    {
-      title: 'High Employee Turnover Rate',
-      category: 'HR',
-      description: 'The company has a 45% employee turnover rate in the last fiscal year.',
-      icon: Users,
-    },
-     {
-      title: 'Lack of Formal Sales Process',
-      category: 'Sales',
-      description: 'There is no documented sales process or CRM in place.',
-      icon: ShoppingBag,
-    },
-    {
-      title: 'No Product Roadmap',
-      category: 'Products',
-      description: 'The company has not defined a product roadmap for the next 12-18 months.',
-      icon: Package,
-    },
-  ],
-  yellowFlags: [
-    {
-      title: 'Outdated Employee Handbook',
-      category: 'HR',
-      description: 'The employee handbook was last updated in 2021 and may not reflect current labor laws.',
-      icon: Users,
-    },
-    {
-      title: 'Single-Source Supplier Dependency',
-      category: 'Products',
-      description: 'The company relies on a single supplier for a critical component, posing a supply chain risk.',
-      icon: Package,
-    },
-    {
-        title: 'Informal Credit Terms with Customers',
-        category: 'Financials',
-        description: 'Credit terms are negotiated on a case-by-case basis without a standard policy.',
-        icon: GitBranch,
-    },
-    {
-        title: 'Missing Service Level Agreement (SLA)',
-        category: 'Legal',
-        description: 'Key client contracts lack a formal Service Level Agreement.',
-        icon: Briefcase,
-    }
-  ],
-  greenChecks: [
-    {
-      title: 'Strong IP Portfolio',
-      category: 'Legal',
-      description: 'The company holds several key patents for its core technology, providing a competitive advantage.',
-      icon: Briefcase,
-    },
-    {
-      title: 'Consistent Revenue Growth',
-      category: 'Financials',
-      description: 'Financial statements show consistent year-over-year revenue growth for the past three fiscal years.',
-      icon: GitBranch,
-    },
-    {
-        title: 'Positive Customer Feedback',
-        category: 'Sales',
-        description: 'Customer satisfaction surveys show an average score of 4.8/5.0.',
-        icon: ShoppingBag,
-    },
-    {
-        title: 'Experienced Leadership Team',
-        category: 'HR',
-        description: 'The founding team has a combined 30 years of experience in the industry.',
-        icon: Users,
-    },
-    {
-        title: 'Scalable Tech Stack',
-        category: 'Products',
-        description: 'The product is built on a modern, scalable architecture.',
-        icon: Package,
-    },
-     {
-      title: 'Business License in Good Standing',
-      category: 'Licenses',
-      description: 'All required local and state business licenses are active and in good standing.',
-      icon: Book,
-    },
-  ],
+  redFlags: [],
+  yellowFlags: [],
+  greenChecks: [],
 };
 
 
-const riskDistributionData = [
-  { name: 'High Risk', value: 35, color: '#F44336' },
-  { name: 'Moderate Risk', value: 20, color: '#FFC107' },
-  { name: 'Positive Insights', value: 45, color: '#4CAF50' },
-];
+const riskDistributionData: any[] = [];
 
-const insightsBreakdown = [
-    { name: 'Red Flags', value: 7, icon: AlertTriangle, color: 'text-red-500' },
-    { name: 'Yellow Flags', value: 4, icon: Flag, color: 'text-yellow-500' },
-    { name: 'Green Checks', value: 9, icon: CheckCircle, color: 'text-green-500' },
-]
+const insightsBreakdown: any[] = []
 
 export default function DueDiligencePage({ params }: { params: { slug: string } }) {
   const resolvedParams = use(params);
@@ -201,7 +88,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 src="https://placehold.co/40x40/4285F4/FFFFFF/png?text=A"
                 width={40}
                 height={40}
-                alt="Atlas Logistics"
+                alt={companyName}
                 className="rounded-lg"
               />
               <h2 className="font-semibold text-lg">{companyName}</h2>
@@ -299,7 +186,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                                <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                             </CardHeader>
                             <CardContent className='space-y-6'>
-                                {redFlags.map((flag, index) => (
+                                {redFlags.map((flag: any, index: number) => (
                                     <div key={index} className='flex items-start gap-4'>
                                         <div className='w-5 h-5 bg-red-500 rounded-full mt-1 flex-shrink-0' />
                                         <div className='flex-1'>
@@ -328,7 +215,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                             <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                             </CardHeader>
                             <CardContent className='space-y-6'>
-                                {yellowFlags.map((flag, index) => (
+                                {yellowFlags.map((flag: any, index: number) => (
                                     <div key={index} className='flex items-start gap-4'>
                                         <div className='w-5 h-5 bg-yellow-500 rounded-full mt-1 flex-shrink-0' />
                                         <div className='flex-1'>
@@ -357,7 +244,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                             <Button variant="ghost" size="icon" suppressHydrationWarning>&gt;</Button>
                             </CardHeader>
                             <CardContent className='space-y-6'>
-                                {greenChecks.map((flag, index) => (
+                                {greenChecks.map((flag: any, index: number) => (
                                     <div key={index} className='flex items-start gap-4'>
                                         <div className='w-5 h-5 bg-green-500 rounded-full mt-1 flex-shrink-0' />
                                         <div className='flex-1'>
@@ -388,7 +275,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                   <CardTitle className='text-base'>Insights Breakdown</CardTitle>
                 </CardHeader>
                 <CardContent className='space-y-3'>
-                    {insightsBreakdown.map(item => (
+                    {insightsBreakdown.map((item: any) => (
                          <div key={item.name} className='flex justify-between items-center text-sm'>
                             <span className={cn('flex items-center gap-2', item.color)}>
                                 <item.icon className='w-4 h-4' /> {item.name}

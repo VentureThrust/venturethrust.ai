@@ -21,43 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 
-const startups = [
-  {
-    icon: 'https://placehold.co/32x32/4285F4/FFFFFF/png?text=P',
-    name: 'PayFlow',
-    owner: 'Ryan Chen',
-    status: 'New',
-    lastActive: '10 min ago',
-  },
-  {
-    icon: 'https://placehold.co/32x32/34A853/FFFFFF/png?text=E',
-    name: 'EnergiGrid',
-    owner: 'Sophia Patel',
-    status: 'In Review',
-    lastActive: 'Yesterday',
-  },
-  {
-    icon: 'https://placehold.co/32x32/A076F9/FFFFFF/png?text=H',
-    name: 'HealthHub',
-    owner: 'MJ Williams',
-    status: 'In Review',
-    lastActive: '3 days ago',
-  },
-  {
-    icon: 'https://placehold.co/32x32/FBBC05/FFFFFF/png?text=R',
-    name: 'RetailPulse',
-    owner: 'James Singh',
-    status: 'Completed',
-    lastActive: '5 days ago',
-  },
-  {
-    icon: 'https://placehold.co/32x32/F28B82/FFFFFF/png?text=E',
-    name: 'EduNex',
-    owner: 'Sara Taylor',
-    status: 'Completed',
-    lastActive: '1 week ago',
-  },
-];
+const startups: any[] = [];
 
 
 const StatusBadge = ({ status }: { status: string }) => {

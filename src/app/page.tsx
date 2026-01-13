@@ -3,7 +3,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, FolderKanban, Scale, FileQuestion, Clock, Lock, Fingerprint, DatabaseZap, ShieldCheck } from 'lucide-react';
+import { CheckCircle, FolderKanban, Scale, FileQuestion, Clock, Lock, Fingerprint, DatabaseZap, ShieldCheck, FolderSync, BarChart, FileWarning } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
@@ -31,7 +31,28 @@ function HeroSection() {
   );
 }
 
-const problems: any[] = [];
+const problems = [
+    {
+      icon: FolderSync,
+      title: 'Scattered Documents',
+      description: 'Key files are spread across emails, cloud drives, and local storage, creating chaos.',
+    },
+    {
+      icon: Clock,
+      title: 'Manual Review Cycles',
+      description: 'Hours are wasted manually sifting through documents to find critical information.',
+    },
+    {
+      icon: FileWarning,
+      title: 'Hidden Risks',
+      description: 'Subtle red flags in legal and financial documents are easily missed, leading to bad investments.',
+    },
+    {
+      icon: BarChart,
+      title: 'Lack of Insight',
+      description: 'It’s difficult to get a high-level view of a startup’s health and risk profile quickly.',
+    },
+  ];
 
 function ProblemSection() {
   return (
@@ -59,8 +80,23 @@ function ProblemSection() {
   );
 }
 
-const investorFeatures: any[] = [];
-const founderFeatures: any[] = [];
+const investorFeatures = [
+    'Centralize all startup documents in one secure, organized data room.',
+    'Automatically scan documents for legal, financial, and compliance red flags.',
+    'Get a high-level risk score and detailed analysis for faster decision-making.',
+    'Track document views and activity to gauge investor interest.',
+    'Collaborate with your team, leaving comments and tasks on specific documents.',
+    'Generate comprehensive due diligence reports with a single click.',
+  ];
+  
+  const founderFeatures = [
+    'Build a professional, investor-ready data room in minutes.',
+    'Control access with granular permissions and see who has viewed your files.',
+    'Identify and fix potential issues before sharing with investors.',
+    'Present your company professionally and transparently to build trust.',
+    'Streamline the fundraising process and reduce back-and-forth emails.',
+    'Spend less time managing documents and more time building your business.',
+  ];
 
 function FeatureGrid({ features }: { features: any[] }) {
   return (
@@ -106,7 +142,24 @@ function SolutionSection() {
   );
 }
 
-const steps: any[] = [];
+const steps = [
+    {
+      name: '1. Create Data Room',
+      description: 'Founders easily upload all relevant documents into a secure, structured virtual data room.',
+    },
+    {
+      name: '2. Invite & Analyze',
+      description: 'Investors are invited to the data room. Our AI automatically scans documents for red flags and key insights.',
+    },
+    {
+      name: '3. Review & Collaborate',
+      description: 'Investors review the AI-generated analysis, view risk scores, and collaborate with their team directly on the platform.',
+    },
+    {
+      name: '4. Make Informed Decisions',
+      description: 'With a clear, comprehensive overview, investors can make faster, more confident funding decisions.',
+    },
+  ];
 
 const productUiImage = PlaceHolderImages.find(img => img.id === 'product-ui');
 
@@ -149,7 +202,28 @@ function HowItWorksSection() {
   );
 }
 
-const securityFeatures: any[] = [];
+const securityFeatures = [
+    {
+      icon: ShieldCheck,
+      title: 'End-to-End Encryption',
+      description: 'Your data is encrypted in transit and at rest using industry-leading AES-256 standards.',
+    },
+    {
+      icon: Lock,
+      title: 'Granular Permissions',
+      description: 'Control exactly who sees what with document-level and user-level access controls.',
+    },
+    {
+      icon: Fingerprint,
+      title: 'Audit Trails',
+      description: 'Maintain a complete, immutable log of all activity within your data room for compliance.',
+    },
+    {
+      icon: DatabaseZap,
+      title: 'Secure Infrastructure',
+      description: 'Built on top of Google Cloud Platform for world-class reliability and security.',
+    },
+  ];
 
 function TrustSection() {
   return (
