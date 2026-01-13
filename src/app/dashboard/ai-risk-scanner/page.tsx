@@ -45,7 +45,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     }
 };
 
-export default function SharedWithMePage() {
+export default function AiRiskScannerPage() {
   const router = useRouter();
 
   const handleStartupClick = (startupId: string) => {

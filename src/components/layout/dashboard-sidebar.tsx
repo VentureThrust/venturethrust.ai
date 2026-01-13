@@ -68,7 +68,7 @@ export function DashboardSidebar() {
             <div className="px-3 py-2 mt-4">
                 <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                     <AccordionItem value="item-1" className="border-b-0">
-                        <AccordionTrigger suppressHydrationWarning className="p-1 text-muted-foreground hover:no-underline font-semibold [&[data-state=open]>svg]:text-foreground [&>svg]:ml-auto [&[data-state=open]]:text-foreground">
+                        <AccordionTrigger suppressHydrationWarning className="p-1 text-muted-foreground hover:no-underline font-semibold [&[data-state=open]>svg]:text-foreground [&>svg]:ml-auto [&[data-tate=open]]:text-foreground">
                          <div className='flex items-center gap-3'>
                             <Users className="h-5 w-5" /> Quick actions
                          </div>
