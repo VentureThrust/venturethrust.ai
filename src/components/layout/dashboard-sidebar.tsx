@@ -22,16 +22,16 @@ import { Logo } from './logo';
 
 const mainNavLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/data-rooms', label: 'Data Rooms', icon: Folder },
+  { href: '/dashboard/data-rooms', label: 'Data Rooms', icon: Folder },
   { href: '/dashboard/ai-risk-scanner', label: 'AI Risk Scanner', icon: Cpu },
-  { href: '/saved-reports', label: 'Saved Reports', icon: Bookmark },
-  { href: '/shared-with-me', label: 'Shared With Me', icon: Settings },
+  { href: '/dashboard/saved-reports', label: 'Saved Reports', icon: Bookmark },
+  { href: '/dashboard/shared-with-me', label: 'Shared With Me', icon: Settings },
 ];
 
 const quickActionsLinks = [
-  { href: '/invite-investors', label: 'Invite Investors', icon: Users },
-  { href: '/share-data-room', label: 'Share Data Room', icon: Share2 },
-  { href: '/view-analytics', label: 'View Analytics', icon: BarChart2 },
+  { href: '/dashboard/invite-investors', label: 'Invite Investors', icon: Users },
+  { href: '/dashboard/share-data-room', label: 'Share Data Room', icon: Share2 },
+  { href: '/dashboard/view-analytics', label: 'View Analytics', icon: BarChart2 },
 ];
 
 export function DashboardSidebar() {
