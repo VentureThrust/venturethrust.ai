@@ -417,8 +417,8 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                                 data={riskDistributionData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
+                                innerRadius={78}
+                                outerRadius={104}
                                 fill="#8884d8"
                                 paddingAngle={5}
                                 dataKey="value"
