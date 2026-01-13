@@ -45,7 +45,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     }
 };
 
-export default function AiRiskScannerPage() {
+export default function SharedWithMePage() {
   const router = useRouter();
 
   const handleStartupClick = (startupId: string) => {
@@ -76,7 +76,13 @@ export default function AiRiskScannerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {startups.map((startup) => (
+                {startups.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      No startups have shared a data room with you yet.
+                    </TableCell>
+                  </TableRow>
+                ) : startups.map((startup) => (
                   <TableRow key={startup.name} onClick={() => handleStartupClick(startup.id)} className="cursor-pointer">
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -104,7 +110,7 @@ export default function AiRiskScannerPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); alert('More options'); }}>
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </TableCell>

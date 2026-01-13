@@ -16,6 +16,7 @@ import {
   Cpu,
   Bookmark,
   Settings,
+  ShieldQuestion,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
@@ -25,7 +26,7 @@ const mainNavLinks = [
   { href: '/dashboard/data-rooms', label: 'Data Rooms', icon: Folder },
   { href: '/dashboard/ai-risk-scanner', label: 'AI Risk Scanner', icon: Cpu },
   { href: '/dashboard/saved-reports', label: 'Saved Reports', icon: Bookmark },
-  { href: '/dashboard/shared-with-me', label: 'Shared With Me', icon: Settings },
+  { href: '/dashboard/shared-with-me', label: 'Shared With Me', icon: Users },
 ];
 
 const quickActionsLinks = [
