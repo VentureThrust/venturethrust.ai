@@ -403,7 +403,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
                 <CardHeader>
                   <CardTitle className='text-base'>Risk Distribution</CardTitle>
                 </CardHeader>
-                <CardContent className="h-48 flex items-center justify-center">
+                <CardContent className="h-64 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Tooltip
