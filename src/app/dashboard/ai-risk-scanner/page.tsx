@@ -1,141 +1,56 @@
 'use client';
+
+/**
+ * AI Risk Scanner - gated as an "Upcoming" feature.
+ *
+ * The full scanner (upload → AI diligence → saved reports) is parked while we
+ * run a closed pilot. This page intentionally makes NO calls to the AI backend
+ * (that's what used to throw "Failed to fetch" when the backend was off). It
+ * simply shows a "Coming soon" screen + the pilot waitlist. The original
+ * implementation lives in git history and can be restored when we re-enable AI.
+ */
+
 import { useState } from 'react';
-import { MoreVertical, Users } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Sparkles, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-
-type Startup = {
-  id: string;
-  icon: string;
-  name: string;
-  owner: string;
-  status: string;
-  lastActive: string;
-};
-
-const startups: Startup[] = [];
-
-
-const StatusBadge = ({ status }: { status: string }) => {
-    switch (status) {
-        case 'New':
-            return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">{status}</Badge>;
-        case 'In Review':
-            return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">{status}</Badge>;
-        case 'Completed':
-            return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">{status}</Badge>;
-        default:
-            return <Badge variant="secondary">{status}</Badge>;
-    }
-};
+import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
 
 export default function AiRiskScannerPage() {
-  const router = useRouter();
-
-  const handleStartupClick = (startupId: string) => {
-    router.push(`/dashboard/due-diligence/${startupId}`);
-  };
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold">Startups Shared With Me</h1>
-        <p className="text-muted-foreground mt-1">
-          Analyze startup data rooms securely. Track documents. Make faster decisions.
+    <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
+      <div className="max-w-lg">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1 border border-blue-200 mb-5">
+          <Rocket className="h-3.5 w-3.5" /> Coming soon
+        </span>
+
+        <div className="mx-auto mb-5 h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+          <Sparkles className="h-7 w-7 text-white" />
+        </div>
+
+        <h1 className="text-3xl font-bold tracking-tight mb-3">AI Risk Scanner is coming soon</h1>
+
+        <p className="text-muted-foreground leading-relaxed mb-7">
+          Our AI due-diligence engine is in a closed pilot. We&apos;re validating accuracy with a
+          small group of professional investors and analysts before opening it up - so every report
+          you generate is one you can trust. Join the pilot waitlist to get early access.
         </p>
+
+        <Button
+          size="lg"
+          className="bg-gray-900 hover:bg-gray-800 text-white"
+          onClick={() => setWaitlistOpen(true)}
+        >
+          <Sparkles className="h-4 w-4 mr-2" /> Join the pilot waitlist
+        </Button>
       </div>
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Startups Shared With Me</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Startup</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead className="text-right w-[50px]"> </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {startups.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No startups have shared a data room with you yet.
-                    </TableCell>
-                  </TableRow>
-                ) : startups.map((startup) => (
-                  <TableRow key={startup.name} onClick={() => handleStartupClick(startup.id)} className="cursor-pointer">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={startup.icon}
-                          width={32}
-                          height={32}
-                          alt={startup.name}
-                          className="rounded-md"
-                        />
-                        <div>
-                          <div className="font-medium">{startup.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {startup.owner}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={startup.status} />
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-muted-foreground text-sm">
-                        {startup.lastActive}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); alert('More options'); }}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                  <Users className="h-6 w-6 text-muted-foreground"/>
-                  <CardTitle className="text-xl">Invite Founders</CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
-                  <Button>Invite Founders</Button>
-                  <Button variant="outline">View Demo Data Room</Button>
-              </div>
-          </CardHeader>
-          <CardContent>
-              <p className="text-muted-foreground text-sm">No startups have shared a data room with you yet.</p>
-          </CardContent>
-        </Card>
-      </div>
+
+      <UpcomingFeatureDialog
+        open={waitlistOpen}
+        onOpenChange={setWaitlistOpen}
+        featureName="AI Risk Scanner"
+      />
     </div>
   );
 }

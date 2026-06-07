@@ -14,7 +14,7 @@ export function Logo({ className, isPen = false }: { className?: string, isPen?:
       <span className="text-xl font-semibold text-foreground">
         VentureTrust.
       </span>
-       {isPen && <span className="text-xl font-bold text-primary">PEN</span>}
+       {isPen && <span className="text-xl font-bold text-primary">ai</span>}
     </Link>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef } from 'react';
-import { MoreVertical, UploadCloud, FileText, CheckCircle, Users } from 'lucide-react';
+import { MoreVertical, UploadCloud, FileText, CheckCircle, Users, Eye } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -17,12 +17,39 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import { useRouter } from 'next/navigation';
 
-const startups: any[] = [];
-
+// Sample data - replace with actual data from your backend
+const startups = [
+  {
+    id: '123e4567-e89b-12d3-a456-426614174000', // Example UUID
+    name: 'Acme Inc.',
+    owner: 'John Doe',
+    icon: 'https://placehold.co/32x32/4285F4/FFFFFF/png?text=A',
+    status: 'Completed',
+    lastActive: '2 hours ago'
+  },
+  {
+    id: '223e4567-e89b-12d3-a456-426614174001',
+    name: 'TechCorp',
+    owner: 'Jane Smith',
+    icon: 'https://placehold.co/32x32/34A853/FFFFFF/png?text=T',
+    status: 'In Review',
+    lastActive: '1 day ago'
+  },
+  {
+    id: '323e4567-e89b-12d3-a456-426614174002',
+    name: 'InnovateCo',
+    owner: 'Bob Johnson',
+    icon: 'https://placehold.co/32x32/EA4335/FFFFFF/png?text=I',
+    status: 'New',
+    lastActive: '3 days ago'
+  }
+];
 
 const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
@@ -43,6 +70,7 @@ export default function AiRiskScannerPage() {
   const [progress, setProgress] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -57,6 +85,8 @@ export default function AiRiskScannerPage() {
   const handleBrowseClick = () => {
     fileInputRef.current?.click();
   };
+
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
 
   const handleStartAnalysis = () => {
     if (!file) return;
@@ -95,6 +125,10 @@ export default function AiRiskScannerPage() {
       event.stopPropagation();
   };
 
+  const handleViewReport = (reportId: string) => {
+    router.push(`/dashboard/due-diligence/${reportId}`);
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -116,12 +150,12 @@ export default function AiRiskScannerPage() {
                     <TableHead>Startup</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Active</TableHead>
-                    <TableHead className="text-right w-[50px]"> </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {startups.map((startup) => (
-                    <TableRow key={startup.name}>
+                    <TableRow key={startup.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Image
@@ -148,9 +182,19 @@ export default function AiRiskScannerPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleViewReport(startup.id)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -220,7 +264,8 @@ export default function AiRiskScannerPage() {
             />
           </CardContent>
             <div className="p-6 pt-0 flex flex-col gap-4">
-              <Button size="lg" onClick={handleStartAnalysis} disabled={!file || isAnalyzing}>Start Analysis</Button>
+              <Button size="lg" onClick={() => setUpcomingOpen(true)}>Start Analysis</Button>
+              <UpcomingFeatureDialog open={upcomingOpen} onOpenChange={setUpcomingOpen} />
               <p className="text-sm text-muted-foreground text-center">Upload a document to analyze potential risks. Identify missing info, red flags, and inconsistencies.</p>
             </div>
         </Card>

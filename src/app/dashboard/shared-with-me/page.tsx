@@ -1,77 +1,757 @@
 'use client';
-import { Users } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+
+/**
+ * Shared With Me - modern two-section page.
+ *
+ *  • "Spaces"  : data rooms the user has accessed via a share link (joined via
+ *                share_link_access_logs or viewer_sessions matching their email).
+ *  • "Reports" : due diligence reports shared with this user (queries the
+ *                diligence_reports table for rows that reference the user's
+ *                email in a future `shared_with` column - gracefully empty for now).
+ *
+ * Modern design: hero header, search, tabbed sections with counts, gradient
+ * cover thumbnails, owner info, last-accessed timestamps, friendly empty
+ * states, loading skeletons, and a real "Invite Founders" CTA at the bottom.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Layers,
+  FileText,
+  Search,
+  Mail,
+  ExternalLink,
+  Inbox,
+  Clock,
+  ArrowRight,
+  Sparkles,
+  ShieldCheck,
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type SharedSpace = {
+  spaceId: string;
+  spaceName: string;
+  description: string | null;
+  coverImage: string | null;
+  ownerEmail: string | null;
+  shareToken: string | null;
+  lastAccessedAt: string;
+  visitCount: number;
+};
+
+type SharedReport = {
+  reportId: string;
+  title: string;
+  ownerEmail: string | null;
+  sharedAt: string;
+  status: string | null;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function initialsFromEmail(email: string | null | undefined): string {
+  if (!email) return '?';
+  const local = email.split('@')[0] ?? '';
+  return (local[0] ?? '?').toUpperCase();
+}
+
+// ─── Empty-state component ────────────────────────────────────────────────────
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  cta,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  cta?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-16 px-8 gap-4">
+      <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Icon className="h-9 w-9 text-blue-500" />
+      </div>
+      <div className="space-y-1.5">
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground max-w-md">{description}</p>
+      </div>
+      {cta && (
+        <Button onClick={cta.onClick} className="mt-2">
+          {cta.label} <ArrowRight className="h-4 w-4 ml-1" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// ─── Space card ───────────────────────────────────────────────────────────────
+
+function SharedSpaceCard({ space, onOpen }: { space: SharedSpace; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="group text-left bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-blue-400 hover:shadow-lg transition-all duration-200 flex flex-col"
+    >
+      {/* Cover area */}
+      <div className="relative h-32 overflow-hidden">
+        {space.coverImage ? (
+          <img
+            src={space.coverImage}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-violet-500 via-indigo-500 to-blue-500">
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 2px, transparent 2px, transparent 16px)',
+              }}
+            />
+          </div>
+        )}
+        <div className="absolute top-2 right-2">
+          <Badge variant="secondary" className="bg-white/90 backdrop-blur text-xs gap-1">
+            <ShieldCheck className="h-3 w-3" />
+            Secure
+          </Badge>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-4 flex flex-col gap-2 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-base leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+            {space.spaceName}
+          </h3>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
+        {space.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{space.description}</p>
+        )}
+
+        <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-100">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-[10px] bg-gradient-to-br from-orange-400 to-red-500 text-white">
+              {initialsFromEmail(space.ownerEmail)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs text-muted-foreground truncate flex-1">
+            {space.ownerEmail ?? 'Anonymous owner'}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatDistanceToNow(new Date(space.lastAccessedAt), { addSuffix: true })}
+          </span>
+          {space.visitCount > 1 && (
+            <Badge variant="outline" className="text-[10px] py-0 h-4">
+              {space.visitCount} visits
+            </Badge>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Report card ──────────────────────────────────────────────────────────────
+
+function SharedReportCard({ report, onOpen }: { report: SharedReport; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="group text-left bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-purple-400 hover:shadow-lg transition-all duration-200"
+    >
+      <div className="relative h-24 bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex items-center justify-center">
+        <FileText className="h-10 w-10 text-white/80" />
+        <div className="absolute top-2 right-2">
+          <Badge variant="secondary" className="bg-white/90 backdrop-blur text-xs gap-1">
+            <Sparkles className="h-3 w-3" />
+            AI Report
+          </Badge>
+        </div>
+      </div>
+      <div className="p-4 flex flex-col gap-2">
+        <h3 className="font-semibold text-base leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
+          {report.title}
+        </h3>
+        <div className="flex items-center gap-2 mt-1 pt-2 border-t border-gray-100">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-[10px] bg-gradient-to-br from-purple-400 to-pink-500 text-white">
+              {initialsFromEmail(report.ownerEmail)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs text-muted-foreground truncate flex-1">
+            {report.ownerEmail ?? 'Anonymous'}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Shared {formatDistanceToNow(new Date(report.sharedAt), { addSuffix: true })}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SharedWithMePage() {
-  const startups: any[] = [];
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [myEmail, setMyEmail] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<SharedSpace[]>([]);
+  const [reports, setReports] = useState<SharedReport[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  // ── Invite-a-founder dialog ──
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [founderEmail, setFounderEmail] = useState('');
+  const [founderMsg, setFounderMsg] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+
+  const handleInviteFounder = async () => {
+    const email = founderEmail.trim();
+    if (!email) { toast({ variant: 'destructive', title: 'Enter the founder’s email' }); return; }
+    setInviteSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/invite-founder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ email, message: founderMsg.trim() }),
+      });
+      const json = res.ok ? await res.json() : { ok: false, error: 'server' };
+      if (!json.ok) {
+        const msg = json.error === 'invalid_email' ? 'That email looks invalid.'
+          : json.error === 'cannot_invite_self' ? 'You can’t invite yourself.'
+          : 'Could not send the request. Please try again.';
+        toast({ variant: 'destructive', title: 'Failed to send', description: msg });
+        setInviteSending(false);
+        return;
+      }
+      toast({
+        title: 'Request sent',
+        description: json.hasAccount
+          ? `${email} was notified in VentureThrust and by email.`
+          : `An email invitation was sent to ${email}.`,
+      });
+      setInviteOpen(false);
+      setFounderEmail('');
+      setFounderMsg('');
+    } catch {
+      toast({ variant: 'destructive', title: 'Something went wrong. Please try again.' });
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        // 1. Resolve current user's email + auth ID
+        const { data: authData } = await supabase.auth.getUser();
+        const email = authData?.user?.email ?? null;
+        const authUserId = authData?.user?.id ?? null;
+        if (!email || !authUserId) {
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
+        if (!cancelled) setMyEmail(email);
+
+        // 2. Build the set of space IDs this user has visited as a VISITOR.
+        //    Critically, we'll later exclude any space they OWN - the user
+        //    visiting their own space (to preview/test) is NOT "shared with me".
+        const shareLinkSpaceMap = new Map<string, { last: string; count: number }>();
+        try {
+          const { data: logs } = await supabase
+            .from('share_link_access_logs')
+            .select('share_link_id, created_at')
+            .eq('email', email)
+            .order('created_at', { ascending: false });
+          if (logs && logs.length > 0) {
+            const linkIds = [...new Set(logs.map((l) => l.share_link_id as string).filter(Boolean))];
+            const { data: links } = await supabase
+              .from('share_links')
+              .select('id, space_id, token')
+              .in('id', linkIds);
+            const linkToSpace = new Map<string, { space_id: string; token: string }>();
+            (links ?? []).forEach((lnk) =>
+              linkToSpace.set(lnk.id as string, { space_id: lnk.space_id as string, token: lnk.token as string })
+            );
+            for (const log of logs) {
+              const spaceInfo = linkToSpace.get(log.share_link_id as string);
+              if (!spaceInfo) continue;
+              const existing = shareLinkSpaceMap.get(spaceInfo.space_id);
+              if (existing) {
+                existing.count += 1;
+              } else {
+                shareLinkSpaceMap.set(spaceInfo.space_id, {
+                  last: log.created_at as string,
+                  count: 1,
+                });
+              }
+            }
+          }
+        } catch {
+          /* table missing - skip */
+        }
+
+        // Build space-id list from BOTH sources
+        const spaceIds = new Set<string>();
+        try {
+          const { data: vs } = await supabase
+            .from('viewer_sessions')
+            .select('space_id')
+            .eq('visitor_email', email);
+          (vs ?? []).forEach((r) => r.space_id && spaceIds.add(r.space_id as string));
+        } catch {}
+        shareLinkSpaceMap.forEach((_, k) => spaceIds.add(k));
+
+        // 3. Fetch the actual space rows - EXCLUDING any space the current user
+        //    owns. Visiting your own space (to preview/test) doesn't count as
+        //    "shared with you" - only spaces from OTHER users belong here.
+        if (spaceIds.size > 0) {
+          const { data: spaceRows } = await supabase
+            .from('spaces')
+            .select('id, name, title, description, cover_image, created_by')
+            .in('id', Array.from(spaceIds))
+            .neq('created_by', authUserId);
+
+          // Resolve owner emails via profiles (one-shot lookup)
+          const ownerIds = [...new Set((spaceRows ?? []).map((s) => s.created_by as string).filter(Boolean))];
+          const ownerEmailMap = new Map<string, string>();
+          if (ownerIds.length > 0) {
+            try {
+              const { data: profs } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .in('id', ownerIds);
+              (profs ?? []).forEach((p) => {
+                if (p.email) ownerEmailMap.set(p.id as string, p.email as string);
+              });
+            } catch {}
+          }
+
+          // Resolve a token for opening (most recent active link per space)
+          const { data: activeLinks } = await supabase
+            .from('share_links')
+            .select('space_id, token, created_at')
+            .in('space_id', Array.from(spaceIds))
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+          const tokenMap = new Map<string, string>();
+          (activeLinks ?? []).forEach((lnk) => {
+            if (!tokenMap.has(lnk.space_id as string)) {
+              tokenMap.set(lnk.space_id as string, lnk.token as string);
+            }
+          });
+
+          // Aggregate visit counts + last-accessed
+          const visitInfo = new Map<string, { last: string; count: number }>();
+          // From viewer_sessions
+          try {
+            const { data: vs } = await supabase
+              .from('viewer_sessions')
+              .select('space_id, started_at, last_heartbeat')
+              .eq('visitor_email', email);
+            (vs ?? []).forEach((row) => {
+              const sid = row.space_id as string;
+              const ts = (row.last_heartbeat as string) || (row.started_at as string);
+              const existing = visitInfo.get(sid);
+              if (existing) {
+                existing.count += 1;
+                if (new Date(ts) > new Date(existing.last)) existing.last = ts;
+              } else {
+                visitInfo.set(sid, { last: ts, count: 1 });
+              }
+            });
+          } catch {}
+          // Merge in share_link counts
+          shareLinkSpaceMap.forEach((v, sid) => {
+            const existing = visitInfo.get(sid);
+            if (existing) {
+              existing.count += v.count;
+              if (new Date(v.last) > new Date(existing.last)) existing.last = v.last;
+            } else {
+              visitInfo.set(sid, v);
+            }
+          });
+
+          const sharedSpaces: SharedSpace[] = (spaceRows ?? []).map((s) => {
+            const info = visitInfo.get(s.id as string) ?? { last: new Date().toISOString(), count: 1 };
+            return {
+              spaceId: s.id as string,
+              spaceName: (s.name as string) || (s.title as string) || 'Untitled Space',
+              description: (s.description as string) ?? null,
+              coverImage: (s.cover_image as string) ?? null,
+              ownerEmail: ownerEmailMap.get(s.created_by as string) ?? null,
+              shareToken: tokenMap.get(s.id as string) ?? null,
+              lastAccessedAt: info.last,
+              visitCount: info.count,
+            };
+          });
+          sharedSpaces.sort((a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime());
+          if (!cancelled) setSpaces(sharedSpaces);
+        }
+
+        // 4. Reports - query diligence_reports rows shared via shared_with array,
+        //    excluding reports the current user created themselves.
+        //    Falls back silently if the column/table doesn't exist or no rows match.
+        try {
+          const { data: reportRows } = await supabase
+            .from('diligence_reports')
+            .select('id, title, created_at, status, shared_with, created_by')
+            .contains('shared_with', [email])
+            .neq('created_by', authUserId)
+            .order('created_at', { ascending: false });
+
+          if (reportRows && reportRows.length > 0) {
+            const ownerIds = [...new Set(reportRows.map((r) => r.created_by as string).filter(Boolean))];
+            const ownerEmailMap = new Map<string, string>();
+            if (ownerIds.length > 0) {
+              const { data: profs } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .in('id', ownerIds);
+              (profs ?? []).forEach((p) => {
+                if (p.email) ownerEmailMap.set(p.id as string, p.email as string);
+              });
+            }
+            const sharedReports: SharedReport[] = reportRows.map((r) => ({
+              reportId: r.id as string,
+              title: (r.title as string) || 'Due Diligence Report',
+              ownerEmail: ownerEmailMap.get(r.created_by as string) ?? null,
+              sharedAt: r.created_at as string,
+              status: (r.status as string) ?? null,
+            }));
+            if (!cancelled) setReports(sharedReports);
+          }
+        } catch {
+          /* table missing or column missing - silently use empty */
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ── Filtered lists by search query ──────────────────────────────────────
+  const filteredSpaces = useMemo(() => {
+    if (!search.trim()) return spaces;
+    const q = search.toLowerCase();
+    return spaces.filter(
+      (s) =>
+        s.spaceName.toLowerCase().includes(q) ||
+        s.ownerEmail?.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q)
+    );
+  }, [spaces, search]);
+
+  const filteredReports = useMemo(() => {
+    if (!search.trim()) return reports;
+    const q = search.toLowerCase();
+    return reports.filter(
+      (r) => r.title.toLowerCase().includes(q) || r.ownerEmail?.toLowerCase().includes(q)
+    );
+  }, [reports, search]);
+
+  const handleOpenSpace = (space: SharedSpace) => {
+    if (space.shareToken) {
+      // Use the share link so they go through the gates (NDA, signature, etc.)
+      window.open(`/shared/${space.shareToken}`, '_blank');
+    } else {
+      // Fallback: direct view URL
+      window.open(`/spaces/${space.spaceId}/view`, '_blank');
+    }
+  };
+
+  const handleCopyMyEmail = () => {
+    if (!myEmail) return;
+    navigator.clipboard.writeText(myEmail);
+    toast({ title: 'Email copied!', description: 'Share this with founders to receive data rooms.' });
+  };
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold">Startups Shared With Me</h1>
-        <p className="text-muted-foreground mt-1">
-          Analyze startup data rooms securely. Track documents. Make faster decisions.
-        </p>
+      {/* ─── Hero ─────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8">
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(99,102,241,0.15) 0px, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139,92,246,0.15) 0px, transparent 50%)',
+          }}
+        />
+        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-white shadow-md flex items-center justify-center shrink-0">
+              <Inbox className="h-7 w-7 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Shared With Me</h1>
+              <p className="text-muted-foreground mt-1 text-sm md:text-base">
+                Everything founders and partners have shared with you - data rooms, due diligence reports, and more.
+              </p>
+              {myEmail && (
+                <button
+                  onClick={handleCopyMyEmail}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-50 transition-colors"
+                  title="Click to copy"
+                >
+                  <Mail className="h-3 w-3" />
+                  Sharing to: <span className="font-mono">{myEmail}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative w-full md:w-72 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search shared items…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white border-gray-200"
+            />
+          </div>
+        </div>
       </div>
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Startups Shared With Me</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Startup</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead className="text-right w-[50px]"> </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {startups.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No startups have shared a data room with you yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <></>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                  <Users className="h-6 w-6 text-muted-foreground"/>
-                  <CardTitle className="text-xl">Invite Founders</CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
-                  <Button>Invite Founders</Button>
-                  <Button variant="outline">View Demo Data Room</Button>
-              </div>
-          </CardHeader>
-          <CardContent>
-              <p className="text-muted-foreground text-sm">No startups have shared a data room with you yet.</p>
-          </CardContent>
-        </Card>
-      </div>
+
+      {/* ─── Tabs ─────────────────────────────────────────────── */}
+      <Tabs defaultValue="spaces" className="w-full">
+        <TabsList className="bg-gray-100 p-1 rounded-xl">
+          <TabsTrigger value="spaces" className="rounded-lg gap-2 px-4">
+            <Layers className="h-4 w-4" />
+            Spaces
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+              {isLoading ? '…' : filteredSpaces.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="rounded-lg gap-2 px-4">
+            <FileText className="h-4 w-4" />
+            Reports
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+              {isLoading ? '…' : filteredReports.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ─── Spaces tab ─── */}
+        <TabsContent value="spaces" className="mt-6">
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Layers className="h-5 w-5 text-blue-500" />
+                Spaces Shared With Me
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Data rooms founders have shared with you, secured by share links.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-2xl border border-gray-200 overflow-hidden">
+                      <Skeleton className="h-32 w-full" />
+                      <div className="p-4 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredSpaces.length === 0 ? (
+                <EmptyState
+                  icon={Layers}
+                  title={search ? 'No spaces match your search' : 'No data rooms shared yet'}
+                  description={
+                    search
+                      ? 'Try a different keyword or clear the search to see all shared items.'
+                      : 'When a founder shares a data room with you, it will appear here. Share your email so founders know where to send their data room links.'
+                  }
+                  cta={
+                    !search && myEmail
+                      ? { label: 'Copy my email to share', onClick: handleCopyMyEmail }
+                      : undefined
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredSpaces.map((space) => (
+                    <SharedSpaceCard
+                      key={space.spaceId}
+                      space={space}
+                      onOpen={() => handleOpenSpace(space)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── Reports tab ─── */}
+        <TabsContent value="reports" className="mt-6">
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-500" />
+                Reports Shared With Me
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                AI-generated due diligence reports that other analysts have shared with you.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="rounded-2xl border border-gray-200 overflow-hidden">
+                      <Skeleton className="h-24 w-full" />
+                      <div className="p-4 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredReports.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title={search ? 'No reports match your search' : 'No reports shared yet'}
+                  description={
+                    search
+                      ? 'Try a different keyword or clear the search.'
+                      : 'When another analyst shares a due diligence report with you, it will appear here.'
+                  }
+                  cta={{
+                    label: 'Generate my own report',
+                    onClick: () => router.push('/dashboard'),
+                  }}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredReports.map((report) => (
+                    <SharedReportCard
+                      key={report.reportId}
+                      report={report}
+                      onOpen={() => router.push(`/dashboard/due-diligence/${report.reportId}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* ─── Invite Founders CTA ─── */}
+      <Card className="border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Mail className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Looking for more deal flow?</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Invite founders to share their data rooms directly to your inbox.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button variant="outline" onClick={() => router.push('/dashboard/data-rooms')}>
+              View demo data room
+            </Button>
+            <Button
+              onClick={() => { setFounderEmail(''); setFounderMsg(''); setInviteOpen(true); }}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Invite founders
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Invite-a-founder dialog ─── */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { if (!inviteSending) setInviteOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite a founder</DialogTitle>
+            <DialogDescription>
+              Ask a founder to share their data room. If they&apos;re on VentureThrust they&apos;ll be
+              notified in-app and by email; otherwise we&apos;ll email them an invite.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-2">
+              <Label htmlFor="founder-email">Founder&apos;s email</Label>
+              <Input
+                id="founder-email"
+                type="email"
+                placeholder="founder@startup.com"
+                value={founderEmail}
+                onChange={(e) => setFounderEmail(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="founder-msg">
+                Message <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Textarea
+                id="founder-msg"
+                placeholder="Hi - I'd love to review your data room and learn more about your company."
+                value={founderMsg}
+                onChange={(e) => setFounderMsg(e.target.value)}
+                maxLength={1000}
+                className="min-h-[100px] resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInviteOpen(false)} disabled={inviteSending}>Cancel</Button>
+            <Button onClick={handleInviteFounder} disabled={inviteSending || !founderEmail.trim()}>
+              {inviteSending ? 'Sending…' : 'Send request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

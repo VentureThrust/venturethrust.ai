@@ -1,3 +1,15 @@
+/* ── Typography ──────────────────────────────────────────────────────────
+   Single font family: Geist (100-900) by Vercel.
+   Geist is the closest open-source match to Dropbox / DocSend's proprietary
+   Sharp Grotesk - a neutral geometric grotesk with crisp terminals and
+   tight metrics. It reads more "modern fintech" than Manrope, which was
+   slightly too humanist (rounder shoulders, more curvature) to match
+   DocSend's serious editorial feel. Body uses 400, semibold (600) for
+   headings, with the standard stylistic-set features enabled.
+   Geist is self-hosted via next/font (see src/app/layout.tsx) and exposed as
+   the CSS variable --font-geist-sans - no Google Fonts @import needed, so it
+   can never silently fall back to a system font if the network/CSP blocks it. */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,7 +22,10 @@
     --card-foreground: 223 15% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 223 15% 20%;
-    --primary: 212 87% 61%; /* Bright Blue */
+    /* Primary action color - dark slate (matches Agreements Upload pill).
+       Was blue (212 87% 61%); switched to near-black so every default-variant
+       button across the site renders as black-on-white instead of blue-on-white. */
+    --primary: 222 47% 11%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -30,6 +45,7 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -61,9 +77,144 @@
 @layer base {
   * {
     @apply border-border;
+    /* Single font family site-wide. The system-font stack at the end is a
+       safety net while Geist loads (avoids FOUT showing a different face). */
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Type rendering polish - gives Geist the same crispness DocSend
+       gets from Sharp Grotesk's hinting. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Geist supports contextual alternates (cv01/cv11) - turn them on
+       for slightly more characterful letterforms (curved 'l', open '4'). */
+    font-feature-settings: 'cv11', 'ss01';
   }
+
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    letter-spacing: -0.005em; /* subtle tightening - matches Anthropic's body */
   }
+
+  /* Headings - Inter Semibold with tight tracking.
+     - Weight 600 (not 700): 700 reads as too aggressive at large sizes;
+       600 has the confidence without the bulk. This is what Stripe and
+       Linear use on their dashboards.
+     - Negative letter-spacing scales with size: bigger = tighter, the way
+       professional grotesks (Söhne, GT America) are designed to be set.
+     - Tight line-height (1.2) keeps multi-line headlines anchored. */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    color: hsl(var(--foreground));
+  }
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  h2 {
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+}
+
+/* ── Landing-page animations ────────────────────────────────────────────── */
+/* Slow gradient sweep used on hero background - feels alive but never distracts */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 12s ease-in-out infinite;
+}
+
+/* Soft floating blob for decorative hero corners */
+@keyframes float-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -40px) scale(1.05); }
+  66%      { transform: translate(-20px, 30px) scale(0.95); }
+}
+.animate-blob {
+  animation: float-blob 18s ease-in-out infinite;
+}
+.animate-blob-delayed {
+  animation: float-blob 22s ease-in-out infinite;
+  animation-delay: -8s;
+}
+
+/* Continuous marquee for the logo bar - pauses on hover */
+@keyframes marquee-x {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee-x 30s linear infinite;
+}
+.animate-marquee:hover { animation-play-state: paused; }
+
+/* Fade out the left + right edges of the marquee so scrolling logos blend
+   smoothly into the background instead of popping in/out. */
+.mask-fade {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+/* Subtle pulse on hero CTAs to draw the eye without screaming */
+@keyframes soft-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
+}
+.animate-soft-pulse {
+  animation: soft-pulse 2.4s ease-out infinite;
+}
+
+/* Number counter - used for stats; the actual count-up is driven in TS */
+@keyframes count-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Notification bell animations ───────────────────────────────────────── */
+/* Wiggle: gentle bell-ringing motion. Plays continuously while there are
+   unread notifications, on a 4-second cadence so it nudges but doesn't annoy. */
+@keyframes bell-ring {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  60% { transform: rotate(15deg); }
+  65% { transform: rotate(-12deg); }
+  70% { transform: rotate(10deg); }
+  75% { transform: rotate(-8deg); }
+  80% { transform: rotate(6deg); }
+  85% { transform: rotate(-4deg); }
+  90% { transform: rotate(2deg); }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 4s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+/* Red dot blink: stronger than animate-ping, more attention-grabbing. */
+@keyframes red-dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.4); }
+}
+
+.animate-red-dot-blink {
+  animation: red-dot-blink 1.2s ease-in-out infinite;
 }

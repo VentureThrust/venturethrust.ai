@@ -1,34 +1,60 @@
 'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface User {
-  name: string;
-  firstName: string;
   email: string;
+  firstName: string;
+  plan: 'vdr_only' | 'ai_only' | 'vdr_ai' | null;
   avatarUrl: string;
 }
 
 interface UserContextType {
-  user: User;
-  setUser: (user: User) => void;
+  user: User | null;
+  loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// A mock user object. In a real app, this would come from an authentication provider.
-const defaultUser: User = {
-  name: '',
-  firstName: '',
-  email: '',
-  avatarUrl: 'https://images.unsplash.com/photo-1639149888905-fb39731f2e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx1c2VyJTIwYXZhdGFyfGVufDB8fHx8MTc2ODAwOTA4MHww&ixlib=rb-4.1.0&q=80&w=1080',
-};
-
-
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>(defaultUser);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', session.user.id)
+        .single();
+
+      setUser({
+        email: session.user.email ?? '',
+        firstName: session.user.email?.split('@')[0] ?? '',
+        plan: profile?.plan ?? null,
+        avatarUrl:
+          'https://images.unsplash.com/photo-1639149888905-fb39731f2e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+      });
+
+      setLoading(false);
+    };
+
+    loadUser();
+  }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, loading }}>
       {children}
     </UserContext.Provider>
   );
@@ -36,7 +62,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
 export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
