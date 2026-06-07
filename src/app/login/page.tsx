@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -12,6 +12,15 @@ import { Logo } from '@/components/layout/logo';
 import { MailCheck, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
+  // useSearchParams() requires a Suspense boundary in Next 15 production builds.
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get('next');

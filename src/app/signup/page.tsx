@@ -1,7 +1,7 @@
 // app/signup/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -13,6 +13,15 @@ import { Logo } from '@/components/layout/logo';
 import { MailCheck, Users } from 'lucide-react';
 
 export default function SignupPage() {
+  // useSearchParams() requires a Suspense boundary in Next 15 production builds.
+  return (
+    <Suspense fallback={null}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get('next');
