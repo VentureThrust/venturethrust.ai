@@ -46,6 +46,12 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Admins (the owner / support team) never need a plan.
+      if (user.isAdmin) {
+        if (!cancelled) setState('allowed');
+        return;
+      }
+
       // Active (non-expired) plan: allowed straight through (no extra lookups).
       if (isPlanActive(user.plan, user.planExpiresAt)) {
         if (!cancelled) setState('allowed');

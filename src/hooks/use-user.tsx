@@ -9,6 +9,7 @@ export interface User {
   plan: 'vdr_only' | 'ai_only' | 'vdr_ai' | null;
   planStatus: string | null;
   planExpiresAt: string | null;
+  isAdmin: boolean;
   avatarUrl: string;
 }
 
@@ -41,10 +42,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       let plan: User['plan'] = null;
       let planStatus: string | null = null;
       let planExpiresAt: string | null = null;
+      let isAdmin = false;
 
       const full = await supabase
         .from('profiles')
-        .select('plan, plan_status, plan_expires_at')
+        .select('plan, plan_status, plan_expires_at, is_admin')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -59,6 +61,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         plan = (full.data.plan as User['plan']) ?? null;
         planStatus = (full.data.plan_status as string | null) ?? null;
         planExpiresAt = (full.data.plan_expires_at as string | null) ?? null;
+        isAdmin = (full.data as { is_admin?: boolean }).is_admin === true;
       }
 
       setUser({
@@ -67,6 +70,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         plan,
         planStatus,
         planExpiresAt,
+        isAdmin,
         avatarUrl:
           'https://images.unsplash.com/photo-1639149888905-fb39731f2e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
       });
