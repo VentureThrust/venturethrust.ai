@@ -25,7 +25,7 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SUPPORT_MODEL = 'claude-opus-4-8';
 const MAX_TURNS = 16; // cap how much history we forward upstream
 
-const SYSTEM_PROMPT = `You are the support assistant for VentureThrust, a secure Virtual Data Room (VDR) product (similar to DocSend). You help signed-in users use the product.
+const BASE_PROMPT = `You are the support assistant for VentureThrust, a secure Virtual Data Room (VDR) product (similar to DocSend). You help signed-in users use the product.
 
 What VentureThrust does:
 - Spaces are secure data rooms. Users add files and folders, then share them with a secure link.
@@ -42,6 +42,7 @@ How to answer:
 - Answer ONLY from the facts above plus general product common sense. Never invent features, prices, limits, or settings. If you are unsure, say so plainly.
 - You have NO access to the user's account, files, analytics, or billing records. For anything account-specific (a charge, a missing file, a bug only they can see, a refund), tell them to use the "Talk to a human" option to send a message, and that the team replies to their account email.
 - If a request is out of scope (legal or financial advice, or anything unrelated to VentureThrust), politely decline and suggest the human option.
+- If you cannot fully resolve the issue, or the user asks to speak to a person, reassure them and tell them to tap the "Talk to a human" button below, which connects them straight to the team.
 - Respond with only your answer to the user. Do not include exploratory reasoning, internal notes, or meta-commentary about your process.`;
 
 type InMsg = { role: 'user' | 'assistant'; content: string };
@@ -93,6 +94,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'no_user_message' }, { status: 400 });
   }
 
+  // Load the editable knowledge base (best-effort; falls back to BASE_PROMPT if
+  // the support_kb table has not been created yet).
+  let system = BASE_PROMPT;
+  try {
+    const { data: kb } = await authed
+      .from('support_kb')
+      .select('title, body')
+      .eq('is_active', true)
+      .order('sort', { ascending: true });
+    if (kb && kb.length > 0) {
+      system +=
+        '\n\nKnowledge base (answer from this and do not contradict it):\n' +
+        kb
+          .map((e) => `## ${(e as { title: string }).title}\n${(e as { body: string }).body}`)
+          .join('\n\n');
+    }
+  } catch {
+    /* table missing or unreadable; keep the base prompt */
+  }
+
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -104,7 +125,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: SUPPORT_MODEL,
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system,
         messages: trimmed,
       }),
     });
