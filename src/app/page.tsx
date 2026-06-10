@@ -1,20 +1,24 @@
 'use client';
 
 /**
- * VentureTrust landing page - editorial rebuild.
+ * VentureThrust landing page - editorial rebuild, positioned on the VIRTUAL DATA
+ * ROOM (the live product): secure document sharing, page-by-page tracking,
+ * access control, file requests + Q&A. AI due diligence is a small "coming
+ * soon" teaser, not the headline (it is gated behind a pilot waitlist).
  *
  * Design language:
  *   - Horizontal rules between sections (no busy card grids)
  *   - Asymmetric typography (huge headline, tight body)
  *   - Numbered lists (01, 02, 03) instead of bulleted feature cards
  *   - Indented pull quotes for testimonials
- *   - Single-color accent (gray + one blue) - no rainbow gradients
- *   - Lots of vertical breathing room - feels like a Stripe Press essay
+ *   - Single-color accent (gray + one blue), no rainbow gradients
+ *   - Lots of vertical breathing room, like a Stripe Press essay
  */
 
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   Shield,
@@ -36,43 +40,46 @@ import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
 
 function HeroSection() {
   return (
-    <section className="relative pt-24 pb-20 sm:pt-32 sm:pb-28">
-      {/* Very subtle background - one soft tone, no animated gradient */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50 to-white" />
+    <section className="relative overflow-hidden pt-24 pb-20 sm:pt-32 sm:pb-28">
+      {/* Animated aurora background: soft colored blobs drift behind the hero */}
+      <div className="absolute inset-0 -z-20 bg-white" />
+      <div className="pointer-events-none absolute -z-10 -top-40 -left-24 h-[30rem] w-[30rem] rounded-full bg-blue-300/30 blur-3xl animate-blob" />
+      <div className="pointer-events-none absolute -z-10 top-0 right-[-4rem] h-[28rem] w-[28rem] rounded-full bg-indigo-300/30 blur-3xl animate-blob-delayed" />
+      <div className="pointer-events-none absolute -z-10 bottom-[-6rem] left-1/3 h-[26rem] w-[26rem] rounded-full bg-violet-200/40 blur-3xl animate-blob" />
 
       <div className="container mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
-          {/* Headline - takes left 7 cols, asymmetric */}
+          {/* Headline, left 7 cols, asymmetric */}
           <div className="lg:col-span-7">
             <Reveal>
               <p className="text-sm tracking-[0.2em] uppercase text-gray-500 mb-8 flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-gray-700" />
-                AI-powered due diligence · No law firm required
+                <Shield className="h-3.5 w-3.5 text-gray-700" />
+                Secure virtual data room
               </p>
             </Reveal>
             <Reveal delayMs={80}>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.02]">
-                Due diligence in hours.
+                Know who read your documents,
                 <br />
-                <span className="text-gray-400">Not weeks. Not $15K.</span>
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent animate-gradient">
+                  down to the page.
+                </span>
               </h1>
             </Reveal>
             <Reveal delayMs={180}>
               <p className="mt-8 text-lg leading-relaxed text-gray-600 max-w-xl">
-                VentureTrust is the AI-native virtual data room.{' '}
-                <strong className="text-gray-900 font-semibold">Founders</strong>{' '}
-                upload their deck, model, and cap table in ninety seconds.{' '}
-                <strong className="text-gray-900 font-semibold">Investors</strong>{' '}
-                open the link, click one button, and get a full institutional-grade
-                diligence report - red flags, cap-table risks, market signals,
-                financial inconsistencies - all in under ten minutes. The work
-                that used to need a $15,000 law-firm engagement now happens
-                inside the data room itself.
+                VentureThrust is a secure virtual data room. Keep your deck,
+                financials, and contracts in one place,{' '}
+                <strong className="text-gray-900 font-semibold">share them with a single link</strong>,
+                gate access with an NDA or expiry, and{' '}
+                <strong className="text-gray-900 font-semibold">
+                  see exactly who opened what, page by page
+                </strong>.
               </p>
             </Reveal>
           </div>
 
-          {/* CTAs - right 5 cols, aligned to baseline */}
+          {/* CTAs, right 5 cols, aligned to baseline */}
           <div className="lg:col-span-5">
             <Reveal delayMs={250}>
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 lg:items-end">
@@ -82,7 +89,7 @@ function HeroSection() {
                   asChild
                 >
                   <Link href="/signup">
-                    Run your first DD report - free
+                    Create your data room, free
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
@@ -94,7 +101,7 @@ function HeroSection() {
                 >
                   <a href="#how-it-works">
                     <PlayCircle className="h-4 w-4 mr-2" />
-                    Watch the AI in action
+                    See how it works
                   </a>
                 </Button>
               </div>
@@ -102,55 +109,55 @@ function HeroSection() {
           </div>
         </div>
 
-        {/* Before/After savings strip - the headline number */}
+        {/* Value strip: the three things a data room does for you */}
         <Reveal delayMs={350}>
           <div className="mt-16 sm:mt-20 border-t border-b border-gray-200 py-10 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200">
-            <div className="px-2 sm:px-8 py-6 sm:py-2">
+            <div className="px-2 sm:px-8 py-6 sm:py-2 rounded-xl transition-transform duration-300 hover:-translate-y-1">
               <p className="text-xs uppercase tracking-[0.15em] text-gray-400 mb-2">
-                The old way · investor side
-              </p>
-              <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-400 line-through decoration-2 decoration-red-400/70">
-                3 weeks · $15,000
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Hire outside counsel, wait for the report, miss the round
-              </p>
-            </div>
-            <div className="px-2 sm:px-8 py-6 sm:py-2">
-              <p className="text-xs uppercase tracking-[0.15em] text-gray-400 mb-2">
-                With VentureTrust AI
+                Share
               </p>
               <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
-                Under 10 minutes · $0
+                One secure link
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Investor opens the room, clicks <em>Generate report</em>, hands it to the IC
+                Your entire room behind a single link. No email attachments, no file-size limits.
               </p>
             </div>
-            <div className="px-2 sm:px-8 py-6 sm:py-2">
+            <div className="px-2 sm:px-8 py-6 sm:py-2 rounded-xl transition-transform duration-300 hover:-translate-y-1">
               <p className="text-xs uppercase tracking-[0.15em] text-gray-400 mb-2">
-                What gets saved
+                Track
               </p>
-              <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 tabular-nums">
-                99.6% time · 100% cost
+              <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+                Every page, live
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Free tier covers the first AI report each month
+                A real-time alert the moment it opens, then page-by-page engagement.
+              </p>
+            </div>
+            <div className="px-2 sm:px-8 py-6 sm:py-2 rounded-xl transition-transform duration-300 hover:-translate-y-1">
+              <p className="text-xs uppercase tracking-[0.15em] text-gray-400 mb-2">
+                Control
+              </p>
+              <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+                Revoke any time
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Gate with an NDA, email, passcode, or expiry, and cut access in one click.
               </p>
             </div>
           </div>
         </Reveal>
 
-        {/* Hero video - full width below the savings strip */}
+        {/* Hero video, full width below the value strip */}
         <Reveal delayMs={450} className="mt-16">
           <VideoPlaceholder
-            label="See a full AI DD report generated, end to end · 90 seconds"
-            tone="slate"
+            label="See a data room created, shared, and tracked, end to end · 90 seconds"
+            tone="indigo"
             aspect="16/9"
           />
         </Reveal>
 
-        {/* Compliance line - subtle, single row, no chips */}
+        {/* Compliance line, subtle, single row, no chips */}
         <Reveal delayMs={550}>
           <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-gray-500 border-t border-gray-200 pt-6">
             <span className="font-medium tracking-wider uppercase text-gray-400">
@@ -170,45 +177,6 @@ function HeroSection() {
   );
 }
 
-// ─── TRUST MARQUEE ────────────────────────────────────────────────────────────
-
-const TRUST_LOGOS = [
-  'YC Startup',
-  'Sequoia portfolio',
-  'a16z backed',
-  'Insight Partners',
-  'Index Ventures',
-  'Tiger Global',
-  'Lightspeed',
-  'General Catalyst',
-];
-
-function TrustMarquee() {
-  return (
-    <section className="py-12 border-y border-gray-200 bg-white">
-      <div className="container mx-auto max-w-6xl px-6">
-        <Reveal>
-          <p className="text-center text-xs tracking-[0.2em] uppercase text-gray-400 mb-8">
-            Running AI diligence across funds, family offices, &amp; angels
-          </p>
-        </Reveal>
-        <div className="overflow-hidden mask-fade">
-          <div className="flex gap-16 animate-marquee whitespace-nowrap">
-            {[...TRUST_LOGOS, ...TRUST_LOGOS].map((name, i) => (
-              <span
-                key={i}
-                className="text-lg font-medium text-gray-300 tracking-tight hover:text-gray-600 transition-colors shrink-0"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── EDITORIAL INTRO + PAIN ──────────────────────────────────────────────────
 
 function EditorialIntro() {
@@ -217,38 +185,37 @@ function EditorialIntro() {
       <div className="container mx-auto max-w-4xl px-6">
         <Reveal>
           <p className="text-sm tracking-[0.2em] uppercase text-gray-500 mb-8">
-            The diligence problem
+            The problem with email
           </p>
         </Reveal>
         <Reveal delayMs={100}>
           <p className="text-2xl sm:text-3xl lg:text-4xl leading-snug tracking-tight text-gray-900 font-medium">
-            Every investor knows the drill: you like the deck, you commit to
-            looking at the data room, and then{' '}
+            You email a deck or a contract, and the moment it lands{' '}
             <em className="text-gray-500 font-normal">
-              you spend three weeks paying a law firm $15K to do the work you
-              wish you could do yourself in an afternoon.
+              you have lost control of it. You cannot tell if it was opened, you
+              cannot stop it being forwarded, and you cannot take it back.
             </em>{' '}
-            We built the afternoon.
+            We built a place where you keep the keys.
           </p>
         </Reveal>
 
-        {/* Three problems - diligence-specific, not generic doc-sharing */}
+        {/* Three problems, sharing-specific */}
         <div className="mt-20 space-y-14">
           {[
             {
               n: '01',
-              title: 'Diligence costs more than the check sometimes warrants.',
-              body: 'Boutique due diligence runs $5,000 to $25,000 per deal. For an angel writing a $50K cheque, that math never works - so the diligence simply does not happen, and the bet becomes a guess.',
+              title: 'Email attachments leave your control the second you send.',
+              body: 'Once a file is in someone’s inbox it can be forwarded, downloaded, and saved forever. There is no expiry, no way to require an NDA first, and no way to pull it back if a conversation goes cold.',
             },
             {
               n: '02',
-              title: 'Three weeks is three weeks the founder is talking to other VCs.',
-              body: 'By the time the legal team finishes their review, the round is oversubscribed, the lead has moved, and you\'re negotiating from behind. Speed is the only real edge.',
+              title: 'You are flying blind on whether anyone even read it.',
+              body: 'Did the investor open your deck? Which slides held their attention? Did they skip the financials? With an attachment you will never know, so you are guessing about who is actually interested.',
             },
             {
               n: '03',
-              title: 'The same red flags are missed every cycle.',
-              body: 'Cap-table dilution, customer concentration, founder-vesting weirdness, MRR vs. ARR fudging - the patterns repeat. Pattern recognition is exactly what AI is good at and humans are tired of.',
+              title: 'Sensitive documents need more than a shared Dropbox link.',
+              body: 'Term sheets, cap tables, and contracts need NDAs, dynamic watermarks, per-recipient access, and an audit trail. A long, unguessable URL is not access control.',
             },
           ].map((p, i) => (
             <Reveal key={p.n} delayMs={i * 120}>
@@ -268,6 +235,37 @@ function EditorialIntro() {
                 </div>
               </div>
             </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── DOCUMENT-TYPES MARQUEE (auto-scroll animation) ──────────────────────────
+
+const DOC_TYPES = [
+  'Pitch decks', 'Financial models', 'Cap tables', 'NDAs', 'Board decks',
+  'Contracts', 'Due diligence', 'Term sheets', 'Investor updates', 'Fundraising',
+];
+
+function DocTypesMarquee() {
+  return (
+    <section className="py-10 border-y border-gray-200 bg-gray-50/70 overflow-hidden">
+      <Reveal>
+        <p className="text-center text-xs tracking-[0.2em] uppercase text-gray-400 mb-6">
+          Built for the documents that move deals
+        </p>
+      </Reveal>
+      <div className="mask-fade">
+        <div className="flex animate-marquee whitespace-nowrap">
+          {[...DOC_TYPES, ...DOC_TYPES].map((t, i) => (
+            <span
+              key={i}
+              className="mx-6 text-xl sm:text-2xl font-semibold text-gray-300 hover:text-gray-500 transition-colors shrink-0"
+            >
+              {t}
+            </span>
           ))}
         </div>
       </div>
@@ -349,79 +347,114 @@ function FeatureShowcase() {
         </Reveal>
         <Reveal delayMs={80}>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.02] max-w-3xl">
-            An AI analyst, a secure data room, and{' '}
-            <span className="text-gray-400">real-time deal intelligence.</span>
+            A secure data room, document tracking, and{' '}
+            <span className="text-gray-400">control over every link you share.</span>
           </h2>
         </Reveal>
 
         <div className="mt-24 space-y-32 lg:space-y-40">
           <FeatureBlock
             index="01"
-            eyebrow="AI due diligence · the headline feature"
-            title="One click. A full diligence report."
-            desc="Founders share the data room. Investors open it, hit Generate report, and in under ten minutes get a structured, citation-backed diligence report ready for the IC. This is what investors are paying boutique firms $15K and three weeks to produce."
-            icon={Sparkles}
-            videoLabel="AI report generation · end to end"
-            videoTone="indigo"
+            eyebrow="Secure data rooms"
+            title="One room. One link. Total order."
+            desc="Drag your documents in, organize them into folders and sections, add your logo, and share the whole room with a single link. Works with PDFs, Office files, images, and video."
+            icon={Shield}
+            videoLabel="Creating and organizing a data room"
+            videoTone="slate"
             detail={[
-              'Trained on 10,000+ real Series A through D diligence reports',
-              'Catches cap-table dilution, MRR/ARR fudging, customer-concentration risk, founder-vesting issues',
-              'Cites the exact line in the source document for every finding',
-              'Export to PDF, share with your partnership, or keep private',
-              'Replaces a $5K-$25K boutique diligence engagement',
+              'Folders and sections to structure your deck, financials, and contracts',
+              'Your branding on the room visitors see',
+              'Share with one person or a hundred from the same link',
+              'Everything encrypted at rest and in transit',
             ]}
           />
 
           <FeatureBlock
             index="02"
-            eyebrow="Secure data rooms"
-            title="The room your AI lives in."
-            desc="The data room itself is just the wrapper that makes the AI work safely. Drag your documents in, set the access rules, share one link. Everything the AI analyzes is encrypted, gated, and audit-logged."
-            icon={Shield}
-            videoLabel="Creating a data room"
-            videoTone="slate"
+            eyebrow="Document tracking"
+            title="See who is reading. Right now."
+            desc="The moment someone opens your room, your bell rings. Watch the session live: which page they are on, how long they linger, which sections they replay. Know exactly where the real interest is."
+            icon={Activity}
+            videoLabel="Real-time viewer analytics, page by page"
+            videoTone="blue"
             reversed
             detail={[
-              'Per-link expiration, email gating, passcodes, and dynamic watermarks',
-              'NDA acceptance + e-signature gating before any file is viewable',
-              'Block specific emails or entire company domains',
-              'Revoke access instantly - even after the link has been shared',
+              'Real-time alert the instant a visitor opens your documents',
+              'Per-page engagement, so you see which slides actually landed',
+              'Time spent on every page and every file',
+              'Video replay markers showing which seconds got rewatched',
             ]}
           />
 
           <FeatureBlock
             index="03"
-            eyebrow="Live analytics"
-            title="See who's reading. Right now."
-            desc="The moment someone opens your deck, your bell rings. Watch their session live: which page, how long, which sections they replayed. The deal closes itself if you call at the right moment."
-            icon={Activity}
-            videoLabel="Real-time viewer analytics"
-            videoTone="blue"
+            eyebrow="Access control"
+            title="Share on your terms. Revoke on your terms."
+            desc="A long URL is not security. Gate every link the way the document deserves, and cut off access the second a deal cools or a recipient changes."
+            icon={Lock}
+            videoLabel="NDA gate, watermark, and link settings"
+            videoTone="indigo"
             detail={[
-              'Live currently-viewing indicator - ticks duration in real time',
-              'Per-page engagement heatmaps for every PDF',
-              'Video replay markers - exactly which seconds got rewatched',
-              'Outreach moments suggested automatically (call when warm)',
+              'Require an NDA or e-signature before any file is viewable',
+              'Verify the viewer’s email, or set a passcode and an expiry date',
+              'Dynamic watermark stamped with the viewer’s email and IP',
+              'Block specific emails or whole domains, and revoke any link instantly',
             ]}
           />
 
           <FeatureBlock
             index="04"
-            eyebrow="Q&A and file requests"
-            title="Two-way collaboration. No tool-switching."
-            desc="Visitors ask questions on any file. You reply once; everyone subscribed sees the answer behind a login. Need a document back? Send a branded file request, route uploads straight into a folder."
+            eyebrow="File requests and Q&A"
+            title="Collect documents and answer questions in one place."
+            desc="Need a document back? Send a branded request and uploads route straight into a folder, no account required. Visitors ask questions on any file, and you answer once for everyone."
             icon={MessageSquare}
-            videoLabel="Q&A + file requests in action"
+            videoLabel="File requests and Q&A in action"
             videoTone="purple"
             reversed
             detail={[
+              'Branded file-request links that drop uploads into the right folder',
+              'Collect files from people who do not have an account',
               'Questions tied to the exact file the visitor was viewing',
-              'Replies delivered via email + in-app notification',
-              'Branded file-request links with folder routing',
-              'Every interaction logged to your immutable audit trail',
+              'Every upload and reply written to an audit trail',
             ]}
           />
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── AI TEASER (small, coming soon) ──────────────────────────────────────────
+
+function AiTeaser() {
+  return (
+    <section className="py-16 border-t border-gray-200 bg-gray-50">
+      <div className="container mx-auto max-w-4xl px-6">
+        <Reveal>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1 border border-blue-200">
+                <Sparkles className="h-3.5 w-3.5" /> Coming soon
+              </span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold tracking-tight text-gray-900">
+                AI due diligence, built into the room
+              </h3>
+              <p className="text-gray-600 mt-1 leading-relaxed">
+                Generate a structured, citation-backed diligence report from any data
+                room. We are validating it with a small group of professional investors
+                first. Join the waitlist to be early.
+              </p>
+            </div>
+            <Link
+              href="/signup"
+              className="shrink-0 text-sm font-medium text-gray-900 underline decoration-gray-300 hover:decoration-gray-900 underline-offset-4"
+            >
+              Join the waitlist
+            </Link>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -432,27 +465,27 @@ function FeatureShowcase() {
 const STEPS = [
   {
     n: '01',
-    title: 'Founder uploads the room.',
-    desc: 'Drag the deck, financial model, cap table, contracts. PDF, DOCX, XLSX - anything. Ninety seconds, no setup wizard. Share the link with one investor or a hundred.',
-    videoLabel: 'Step one - founder uploads',
+    title: 'Build your room.',
+    desc: 'Drag in your deck, financial model, cap table, and contracts. PDF, DOCX, XLSX, video, anything. Organize them into folders. Ninety seconds, no setup wizard.',
+    videoLabel: 'Step one, build the room',
     tone: 'slate' as const,
-    actor: 'Founder',
+    actor: 'You',
   },
   {
     n: '02',
-    title: 'Investor clicks Generate report.',
-    desc: 'The investor opens the shared room, hits one button, and the AI reads every document, cross-references them, and writes a structured diligence report in under ten minutes. With citations to the exact lines.',
-    videoLabel: 'Step two - investor runs AI DD',
+    title: 'Share a secure link.',
+    desc: 'Set the access rules, an NDA gate, email verification, a passcode, an expiry, a watermark, then send one link to a single investor or a whole list.',
+    videoLabel: 'Step two, share with control',
     tone: 'indigo' as const,
-    actor: 'Investor',
+    actor: 'You',
   },
   {
     n: '03',
-    title: 'IC gets the report. Decision happens.',
-    desc: 'The investor hands the AI report to the partnership (or skips the meeting entirely). The question changes from "can we afford to diligence this?" to "do we have conviction?".',
-    videoLabel: 'Step three - IC decides',
+    title: 'Watch the engagement.',
+    desc: 'The moment they open it your bell rings. See which pages they read and for how long, answer their questions in place, and follow up at exactly the right moment.',
+    videoLabel: 'Step three, track and follow up',
     tone: 'blue' as const,
-    actor: 'Investor',
+    actor: 'They',
   },
 ];
 
@@ -467,8 +500,8 @@ function HowItWorks() {
         </Reveal>
         <Reveal delayMs={80}>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.02] max-w-3xl">
-            Three steps to a finished diligence report.{' '}
-            <span className="text-gray-400">No legal team in the loop.</span>
+            Three steps to a tracked, secure share.{' '}
+            <span className="text-gray-400">No attachments. No guesswork.</span>
           </h2>
         </Reveal>
 
@@ -476,7 +509,7 @@ function HowItWorks() {
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delayMs={i * 100}>
               <div className="grid grid-cols-12 gap-6 lg:gap-10 items-start border-t border-gray-200 pt-12">
-                {/* Number column - number + actor label */}
+                {/* Number column, number + actor label */}
                 <div className="col-span-12 sm:col-span-2">
                   <span className="text-4xl font-light text-gray-300 tabular-nums">
                     {s.n}
@@ -562,7 +595,7 @@ function SecuritySection() {
           {/* Right: video placeholder */}
           <Reveal from="right" delayMs={200} className="lg:col-span-6 lg:pt-2">
             <VideoPlaceholder
-              label="Security architecture explained"
+              label="Security and access control explained"
               tone="slate"
               aspect="4/3"
             />
@@ -575,11 +608,62 @@ function SecuritySection() {
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
+// Count-up number that animates from 0 to `to` when it scrolls into view.
+function CountUp({
+  to,
+  prefix = '',
+  suffix = '',
+  duration = 1400,
+}: {
+  to: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [val, setVal] = useState(0);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && !started.current) {
+            started.current = true;
+            const start = performance.now();
+            const tick = (now: number) => {
+              const p = Math.min(1, (now - start) / duration);
+              const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+              setVal(Math.round(eased * to));
+              if (p < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            obs.unobserve(e.target);
+          }
+        }
+      },
+      { threshold: 0.4 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [to, duration]);
+
+  return (
+    <span ref={ref}>
+      {prefix}
+      {val.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
 const STATS = [
-  { value: '< 10 min', label: 'From upload to a finished, citation-backed diligence report' },
-  { value: '$0', label: 'For your first AI DD report every month. No card required.' },
-  { value: '99.6%', label: 'Time saved vs. a traditional boutique DD engagement' },
-  { value: '10,000+', label: 'Real diligence reports the model was trained on' },
+  { to: 100, prefix: '', suffix: '%', label: 'of every document open tracked, page by page' },
+  { to: 256, prefix: '', suffix: '-bit', label: 'AES encryption on every file, at rest and in transit' },
+  { to: 30, prefix: '', suffix: 's', label: 'to build a data room and share a secure link' },
+  { to: 0, prefix: '$', suffix: '', label: 'to start. Your first data room, no card required.' },
 ];
 
 function StatsRow() {
@@ -589,9 +673,9 @@ function StatsRow() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200">
           {STATS.map((s, i) => (
             <Reveal key={s.label} delayMs={i * 100}>
-              <div className="py-8 sm:py-2 sm:px-8 first:sm:pl-0 last:sm:pr-0">
-                <div className="text-5xl sm:text-6xl font-bold tracking-tighter tabular-nums">
-                  {s.value}
+              <div className="py-8 sm:py-2 sm:px-8 first:sm:pl-0 last:sm:pr-0 transition-transform duration-300 hover:-translate-y-1">
+                <div className="text-4xl sm:text-5xl font-bold tracking-tighter tabular-nums">
+                  <CountUp to={s.to} prefix={s.prefix} suffix={s.suffix} />
                 </div>
                 <div className="text-sm text-gray-500 mt-3 leading-snug max-w-xs">
                   {s.label}
@@ -605,24 +689,24 @@ function StatsRow() {
   );
 }
 
-// ─── TESTIMONIALS - editorial pull quotes, not cards ─────────────────────────
+// ─── TESTIMONIALS, editorial pull quotes, not cards ──────────────────────────
 
 const TESTIMONIALS = [
   {
     quote:
-      'The AI diligence report flagged a cap-table issue our outside counsel missed in their first read. It would have cost us a six-figure restructure post-closing. We now run every deck through VentureTrust before the first call.',
-    author: 'Partner, mid-cap VC',
+      'I shared our data room with twelve investors and could see exactly who actually read the financials. I followed up with the three who did and closed the round in three weeks.',
+    author: 'Founder, seed-stage SaaS',
     role: 'Anonymous by request',
   },
   {
     quote:
-      'I used to send decks to a law firm and wait three weeks. Now I get a structured report in eight minutes with citations to the exact page. The IC review has become a five-minute conversation instead of a five-hour meeting.',
-    author: 'Principal, family office',
-    role: '$200M AUM',
+      'We replaced a messy Dropbox folder and endless email threads with one room. The NDA gate and the audit log alone made it worth switching.',
+    author: 'Operating partner',
+    role: 'Lower mid-market PE',
   },
   {
     quote:
-      'Closed our Series A in seventeen days flat. The investor told me later that the AI report they ran on our deck inside the data room was what gave them the confidence to move fast.',
+      'Seeing that an investor spent nine minutes on our cap-table page told me more than any meeting. I called them that afternoon and we had a term sheet that week.',
     author: 'Founder, fintech',
     role: 'Series A · $14M raised',
   },
@@ -634,13 +718,13 @@ function Testimonials() {
       <div className="container mx-auto max-w-4xl px-6">
         <Reveal>
           <p className="text-sm tracking-[0.2em] uppercase text-gray-500 mb-6">
-            What investors are saying
+            What people are saying
           </p>
         </Reveal>
         <Reveal delayMs={80}>
           <h2 className="text-4xl sm:text-5xl font-bold tracking-tighter leading-[1.05] mb-20">
-            The AI has done the reading.{' '}
-            <span className="text-gray-400">They just had to make the call.</span>
+            You shared a link.{' '}
+            <span className="text-gray-400">You saw everything that happened next.</span>
           </h2>
         </Reveal>
 
@@ -665,7 +749,7 @@ function Testimonials() {
   );
 }
 
-// ─── PRICING - simple, no cards ──────────────────────────────────────────────
+// ─── PRICING, simple, no cards ───────────────────────────────────────────────
 
 function PricingRow() {
   return (
@@ -680,8 +764,8 @@ function PricingRow() {
               Free until you&apos;re serious.
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed mb-10">
-              Solo founders get three full data rooms forever. Pro unlocks
-              unlimited rooms, real-time heatmaps, NDA gating, and team seats.
+              Start free with a real data room. Pro unlocks unlimited rooms,
+              full page-by-page analytics, NDA gating, watermarks, and team seats.
             </p>
             <Button
               size="lg"
@@ -700,12 +784,14 @@ function PricingRow() {
               {[
                 ['Data rooms', '3', 'Unlimited'],
                 ['Visitors per room', '25', 'Unlimited'],
-                ['AI due-diligence reports', '1 / month', 'Unlimited'],
-                ['Real-time analytics', 'Basic', 'Full heatmaps'],
+                ['Page-by-page analytics', 'Basic', 'Full heatmaps'],
                 ['NDA + e-signature gating', '-', 'Yes'],
+                ['Dynamic watermarks', '-', 'Yes'],
+                ['File requests + Q&A', 'Yes', 'Yes'],
                 ['Team seats', '1', '5 included'],
                 ['Custom branding', '-', 'Yes'],
                 ['Audit log retention', '30 days', '365 days'],
+                ['AI due diligence', 'Coming soon', 'Coming soon'],
               ].map(([feature, free, pro], i) => (
                 <div
                   key={i}
@@ -721,7 +807,7 @@ function PricingRow() {
               <div className="grid grid-cols-12 gap-3 py-5 text-xs uppercase tracking-widest text-gray-400">
                 <div className="col-span-6"></div>
                 <div className="col-span-3">Free</div>
-                <div className="col-span-3">Pro · $49/mo</div>
+                <div className="col-span-3">Pro</div>
               </div>
             </div>
           </Reveal>
@@ -731,7 +817,7 @@ function PricingRow() {
   );
 }
 
-// ─── FINAL CTA - editorial, single column ───────────────────────────────────
+// ─── FINAL CTA, editorial, single column ─────────────────────────────────────
 
 function FinalCTA() {
   return (
@@ -744,15 +830,14 @@ function FinalCTA() {
         </Reveal>
         <Reveal delayMs={80}>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.02] mb-8">
-            Stop paying law firms{' '}
-            <span className="text-gray-500">to do what an AI can do in ten minutes.</span>
+            Stop emailing your most important documents.{' '}
+            <span className="text-gray-500">Put them in a room you control.</span>
           </h2>
         </Reveal>
         <Reveal delayMs={160}>
           <p className="text-lg text-gray-400 leading-relaxed mb-12 max-w-xl mx-auto">
-            Upload your first deck, hit one button, get a full institutional
-            diligence report. Free forever for your first report each month.
-            No card. No sales call. No demo.
+            Create your first data room, share a secure link, and see every page
+            your investors read. Free to start. No card. No sales call.
           </p>
         </Reveal>
         <Reveal delayMs={240}>
@@ -763,7 +848,7 @@ function FinalCTA() {
               asChild
             >
               <Link href="/signup">
-                Run my first DD report
+                Create my data room
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
@@ -791,9 +876,10 @@ export default function LandingPage() {
       <Header />
       <main>
         <HeroSection />
-        <TrustMarquee />
         <EditorialIntro />
+        <DocTypesMarquee />
         <FeatureShowcase />
+        <AiTeaser />
         <HowItWorks />
         <SecuritySection />
         <StatsRow />

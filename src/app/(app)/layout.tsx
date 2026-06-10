@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { AlertsProvider } from '@/lib/alerts-provider';
 import { UserProvider } from '@/hooks/use-user';
+import { PlanGate } from '@/components/plan-gate';
 import { NavigationLoader } from '@/components/NavigationLoader';
 import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
@@ -110,17 +111,19 @@ export default function AppLayout({
 }) {
   return (
     <UserProvider>
-      <AlertsProvider>
-        <LayoutProvider>
-          <SpacesProvider>
-            <FileRequestProvider>
-              <SidebarProvider>
-                <AppLayoutContent>{children}</AppLayoutContent>
-              </SidebarProvider>
-            </FileRequestProvider>
-          </SpacesProvider>
-        </LayoutProvider>
-      </AlertsProvider>
+      <PlanGate>
+        <AlertsProvider>
+          <LayoutProvider>
+            <SpacesProvider>
+              <FileRequestProvider>
+                <SidebarProvider>
+                  <AppLayoutContent>{children}</AppLayoutContent>
+                </SidebarProvider>
+              </FileRequestProvider>
+            </SpacesProvider>
+          </LayoutProvider>
+        </AlertsProvider>
+      </PlanGate>
     </UserProvider>
   );
 }

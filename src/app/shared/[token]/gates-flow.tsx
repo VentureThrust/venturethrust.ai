@@ -467,7 +467,7 @@ function GateLayout({ children }: { children: React.ReactNode }) {
         <Card className="shadow-xl border-0">{children}</Card>
         <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
           <ShieldCheck className="h-3 w-3" />
-          Secured by VentureTrust
+          Secured by VentureThrust
         </p>
       </div>
     </div>

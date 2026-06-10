@@ -17,7 +17,7 @@
  *   - Empty/placeholder → styled gradient with play icon
  */
 
-import { Play, Video } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 interface VideoPlaceholderProps {
   src?: string;
@@ -116,7 +116,7 @@ export function VideoPlaceholder({
   // ── Placeholder ────────────────────────────────────────────────────────
   return (
     <div
-      className={`${baseShell} bg-gradient-to-br ${TONE_GRADIENTS[tone]} flex items-center justify-center group cursor-pointer`}
+      className={`${baseShell} bg-gradient-to-br ${TONE_GRADIENTS[tone]} flex items-center justify-center group cursor-pointer transition-transform duration-500 hover:scale-[1.01]`}
       role="img"
       aria-label={label}
     >
@@ -138,10 +138,6 @@ export function VideoPlaceholder({
         </div>
         <div>
           <p className="text-lg font-semibold">{label}</p>
-          <p className="text-xs text-white/70 mt-1 flex items-center gap-1.5 justify-center">
-            <Video className="h-3 w-3" />
-            Video placeholder - replace via src prop
-          </p>
         </div>
       </div>
 

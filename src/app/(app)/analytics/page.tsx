@@ -13,11 +13,28 @@ import { format } from 'date-fns';
 import { getDocumentIcon } from '@/lib/data';
 import { useFolders } from '@/lib/folder-provider';
 import { BarChart2 } from 'lucide-react';
+import { EmptyState } from '@/components/empty-state';
+import { AnalyticsIllustration } from '@/components/illustrations';
+import { ProductTour } from '@/components/product-tour';
 
 export default function AnalyticsPage() {
   const { documents } = useFolders();
   return (
     <div className="flex flex-col gap-6">
+      <ProductTour
+        tourKey="tour-analytics"
+        steps={[
+          {
+            title: 'See what investors actually read',
+            description: 'Engagement analytics for everything you share: who opened it, which pages held attention, and for how long.',
+          },
+          {
+            selector: '[data-tour="analytics-doc"]',
+            title: 'Open any document',
+            description: 'Click a document to see each viewer, the time spent on every page, and live view tracking.',
+          },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
           Document Analytics
@@ -35,6 +52,7 @@ export default function AnalyticsPage() {
               <AccordionItem
                 value={doc.id}
                 key={doc.id}
+                data-tour="analytics-doc"
                 className="border rounded-lg"
               >
                 <AccordionTrigger className="p-4 hover:no-underline">
@@ -57,10 +75,13 @@ export default function AnalyticsPage() {
           })}
         </Accordion>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed h-96 gap-4 text-muted-foreground">
-          <BarChart2 className="h-16 w-16" />
-          <h2 className="text-xl font-semibold">No Analytics Data</h2>
-          <p>Upload a document and share it to see engagement insights.</p>
+        <div className="rounded-lg border-2 border-dashed">
+          <EmptyState
+            illustration={<AnalyticsIllustration />}
+            title="No analytics yet"
+            description="Share a document or data room and you'll see who viewed it, which pages held attention, and for how long - all right here."
+            action={{ label: 'Open a data room', href: '/spaces' }}
+          />
         </div>
       )}
     </div>

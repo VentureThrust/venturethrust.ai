@@ -374,7 +374,7 @@ function VideoHeatmap({ stats }: { stats: VideoStats }) {
             Playback heatmap
           </span>
           <span className="text-xs text-muted-foreground">
-            0:00 - {formatSeconds(stats.duration)}
+            0:00 to {formatSeconds(stats.duration)}
           </span>
         </div>
 

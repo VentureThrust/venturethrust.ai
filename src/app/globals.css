@@ -79,7 +79,7 @@
     @apply border-border;
     /* Single font family site-wide. The system-font stack at the end is a
        safety net while Geist loads (avoids FOUT showing a different face). */
-    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
                  'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* Type rendering polish - gives Geist the same crispness DocSend
        gets from Sharp Grotesk's hinting. */
@@ -104,7 +104,7 @@
        professional grotesks (Söhne, GT America) are designed to be set.
      - Tight line-height (1.2) keeps multi-line headlines anchored. */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.2;
@@ -120,6 +120,17 @@
     line-height: 1.15;
   }
 }
+
+/* ── Screenshot / copy deterrents (site-wide) ───────────────────────────── */
+/* Real protection is the dynamic watermark on documents; this raises the
+   effort to grab content. Inputs stay selectable so forms work, and printing
+   yields a blank page. */
+body.vt-protected { -webkit-user-select: none; -ms-user-select: none; user-select: none; }
+body.vt-protected input, body.vt-protected textarea, body.vt-protected select, body.vt-protected [contenteditable="true"] {
+  -webkit-user-select: text; -ms-user-select: text; user-select: text;
+}
+body.vt-protected img, body.vt-protected a { -webkit-user-drag: none; }
+@media print { body.vt-protected { display: none !important; } }
 
 /* ── Landing-page animations ────────────────────────────────────────────── */
 /* Slow gradient sweep used on hero background - feels alive but never distracts */

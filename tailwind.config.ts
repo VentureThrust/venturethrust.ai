@@ -16,10 +16,10 @@ export default {
       // `font-body` / `font-heading` utility classes keep working without
       // re-introducing DM Sans or Playfair.
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        body: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        headline: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-space-grotesk)', 'var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        headline: ['var(--font-space-grotesk)', 'var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         code: ['ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {

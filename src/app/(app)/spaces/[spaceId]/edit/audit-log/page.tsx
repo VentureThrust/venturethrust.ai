@@ -307,7 +307,7 @@ export default function AuditLogPage() {
         <div>
           <h1 className="text-3xl font-medium tracking-tight">Audit log</h1>
           <p className="text-sm text-muted-foreground mt-1.5">
-            Real-time activity in this space - visitor sessions, file uploads, questions. Updates live.
+            Real-time activity in this space: visitor sessions, file uploads, questions. Updates live.
           </p>
         </div>
         <div className="flex items-center gap-2">

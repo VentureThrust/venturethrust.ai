@@ -3,6 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Check, Folder, Cpu, Database, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/layout/logo';
@@ -27,9 +36,9 @@ type Plan = {
 const CATALOGUE: Record<Category, Plan[]> = {
   vdr: [
     {
-      id: 'vdr-trial', name: 'Free Trial', price: 0, period: '7 days', planKey: 'vdr_only', trial: true,
-      tagline: 'Full Starter access, free for 7 days. No card required.',
-      features: ['2 team members', '25 GB storage', 'All Starter features', 'Cancel anytime'],
+      id: 'vdr-access', name: 'Access', price: 1, planKey: 'vdr_only',
+      tagline: 'Unlock the secure data room for one rupee.',
+      features: ['2 team members', '25 GB storage', 'All Starter features', 'Secure links, gates & expiry'],
     },
     {
       id: 'vdr-starter', name: 'Starter', price: 999, planKey: 'vdr_only',
@@ -83,10 +92,10 @@ const CATALOGUE: Record<Category, Plan[]> = {
   ],
 };
 
+// AI Due Diligence + Both are hidden pre-launch - only the Virtual Data Room
+// plans are offered. (The ai/both catalogue entries remain but are unreachable.)
 const CATEGORY_META: { key: Category; label: string; icon: typeof Folder }[] = [
   { key: 'vdr', label: 'Virtual Data Room', icon: Folder },
-  { key: 'ai', label: 'AI Due Diligence', icon: Cpu },
-  { key: 'both', label: 'Both', icon: Database },
 ];
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
@@ -98,6 +107,14 @@ export default function ChoosePlanPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<PlanKey | null>(null);
   const [selecting, setSelecting] = useState<string | null>(null);
+
+  // Cashfree payment state: paid plans open a phone dialog, then hosted checkout.
+  const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
+  const [phone, setPhone] = useState('');
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -111,12 +128,50 @@ export default function ChoosePlanPage() {
     })();
   }, [router]);
 
+  // After returning from Cashfree checkout (?order_id=...), confirm the payment
+  // server-side and, if PAID, send the user into their dashboard.
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get('order_id');
+    if (!orderId) return;
+    (async () => {
+      setVerifying(true);
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) { router.replace('/login'); return; }
+      try {
+        const res = await fetch('/api/payments/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (json?.status === 'PAID') {
+          router.replace('/dashboard');
+          return;
+        }
+        setPayError('Your payment was not completed. Pick a plan to try again.');
+      } catch {
+        setPayError('We could not confirm your payment. If you were charged, contact support.');
+      }
+      setVerifying(false);
+      window.history.replaceState({}, '', '/choose-role');
+    })();
+  }, [router]);
+
   const handleSelect = async (plan: Plan) => {
     if (!userId || !email) return;
-    setSelecting(plan.id);
 
-    // Merge categories: if they already have one side and pick the other, they
-    // get the full platform.
+    // Paid plan: collect the mobile number Cashfree requires, then checkout.
+    if (!plan.trial && plan.price > 0) {
+      setPendingPlan(plan);
+      setPhone('');
+      setPayError(null);
+      setPhoneOpen(true);
+      return;
+    }
+
+    // Free Trial (zero price): activate immediately, no payment.
+    setSelecting(plan.id);
     let finalPlan: PlanKey = plan.planKey;
     if (
       (currentPlan === 'ai_only' && plan.planKey === 'vdr_only') ||
@@ -134,8 +189,52 @@ export default function ChoosePlanPage() {
       setSelecting(null);
       return;
     }
-    // Billing comes later - for now every selection starts the 7-day trial.
     router.replace('/dashboard');
+  };
+
+  // Create a Cashfree order for the pending paid plan and open hosted checkout.
+  const startPayment = async () => {
+    if (!pendingPlan) return;
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      setPayError('Enter a valid 10-digit mobile number.');
+      return;
+    }
+    setPaying(true);
+    setPayError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) { router.replace('/login'); return; }
+
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.paymentSessionId) {
+        setPaying(false);
+        console.error('[create-order] failed:', json);
+        const cfMsg = json?.detail || json?.cf?.message;
+        setPayError(
+          json?.error === 'not_configured'
+            ? 'Payments are not configured (check .env.local, then restart the dev server).'
+            : cfMsg
+              ? `Cashfree: ${cfMsg}`
+              : 'Could not start checkout. Please try again.',
+        );
+        return;
+      }
+
+      const { load } = await import('@cashfreepayments/cashfree-js');
+      const cashfree = await load({ mode: json.mode === 'production' ? 'production' : 'sandbox' });
+      await cashfree.checkout({ paymentSessionId: json.paymentSessionId, redirectTarget: '_self' });
+      // redirectTarget '_self' navigates to Cashfree; code after this does not run.
+    } catch {
+      setPaying(false);
+      setPayError('Could not start checkout. Please try again.');
+    }
   };
 
   const plans = CATALOGUE[category];
@@ -148,8 +247,8 @@ export default function ChoosePlanPage() {
           <Logo isPen />
           <h1 className="mt-8 text-4xl font-bold tracking-tight sm:text-5xl">Choose your plan</h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Start with a 7-day free trial - no card required. Pick what fits: a secure data room,
-            AI due diligence, or both.
+            A secure virtual data room to share your documents and track investor
+            interest. Pick a plan to get started.
           </p>
         </header>
 
@@ -234,7 +333,7 @@ export default function ChoosePlanPage() {
               >
                 {selecting === plan.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : plan.trial ? 'Start free trial' : 'Start free trial'}
+                ) : plan.trial ? 'Start free trial' : `Choose ${plan.name}`}
               </Button>
             </div>
           ))}
@@ -251,8 +350,51 @@ export default function ChoosePlanPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          All paid plans start with a 7-day free trial. You won&apos;t be charged until it ends.
+          All plans are billed securely through Cashfree.
         </p>
+
+        {/* Phone collection, then Cashfree hosted checkout for paid plans */}
+        <Dialog open={phoneOpen} onOpenChange={(o) => { if (!paying) setPhoneOpen(o); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Continue to secure payment</DialogTitle>
+              <DialogDescription>
+                {pendingPlan ? `${pendingPlan.name} plan, ₹${pendingPlan.price.toLocaleString('en-IN')} per month. ` : ''}
+                Enter a mobile number for the payment receipt.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="pay-phone">Mobile number</Label>
+              <Input
+                id="pay-phone"
+                inputMode="numeric"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                autoFocus
+              />
+              {payError && <p className="text-sm text-red-600">{payError}</p>}
+            </div>
+            <Button
+              onClick={startPayment}
+              disabled={paying}
+              className="w-full bg-gray-900 text-white hover:bg-gray-800"
+            >
+              {paying ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout…</>
+              ) : (
+                `Pay ₹${pendingPlan ? pendingPlan.price.toLocaleString('en-IN') : ''} with Cashfree`
+              )}
+            </Button>
+          </DialogContent>
+        </Dialog>
+
+        {verifying && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-white/90">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
+            <p className="text-sm text-gray-600">Confirming your payment…</p>
+          </div>
+        )}
       </div>
     </div>
   );

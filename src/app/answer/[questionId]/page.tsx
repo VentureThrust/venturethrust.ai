@@ -335,7 +335,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
             <Mail className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-semibold text-gray-900">VentureTrust</span>
+          <span className="text-lg font-semibold text-gray-900">VentureThrust</span>
         </div>
       </div>
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">{children}</main>

@@ -395,7 +395,7 @@ async function sendSignedEmails(opts: {
     secure: process.env.SMTP_SECURE === 'true',
     auth: { user: smtpUser, pass: smtpPass },
   });
-  const fromAddr = process.env.SMTP_FROM ?? `VentureTrust <${smtpUser}>`;
+  const fromAddr = process.env.SMTP_FROM ?? `VentureThrust <${smtpUser}>`;
 
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeName = esc(opts.signerName);
@@ -440,7 +440,7 @@ async function sendSignedEmails(opts: {
               View agreement
             </a>
           </p>
-          <p style="color:#6b6b8a;font-size:13px">VentureTrust - the clear path to smarter startup investing.</p>
+          <p style="color:#6b6b8a;font-size:13px">VentureThrust - the clear path to smarter startup investing.</p>
         </div>`,
     }));
   }
@@ -458,7 +458,7 @@ async function sendSignedEmails(opts: {
         ${signedPdf
           ? '<p>A copy of the signed document is attached, watermarked with your email for your records.</p>'
           : '<p>A copy has been recorded and shared with the sender.</p>'}
-        <p style="color:#6b6b8a;font-size:13px;margin-top:28px">Sent via VentureTrust on behalf of the document owner.</p>
+        <p style="color:#6b6b8a;font-size:13px;margin-top:28px">Sent via VentureThrust on behalf of the document owner.</p>
       </div>`,
   }));
 

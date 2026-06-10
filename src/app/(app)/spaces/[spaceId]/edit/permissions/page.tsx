@@ -239,7 +239,7 @@ function SpacePermissionsInner() {
   
   const handleSaveWatermark = async () => {
     if (!space) {
-      toast({ variant: 'destructive', title: 'Could not save watermark - space not loaded.' });
+      toast({ variant: 'destructive', title: 'Could not save watermark. Space not loaded.' });
       return;
     }
     // Persist the raw template (tokens unresolved) to the spaces table.

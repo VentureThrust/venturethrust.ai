@@ -28,6 +28,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AGREEMENT_TEMPLATES, buildTemplateFile, type AgreementTemplate } from '@/lib/agreement-templates';
+import { AgreementsIllustration } from '@/components/illustrations';
+import { ProductTour } from '@/components/product-tour';
 import SignatureCanvas from 'react-signature-canvas';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
@@ -322,12 +324,26 @@ export default function AgreementsPage() {
         className="hidden"
         accept="application/pdf"
       />
+      <ProductTour
+        tourKey="tour-agreements"
+        steps={[
+          {
+            title: 'Gate content with signatures',
+            description: 'Upload or generate an NDA (or any agreement) that viewers must sign before they can open your documents.',
+          },
+          {
+            selector: '[data-tour="agreements-upload"]',
+            title: 'Add an agreement',
+            description: 'Upload your own document or start from a ready-made template, then place signature fields.',
+          },
+        ]}
+      />
       {/* ─── Header: title left, Upload dropdown right ───────────────── */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Agreements</h1>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="bg-gray-900 hover:bg-gray-800 text-white">
+            <Button className="bg-gray-900 hover:bg-gray-800 text-white" data-tour="agreements-upload">
               Upload
               <ChevronDown className="ml-1.5 h-4 w-4" />
             </Button>
@@ -404,6 +420,9 @@ export default function AgreementsPage() {
         // ─── Empty state - DocSend-style centered text + 3 action buttons ──
         <div className="flex flex-1 items-center justify-center min-h-[60vh]">
           <div className="w-full max-w-2xl text-center px-6">
+            <div className="mx-auto mb-6 w-44">
+              <AgreementsIllustration />
+            </div>
             <h2 className="text-3xl font-semibold tracking-tight mb-4">
               Need to protect sensitive content?
             </h2>
@@ -523,7 +542,7 @@ export default function AgreementsPage() {
         </div>
         <p className="text-xs text-muted-foreground">
           Bracketed values like <span className="font-medium">[Party A Name]</span> and{' '}
-          <span className="font-medium">[State]</span> are placeholders - replace them with
+          <span className="font-medium">[State]</span> are placeholders, replace them with
           your details. These are starting templates, not legal advice.
         </p>
       </DialogContent>
@@ -535,7 +554,7 @@ export default function AgreementsPage() {
         <DialogHeader>
           <DialogTitle>Sign as the Disclosing Party</DialogTitle>
           <DialogDescription>
-            You&apos;re the disclosing party. Sign once - your name and today&apos;s date are filled in
+            You&apos;re the disclosing party. Sign once, your name and today&apos;s date are filled in
             automatically. The recipient signs the Receiving Party section when they open the file.
           </DialogDescription>
         </DialogHeader>

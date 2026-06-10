@@ -108,7 +108,7 @@ export function SessionDetailView({
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight truncate">{displayEmail}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Session - {format(new Date(session.started_at), 'EEEE, MMMM d, yyyy · h:mm a')}
+              Session on {format(new Date(session.started_at), 'EEEE, MMMM d, yyyy · h:mm a')}
               <span className="mx-2">·</span>
               {formatDistanceToNow(new Date(session.started_at), { addSuffix: true })}
             </p>
@@ -147,7 +147,7 @@ export function SessionDetailView({
         <div className="pb-4">
           <h2 className="text-xl font-semibold tracking-tight">Files opened in this session</h2>
           <p className="text-sm text-muted-foreground mt-1.5">
-            Sorted by time spent - most-engaged file first.
+            Sorted by time spent, most-engaged file first.
             Click a PDF or video to see per-page / playback analytics.
           </p>
         </div>

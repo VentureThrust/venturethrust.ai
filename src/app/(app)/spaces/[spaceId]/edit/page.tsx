@@ -743,7 +743,7 @@ function SpaceEditPageComponent() {
               <Button variant="outline"><ListOrdered className="mr-2 h-4 w-4" />Organize <ChevronDown className="ml-2 h-4 w-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => setSortOrder(prev => prev === 'asc' ? 'manual' : 'asc')}><ArrowDownAZ className="mr-2 h-4 w-4" />Sort A - Z</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSortOrder(prev => prev === 'asc' ? 'manual' : 'asc')}><ArrowDownAZ className="mr-2 h-4 w-4" />Sort A to Z</DropdownMenuItem>
               <DropdownMenuItem onSelect={handleAddSectionHeader}><PlusSquare className="mr-2 h-4 w-4" />Add a section header</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setIsIndexingOff(!isIndexingOff)}><ListOrdered className="mr-2 h-4 w-4" />{isIndexingOff ? 'Turn on indexing' : 'Turn off indexing'}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}><LayoutGrid className="mr-2 h-4 w-4" />Set grid view for visitors</DropdownMenuItem>
@@ -830,8 +830,8 @@ function SpaceEditPageComponent() {
                 </div>
                 <p className="text-lg font-semibold text-foreground">This space is empty</p>
                 <p className="text-sm max-w-sm text-center mt-1.5">
-                  Start by creating a folder. Files always live inside a folder - you can upload
-                  into it once it exists.
+                  Start by creating a folder. Files always live inside a folder, and you can
+                  upload into it once it exists.
                 </p>
                 <Button
                   className="mt-6 bg-gray-900 hover:bg-gray-800 text-white"

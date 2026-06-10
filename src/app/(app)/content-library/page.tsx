@@ -1,6 +1,8 @@
 //frontend file 
  'use client';
 
+import { ContentLibraryIllustration } from '@/components/illustrations';
+import { ProductTour } from '@/components/product-tour';
 import {
   MoreHorizontal,
   Folder as FolderIcon,
@@ -419,7 +421,7 @@ function UploadProgressPanel({
               <Upload className="h-5 w-5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">Processing {inProgressCount} item{inProgressCount > 1 ? 's' : ''}</p>
-                <p className="text-xs text-blue-200">Some items are still uploading - {overallProgress}% overall</p>
+                <p className="text-xs text-blue-200">Some items are still uploading, {overallProgress}% overall</p>
               </div>
             </div>
           )}
@@ -470,6 +472,7 @@ type FolderTreeProps = {
   onSelectFolder: (id: string) => void;
   onShare: () => void;
   onAddSubfolder: (folder: Folder) => void;
+  onAddFile: (folder: Folder) => void;
   onRename: (folder: Folder) => void;
   onDelete: (folder: Folder) => void;
 };
@@ -482,6 +485,7 @@ const FolderTree = memo(function FolderTree({
   onSelectFolder,
   onShare,
   onAddSubfolder,
+  onAddFile,
   onRename,
   onDelete,
 }: FolderTreeProps) {
@@ -508,9 +512,25 @@ const FolderTree = memo(function FolderTree({
                 >
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <FolderIcon className={cn('h-4 w-4 shrink-0', isSelected && !fileIdFromUrl ? 'fill-blue-400 text-blue-500' : 'fill-blue-100 text-blue-400')} />
-                  <span className="text-sm font-medium truncate min-w-0 flex-1" title={folder.name}>{folder.name}</span>
+                  <span className="text-base font-medium truncate min-w-0 flex-1" title={folder.name}>{folder.name}</span>
                 </div>
               </CollapsibleTrigger>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onAddFile(folder); }}
+                title={`Upload a file to "${folder.name}"`}
+                className="p-1.5 rounded-md hover:bg-blue-50 shrink-0"
+              >
+                <FileUp className="h-4 w-4 text-blue-600" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder); }}
+                title={`Create a folder inside "${folder.name}"`}
+                className="p-1.5 rounded-md hover:bg-emerald-50 shrink-0"
+              >
+                <FolderPlus className="h-4 w-4 text-emerald-600" />
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 mr-1" onClick={(e) => e.stopPropagation()}>
@@ -540,6 +560,7 @@ const FolderTree = memo(function FolderTree({
                     onSelectFolder={onSelectFolder}
                     onShare={onShare}
                     onAddSubfolder={onAddSubfolder}
+                    onAddFile={onAddFile}
                     onRename={onRename}
                     onDelete={onDelete}
                   />
@@ -1184,7 +1205,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                   {activeVisit ? (
                     <>
                       Time <strong className="text-foreground font-medium">{activeVisit.name}</strong> spent on each
-                      page in this session{activeVisitTime ? <> · <span className="text-foreground">{activeVisitTime}</span></> : ''} - most-viewed first.
+                      page in this session{activeVisitTime ? <> · <span className="text-foreground">{activeVisitTime}</span></> : ''}. Most-viewed first.
                       {' '}Click another visit above to switch sessions.
                     </>
                   ) : (
@@ -1591,6 +1612,8 @@ function ContentLibraryPageComponent() {
   const [isFolderUploadSheetOpen, setIsFolderUploadSheetOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderType, setNewFolderType] = useState<'personal' | 'team'>('personal');
+  // Section (Personal/Team) chosen when uploading a folder to the top level.
+  const [uploadFolderType, setUploadFolderType] = useState<'personal' | 'team'>('personal');
   const [createInsideActiveFolder, setCreateInsideActiveFolder] = useState(true);
   const [renamingFolderName, setRenamingFolderName] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<globalThis.File[]>([]);
@@ -1646,6 +1669,13 @@ function ContentLibraryPageComponent() {
   const handleOpenShare = useCallback(() => {
     setTimeout(() => setIsShareOpen(true), 0);
   }, []);
+  // Quick "+file" on a folder row: open the upload sheet pre-targeted at it.
+  const handleOpenUploadToFolder = useCallback((folder: Folder) => {
+    setUploadedFiles([]);
+    setUploadTargetFolderId(folder.id);
+    setIsUploadSheetOpen(true);
+  }, []);
+
   const handleOpenAddSubfolder = useCallback((folder: Folder) => {
     setTimeout(() => { setActiveFolder(folder); setCreateInsideActiveFolder(true); setIsAddFolderOpen(true); }, 0);
   }, []);
@@ -1755,8 +1785,23 @@ function ContentLibraryPageComponent() {
 
   // ── handleAddFiles ────────────────────────────────────────────────────────
   const handleAddFiles = async () => {
-    if (!uploadTargetFolderId || !uploadedFiles.length) return;
+    if (!uploadedFiles.length) return;
     setIsUploadSheetOpen(false);
+
+    // Destination: the chosen folder, or - when the user has no folders yet - a
+    // default "My Files" folder created at the library root, so file uploads
+    // always have a home (the model can't store loose files at the root).
+    let targetFolderId = uploadTargetFolderId;
+    if (!targetFolderId) {
+      const existing = contentLibraryFolders.find((f) => f.name === 'My Files' && f.type === 'personal');
+      if (existing) {
+        targetFolderId = existing.id;
+      } else {
+        const defaultFolder: Folder = { id: `folder_${Date.now()}`, name: 'My Files', type: 'personal', children: [], files: [] };
+        await addFolder(null, defaultFolder);
+        targetFolderId = defaultFolder.id;
+      }
+    }
 
     const readyFiles = await prepareFiles(uploadedFiles);
     if (readyFiles.length === 0) {
@@ -1829,7 +1874,7 @@ function ContentLibraryPageComponent() {
       }
 
       if (newDocs.length > 0) {
-        await addFilesToFolder(uploadTargetFolderId, newDocs);
+        await addFilesToFolder(targetFolderId, newDocs);
         toast({ title: `${newDocs.length} file(s) uploaded successfully.` });
 
         // ONE summary alert per upload batch - was previously firing one
@@ -1859,7 +1904,7 @@ function ContentLibraryPageComponent() {
 
   // ── handleAddUploadedFolder ────────────────────────────────────────────────
   const handleAddUploadedFolder = async () => {
-    if (!selectedFolder || !uploadedFolder.length) return;
+    if (!uploadedFolder.length) return;
     setIsFolderUploadSheetOpen(false);
 
     const readyFiles = await prepareFiles(uploadedFolder);
@@ -1879,8 +1924,9 @@ function ContentLibraryPageComponent() {
       if (!user) throw new Error('Not authenticated');
       const folderName = uploadedFolder[0]?.webkitRelativePath.split('/')[0];
       if (!folderName) { toast({ variant: 'destructive', title: 'Could not determine folder name.' }); return; }
-      const newFolderObj: Folder = { id: `folder_${Date.now()}`, name: folderName, type: 'personal', children: [], files: [] };
-      await addFolder(selectedFolder.id, newFolderObj);
+      const newFolderObj: Folder = { id: `folder_${Date.now()}`, name: folderName, type: selectedFolder ? (selectedFolder.type ?? 'personal') : uploadFolderType, children: [], files: [] };
+      // No folder selected (e.g. brand-new library) -> add it at the top level.
+      await addFolder(selectedFolder ? selectedFolder.id : null, newFolderObj);
 
       const newDocs: File[] = [];
       for (let index = 0; index < readyFiles.length; index++) {
@@ -1951,6 +1997,7 @@ function ContentLibraryPageComponent() {
             </Button>
             <Button
               variant="outline"
+              data-tour="cl-addfolder"
               onClick={() => { setCreateInsideActiveFolder(false); setActiveFolder(null); setIsAddFolderOpen(true); }}
             >
               <FolderPlus className="mr-1.5 h-4 w-4" />Add Folder
@@ -1960,7 +2007,7 @@ function ContentLibraryPageComponent() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-gray-900 hover:bg-gray-800 text-white">
+                <Button className="bg-gray-900 hover:bg-gray-800 text-white" data-tour="cl-upload">
                   Upload
                   <ChevronDown className="ml-1.5 h-4 w-4" />
                 </Button>
@@ -1974,6 +2021,26 @@ function ContentLibraryPageComponent() {
             </DropdownMenu>
           </div>
         </div>
+
+        <ProductTour
+          tourKey="tour-content-library"
+          steps={[
+            {
+              title: 'Your Content Library',
+              description: 'Keep every document in one place and reuse files across multiple data rooms without uploading them again.',
+            },
+            {
+              selector: '[data-tour="cl-upload"]',
+              title: 'Upload your documents',
+              description: 'Add files or whole folders here. You can also import from cloud storage.',
+            },
+            {
+              selector: '[data-tour="cl-addfolder"]',
+              title: 'Organize with folders',
+              description: 'Create folders to keep your library tidy, then drag files between them.',
+            },
+          ]}
+        />
 
         {/* SIDEBAR + CONTENT */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -2007,6 +2074,7 @@ function ContentLibraryPageComponent() {
                     onSelectFolder={handleSelectFolder}
                     onShare={handleOpenShare}
                     onAddSubfolder={handleOpenAddSubfolder}
+                    onAddFile={handleOpenUploadToFolder}
                     onRename={handleOpenRename}
                     onDelete={handleOpenDeleteFolder}
                   />
@@ -2045,6 +2113,7 @@ function ContentLibraryPageComponent() {
                     onSelectFolder={handleSelectFolder}
                     onShare={handleOpenShare}
                     onAddSubfolder={handleOpenAddSubfolder}
+                    onAddFile={handleOpenUploadToFolder}
                     onRename={handleOpenRename}
                     onDelete={handleOpenDeleteFolder}
                   />
@@ -2148,11 +2217,11 @@ function ContentLibraryPageComponent() {
 
                 {selectedFolder.files.length === 0 && selectedFolder.children.length === 0 ? (
                   <div
-                    className="flex flex-col items-center justify-center text-center gap-4 py-24 border-t border-gray-200"
+                    className="flex flex-col items-center justify-center text-center gap-3 py-20 border-t border-gray-200"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files) { setUploadedFiles(Array.from(e.dataTransfer.files)); setUploadTargetFolderId(selectedFolderId); setIsUploadSheetOpen(true); } }}
                   >
-                    <FileUp className="h-12 w-12 text-muted-foreground" />
+                    <div className="w-40"><ContentLibraryIllustration /></div>
                     <p className="text-muted-foreground">Drop files here or <button onClick={openUploadSheet} className="underline text-foreground">add content</button></p>
                   </div>
                 ) : (
@@ -2173,7 +2242,7 @@ function ContentLibraryPageComponent() {
                             <div className="border-t border-gray-200" />
                             <div className="flex items-center gap-3 py-2.5 px-2 hover:bg-gray-50 cursor-pointer group" onClick={() => handleSelectFolder(folder.id)}>
                               <FolderIcon className="h-5 w-5 shrink-0 fill-blue-100 text-blue-400" />
-                              <span className="flex-1 text-sm font-medium truncate min-w-0" title={folder.name}>{folder.name}</span>
+                              <span className="flex-1 text-base font-medium truncate min-w-0" title={folder.name}>{folder.name}</span>
                               <span className="w-28 text-right text-xs text-muted-foreground shrink-0">-</span>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -2210,7 +2279,7 @@ function ContentLibraryPageComponent() {
                               <div className="border-t border-gray-200" />
                               <div className="flex items-center gap-3 py-2.5 px-2 hover:bg-gray-50 cursor-pointer group" onClick={() => handleFileClick(file)}>
                                 <Icon className={cn('h-5 w-5 shrink-0', text)} />
-                                <span className="flex-1 text-sm font-medium truncate min-w-0" title={file.name}>{file.name}</span>
+                                <span className="flex-1 text-base font-medium truncate min-w-0" title={file.name}>{file.name}</span>
                                 <span className="w-28 text-right text-xs text-muted-foreground shrink-0">{new Date(file.createdAt).toLocaleDateString()}</span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -2404,11 +2473,11 @@ function ContentLibraryPageComponent() {
 
       <Sheet open={isUploadSheetOpen} onOpenChange={(open) => { setIsUploadSheetOpen(open); if (!open) { setUploadedFiles([]); setUploadTargetFolderId(''); } }}>
         <SheetContent className="sm:max-w-lg">
-          <SheetHeader><SheetTitle>Upload Files</SheetTitle><SheetDescription>Select a destination folder, then choose files to upload.</SheetDescription></SheetHeader>
+          <SheetHeader><SheetTitle>Upload Files</SheetTitle><SheetDescription>Choose files to upload. Pick a destination folder below, or leave it blank to add them to a &quot;My Files&quot; folder.</SheetDescription></SheetHeader>
           <div className="mt-6 space-y-2">
-            <Label className="flex items-center gap-1"><FolderIcon className="h-4 w-4 text-muted-foreground" />Upload to folder <span className="text-destructive">*</span></Label>
+            <Label className="flex items-center gap-1"><FolderIcon className="h-4 w-4 text-muted-foreground" />Upload to folder <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
             <Select value={uploadTargetFolderId} onValueChange={setUploadTargetFolderId}>
-              <SelectTrigger className={cn(!uploadTargetFolderId && 'text-muted-foreground')}><SelectValue placeholder="Select a folder…" /></SelectTrigger>
+              <SelectTrigger className={cn(!uploadTargetFolderId && 'text-muted-foreground')}><SelectValue placeholder="My Files (default)" /></SelectTrigger>
               <SelectContent>
                 {flatFolderList.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
@@ -2434,7 +2503,7 @@ function ContentLibraryPageComponent() {
             </div>
           )}
           <SheetFooter className="mt-6">
-            <Button onClick={handleAddFiles} className="w-full" disabled={!uploadTargetFolderId || !uploadedFiles.length}>
+            <Button onClick={handleAddFiles} className="w-full" disabled={!uploadedFiles.length}>
               Upload
             </Button>
           </SheetFooter>
@@ -2443,7 +2512,34 @@ function ContentLibraryPageComponent() {
 
       <Sheet open={isFolderUploadSheetOpen} onOpenChange={(open) => setIsFolderUploadSheetOpen(open)}>
         <SheetContent className="sm:max-w-lg">
-          <SheetHeader><SheetTitle>Upload Folder to &quot;{selectedFolder?.name}&quot;</SheetTitle><SheetDescription>Select a folder from your computer.</SheetDescription></SheetHeader>
+          <SheetHeader><SheetTitle>Upload Folder to &quot;{selectedFolder?.name ?? 'Content Library'}&quot;</SheetTitle><SheetDescription>Select a folder from your computer.{selectedFolder ? '' : ' It will be added to the top level of your library.'}</SheetDescription></SheetHeader>
+          {!selectedFolder && (
+            <div className="mt-6 space-y-2">
+              <Label>Add to section</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUploadFolderType('personal')}
+                  className={cn(
+                    'flex items-center justify-center gap-2 py-2.5 px-3 rounded-md border-2 text-sm font-medium transition-colors',
+                    uploadFolderType === 'personal' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  )}
+                >
+                  <Lock className="h-4 w-4" />Personal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadFolderType('team')}
+                  className={cn(
+                    'flex items-center justify-center gap-2 py-2.5 px-3 rounded-md border-2 text-sm font-medium transition-colors',
+                    uploadFolderType === 'team' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  )}
+                >
+                  <Users className="h-4 w-4" />Team Folder
+                </button>
+              </div>
+            </div>
+          )}
           <div className="py-4 flex flex-col items-center justify-center text-center gap-4 border-dashed border-2 rounded-lg h-64 mt-4">
             <Upload className="h-12 w-12 text-muted-foreground" />
             <p className="text-muted-foreground">Click below to select a folder</p>

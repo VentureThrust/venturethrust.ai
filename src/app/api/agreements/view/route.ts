@@ -3,7 +3,7 @@
  *
  * Public resolver for an agreement share link. This is what powers the
  * standalone /view/[fileId]/[linkId] page that recipients open - they may
- * have a VentureTrust account or not, so we CANNOT rely on the owner's
+ * have a VentureThrust account or not, so we CANNOT rely on the owner's
  * in-memory folder tree. Instead we read the file straight from the DB
  * with the service-role key (bypassing RLS, like the /shared/[token]
  * validator does).

@@ -55,7 +55,7 @@ export function Footer() {
         </div>
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Venture Trust, Inc. All rights reserved.
+            &copy; {new Date().getFullYear()} VentureThrust, Inc. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             {socialLinks.map((social) => (

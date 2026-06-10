@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { SharedIllustration } from '@/components/illustrations';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,20 +78,26 @@ function initialsFromEmail(email: string | null | undefined): string {
 
 function EmptyState({
   icon: Icon,
+  illustration,
   title,
   description,
   cta,
 }: {
   icon: React.ComponentType<{ className?: string }>;
+  illustration?: React.ReactNode;
   title: string;
   description: string;
   cta?: { label: string; onClick: () => void };
 }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-16 px-8 gap-4">
-      <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Icon className="h-9 w-9 text-blue-500" />
-      </div>
+      {illustration ? (
+        <div className="w-44">{illustration}</div>
+      ) : (
+        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <Icon className="h-9 w-9 text-blue-500" />
+        </div>
+      )}
       <div className="space-y-1.5">
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         <p className="text-sm text-muted-foreground max-w-md">{description}</p>
@@ -598,6 +605,7 @@ export default function SharedWithMePage() {
               ) : filteredSpaces.length === 0 ? (
                 <EmptyState
                   icon={Layers}
+                  illustration={<SharedIllustration />}
                   title={search ? 'No spaces match your search' : 'No data rooms shared yet'}
                   description={
                     search
@@ -653,6 +661,7 @@ export default function SharedWithMePage() {
               ) : filteredReports.length === 0 ? (
                 <EmptyState
                   icon={FileText}
+                  illustration={<SharedIllustration />}
                   title={search ? 'No reports match your search' : 'No reports shared yet'}
                   description={
                     search

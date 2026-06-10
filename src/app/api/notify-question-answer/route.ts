@@ -8,7 +8,7 @@
  *   SMTP_SECURE=true          // 'true' for 465, 'false' for 587
  *   SMTP_USER=username
  *   SMTP_PASS=password
- *   SMTP_FROM="VentureTrust <noreply@yourdomain.com>"
+ *   SMTP_FROM="VentureThrust <noreply@yourdomain.com>"
  *
  * If SMTP is not configured, the route returns 200 with a warning - emails are
  * skipped silently so the in-app notification still works. This lets you ship
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
     const greetingName = toName?.trim() ? toName.trim() : toEmail.split('@')[0];
-    const fromAddr = process.env.SMTP_FROM ?? `VentureTrust <${smtpUser}>`;
+    const fromAddr = process.env.SMTP_FROM ?? `VentureThrust <${smtpUser}>`;
 
     // Truncated question for the subject line
     const shortQ =
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0d0d1a; line-height: 1.55;">
         <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px;">
           <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: 700;">V</div>
-          <strong style="font-size: 18px;">VentureTrust</strong>
+          <strong style="font-size: 18px;">VentureThrust</strong>
         </div>
 
         <h1 style="font-size: 22px; margin: 0 0 8px 0; letter-spacing: -0.01em;">Hi ${escapeHtml(greetingName)},</h1>
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           For your security, the answer is only visible after you sign in with this email address (<span style="font-family: monospace; color: #555;">${escapeHtml(toEmail)}</span>). If you have any trouble, reply to this email.
         </div>
 
-        <p style="margin: 24px 0 0 0; color: #aaa; font-size: 11px;">© ${new Date().getFullYear()} VentureTrust - secure data rooms for founders and investors.</p>
+        <p style="margin: 24px 0 0 0; color: #aaa; font-size: 11px;">© ${new Date().getFullYear()} VentureThrust - secure data rooms for founders and investors.</p>
       </div>
     `;
 
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
       '',
       `For your security, the answer is only visible after you sign in with this email address (${toEmail}).`,
       '',
-      `© ${new Date().getFullYear()} VentureTrust`,
+      `© ${new Date().getFullYear()} VentureThrust`,
     ].join('\n');
 
     await transporter.sendMail({

@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   Info,
   FileLock,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -43,6 +44,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/layout/logo';
 import { useToast } from '@/hooks/use-toast';
 import { getDocumentIcon } from '@/lib/data';
 import dynamic from 'next/dynamic';
@@ -500,19 +502,30 @@ export function AppSidebarContent({
   // ─── Main sidebar (non-space view) ───────────────────────────────────────────
   return (
     <>
-      <SidebarHeader className="px-3 py-4 border-b">
-        <Button
-          variant="ghost"
-          className="justify-start -ml-2 h-12 text-base font-medium hover:bg-gray-100 transition-colors"
-          onClick={() => router.push('/dashboard')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
+      <SidebarHeader className="px-4 py-4 border-b">
+        <Logo isPen={true} />
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
         <SidebarMenu className="gap-0">
+
+          <SidebarMenuItem>
+            <Link href="/dashboard" className="w-full" passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/dashboard', true)}
+                tooltip="Dashboard"
+                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <Home className="h-6 w-6 shrink-0" />
+                  <span className="text-base">Dashboard</span>
+                </div>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+
+          <div className="border-t border-gray-200" />
 
           <SidebarMenuItem>
             <Link href="/content-library" className="w-full" passHref>
@@ -600,6 +613,24 @@ export function AppSidebarContent({
                 <div className="flex items-center gap-4">
                   <BarChart2 className="h-5 w-5 shrink-0" />
                   <span className="text-base">Analytics</span>
+                </div>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+
+          <div className="border-t border-gray-200" />
+
+          <SidebarMenuItem>
+            <Link href="/dashboard/shared-with-me" className="w-full" passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/dashboard/shared-with-me')}
+                tooltip="Shared with me"
+                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <Users className="h-6 w-6 shrink-0" />
+                  <span className="text-base">Shared with me</span>
                 </div>
               </SidebarMenuButton>
             </Link>

@@ -12,7 +12,7 @@ export function Logo({ className, isPen = false }: { className?: string, isPen?:
         <path d="M26.4999 9H22.9999L18.4999 16.25L22.9999 23.5H26.4999L21.9999 16.25L26.4999 9Z" fill="#FBBC05"/>
        </svg>
       <span className="text-xl font-semibold text-foreground">
-        VentureTrust.
+        VentureThrust.
       </span>
        {isPen && <span className="text-xl font-bold text-primary">ai</span>}
     </Link>

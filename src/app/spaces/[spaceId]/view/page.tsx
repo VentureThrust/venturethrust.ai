@@ -606,11 +606,17 @@ export default function SpaceViewPage() {
   // MUST be declared before any early-return branches below - moving it
   // after `if (isLoading) return ...` produced a "change in order of
   // Hooks" warning because the hook would fire on the final render only.
+  // Watermarking is ON BY DEFAULT for every shared document: if the owner has
+  // not set a custom template, fall back to email + IP + date so every viewer's
+  // screenshot is stamped with who they are. This is the real leak protection,
+  // since the screenshot itself cannot be blocked.
   const resolvedWatermark = useMemo(
-    () => resolveWatermarkText(space?.watermark_text, {
-      email: visitorEmail,
-      ip: visitorIp,
-    }),
+    () => resolveWatermarkText(
+      space?.watermark_text && space.watermark_text.trim()
+        ? space.watermark_text
+        : '{{email}}  •  {{ip-address}}  •  {{date}}',
+      { email: visitorEmail, ip: visitorIp },
+    ),
     [space?.watermark_text, visitorEmail, visitorIp]
   );
 
@@ -1243,13 +1249,13 @@ export default function SpaceViewPage() {
       )}
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        {/* ─── Top bar - VentureTrust branding + Create login button ─── */}
+        {/* ─── Top bar - VentureThrust branding + Create login button ─── */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-6 bg-white">
           <Link href="/" className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
               <span className="text-white font-bold text-xs">V</span>
             </div>
-            <span className="text-lg font-semibold">VentureTrust</span>
+            <span className="text-lg font-semibold">VentureThrust</span>
           </Link>
           <div className="flex items-center gap-3">
             <Button
@@ -1501,7 +1507,7 @@ export default function SpaceViewPage() {
               <Link href="#" className="hover:underline">Privacy Policy</Link>
               <Link href="#" className="hover:underline">Cookies &amp; CCPA preferences</Link>
             </div>
-            <span>© {new Date().getFullYear()} VentureTrust</span>
+            <span>© {new Date().getFullYear()} VentureThrust</span>
           </footer>
         </main>
       </div>

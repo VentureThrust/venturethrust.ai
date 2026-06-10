@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     // than block the visitor's session creation.
     const upstream = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
       signal: AbortSignal.timeout(2000),
-      headers: { 'User-Agent': 'VentureTrust/1.0' },
+      headers: { 'User-Agent': 'VentureThrust/1.0' },
     });
 
     if (!upstream.ok) {

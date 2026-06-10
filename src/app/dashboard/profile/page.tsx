@@ -134,13 +134,13 @@ export default function ProfilePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sora:wght@500;600&display=swap');
+        /* Fonts come from the global Inter (next/font) - no Google Fonts import needed. */
 
         .sp-wrap {
           width: 100%;
           min-height: 100vh;
           background: #fff;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           color: #111;
           display: flex;
           flex-direction: column;
@@ -161,7 +161,7 @@ export default function ProfilePage() {
         }
 
         .sp-page-title {
-          font-family: 'Sora', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 1.35rem;
           font-weight: 600;
           color: #0a0a0a;
@@ -175,7 +175,7 @@ export default function ProfilePage() {
           background: none;
           border: none;
           border-bottom: 2px solid transparent;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 0.875rem;
           font-weight: 500;
           color: #9ca3af;
@@ -222,7 +222,7 @@ export default function ProfilePage() {
           border-radius: 8px;
           border: none;
           background: none;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 0.86rem;
           font-weight: 500;
           color: #6b7280;
@@ -253,7 +253,7 @@ export default function ProfilePage() {
         }
 
         .sp-section-title {
-          font-family: 'Sora', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
           color: #0a0a0a;
@@ -306,7 +306,7 @@ export default function ProfilePage() {
         .av-ring:hover .av-overlay { opacity: 1; }
 
         .av-info h3 {
-          font-family: 'Sora', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 1rem;
           font-weight: 600;
           color: #0a0a0a;
@@ -323,7 +323,7 @@ export default function ProfilePage() {
           border: 1.5px solid #d1d5db;
           border-radius: 7px;
           background: none;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           font-size: 0.8rem;
           font-weight: 500;
           color: #374151;
@@ -359,7 +359,7 @@ export default function ProfilePage() {
           border-radius: 8px;
           padding: 0 14px;
           font-size: 0.875rem;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           color: #111;
           background: #fafafa;
           outline: none;
@@ -396,7 +396,7 @@ export default function ProfilePage() {
           background: #0a0a0a; color: #fff;
           border: none; border-radius: 7px;
           font-size: 0.84rem; font-weight: 500;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           cursor: pointer; transition: all 0.14s;
           display: inline-flex; align-items: center; gap: 7px;
         }
@@ -408,7 +408,7 @@ export default function ProfilePage() {
           background: transparent; color: #6b7280;
           border: 1.5px solid #e5e7eb; border-radius: 7px;
           font-size: 0.84rem; font-weight: 500;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-inter), sans-serif;
           cursor: pointer; transition: all 0.14s;
         }
         .btn-ghost:hover { border-color: #9ca3af; color: #374151; background: #f9fafb; }

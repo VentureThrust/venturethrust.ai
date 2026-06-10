@@ -302,7 +302,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
     setIsInviting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Your session expired - please sign in again.');
+      if (!session) throw new Error('Your session expired. Please sign in again.');
       const res = await fetch('/api/invite/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -617,7 +617,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                 <Link href="#">Cookies & CCPA preferences</Link>
                 <Link href="#">Contact Us</Link>
               </div>
-              <span>© {new Date().getFullYear()} VentureTrust</span>
+              <span>© {new Date().getFullYear()} VentureThrust</span>
             </footer>
           </main>
         </div>

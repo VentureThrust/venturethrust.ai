@@ -13,6 +13,9 @@ import {
   Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/empty-state';
+import { SpacesIllustration } from '@/components/illustrations';
+import { ProductTour } from '@/components/product-tour';
 import {
   Card,
   CardContent,
@@ -655,12 +658,31 @@ export default function SpacesPage() {
   return (
     <>
     <div className="flex flex-col gap-6">
+      <ProductTour
+        tourKey="tour-spaces"
+        steps={[
+          {
+            title: 'Welcome to your Spaces',
+            description: 'Spaces are your secure data rooms. Create one per deal or company, fill it with documents, then share it with as many secure links as you need.',
+          },
+          {
+            selector: '[data-tour="spaces-create"]',
+            title: 'Create a data room',
+            description: 'Click here to create a new space, then add your documents, folders, and sections.',
+          },
+          {
+            selector: '[data-tour="spaces-templates"]',
+            title: 'Start from a template',
+            description: 'Or pick a ready-made template (pitch deck, due diligence, board update) so the structure is set up for you.',
+          },
+        ]}
+      />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Spaces</h1>
         <div className="flex items-center gap-2">
             <Dialog open={isTemplateGalleryOpen} onOpenChange={setIsTemplateGalleryOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" data-tour="spaces-templates">
                     <LayoutGrid className="mr-2 h-4 w-4" />
                     Browse Templates
                 </Button>
@@ -714,7 +736,7 @@ export default function SpacesPage() {
               </DialogContent>
             </Dialog>
 
-            <Button onClick={() => { setNewSpaceName(''); setIsNameDialogOpen(true); }}>
+            <Button data-tour="spaces-create" onClick={() => { setNewSpaceName(''); setIsNameDialogOpen(true); }}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Create new Space
             </Button>
@@ -793,6 +815,7 @@ export default function SpacesPage() {
                          <Button
                           variant="outline"
                           size="sm"
+                          data-tour="spaces-share"
                            onClick={() => handleShareClick(space)}
                           disabled={!space.isEnabled}
                         >
@@ -847,19 +870,12 @@ export default function SpacesPage() {
                          <p>Try searching for something else.</p>
                         </>
                       ) : (
-                        <>
-                          <Package className="h-16 w-16" />
-                          <h2 className="text-xl font-semibold">
-                            No Spaces Yet
-                          </h2>
-                          <p>
-                            Create a Space to group and share your documents.
-                          </p>
-                          <Button className="mt-4" onClick={() => { setNewSpaceName(''); setIsNameDialogOpen(true); }}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Create new Space
-                          </Button>
-                        </>
+                        <EmptyState
+                          illustration={<SpacesIllustration />}
+                          title="No spaces yet"
+                          description="A space is a secure data room. Group your documents and share them with a single tracked link."
+                          action={{ label: 'Create your first space', onClick: () => { setNewSpaceName(''); setIsNameDialogOpen(true); } }}
+                        />
                       )}
                     </div>
                   </TableCell>

@@ -194,7 +194,7 @@ function LoginPageInner() {
             <span className="block text-gray-400">Pick up where you left off.</span>
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-300">
-            Your secure data rooms, AI diligence, and shared workspaces - all in one place.
+            Your secure data rooms and shared workspaces, all in one place.
           </p>
         </div>
         <p className="text-sm text-gray-500">© {new Date().getFullYear()} VentureThrust</p>

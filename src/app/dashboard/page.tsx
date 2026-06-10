@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, CheckCircle, ArrowRight, Layers, ChevronRight, Plus, Loader2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle, ArrowRight, Layers, ChevronRight, Plus, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/hooks/use-user';
@@ -10,6 +10,47 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { getEffectiveOwnerId } from '@/lib/workspace';
 import { formatDistanceToNow } from 'date-fns';
+import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
+import { ProductTour, type TourStep } from '@/components/product-tour';
+
+// Guided first-run tour: spotlights the real nav items so a new user learns
+// what each part of the workspace does. Shows once, then never again.
+const DASHBOARD_TOUR: TourStep[] = [
+  {
+    title: 'Welcome to VentureThrust',
+    description: 'Let me show you around in 30 seconds. Here is what each part of your workspace does.',
+  },
+  {
+    selector: '[href="/spaces"]',
+    title: 'Spaces are your data rooms',
+    description: 'Create a secure space for each deal or company, fill it with documents, and share it with investors.',
+  },
+  {
+    selector: '[href="/content-library"]',
+    title: 'Your Content Library',
+    description: 'Keep every document in one place and reuse files across multiple spaces without uploading them again.',
+  },
+  {
+    selector: '[href="/file-requests"]',
+    title: 'Request files from anyone',
+    description: 'Send a link and people can upload documents straight into your data room, even without an account.',
+  },
+  {
+    selector: '[href="/agreements"]',
+    title: 'Gate access with agreements',
+    description: 'Add an NDA or any document that viewers must sign before they can open your files.',
+  },
+  {
+    selector: '[href="/analytics"]',
+    title: 'Track every view',
+    description: 'See who opened your room, which pages they read, and for how long, so you know where the real interest is.',
+  },
+  {
+    selector: '[href="/dashboard/shared-with-me"]',
+    title: 'Shared with you',
+    description: 'Data rooms and reports that other people share with your email all show up here.',
+  },
+];
 
 export default function Dashboard() {
   const { user, loading } = useUser();
@@ -20,6 +61,7 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   // ── User's spaces - populates the "My Data Room" card with real data ──
   type UserSpace = { id: string; name: string | null; title: string | null; created_at: string };
@@ -100,12 +142,12 @@ export default function Dashboard() {
         /* Fonts now load globally from globals.css - no per-page import needed */
 
         .dash-root * {
-          font-family: 'Geist', system-ui, sans-serif;
+          font-family: var(--font-inter), system-ui, sans-serif;
         }
         .dash-heading {
           /* Refined sans - matches the global Inter heading treatment.
              Semibold + tight tracking = professional B2B feel, not ornamental. */
-          font-family: 'Geist', system-ui, sans-serif;
+          font-family: var(--font-inter), system-ui, sans-serif;
           font-weight: 600;
           letter-spacing: -0.02em;
           line-height: 1.2;
@@ -132,7 +174,7 @@ export default function Dashboard() {
           background: #1a1a2e;
           color: #ffffff;
           border-radius: 10px;
-          font-family: 'Geist', system-ui, sans-serif;
+          font-family: var(--font-inter), system-ui, sans-serif;
           font-weight: 500;
           font-size: 14px;
           padding: 10px 22px;
@@ -151,7 +193,7 @@ export default function Dashboard() {
           background: #ffffff;
           color: #1a1a2e;
           border-radius: 10px;
-          font-family: 'Geist', system-ui, sans-serif;
+          font-family: var(--font-inter), system-ui, sans-serif;
           font-weight: 500;
           font-size: 14px;
           padding: 9px 20px;
@@ -167,7 +209,7 @@ export default function Dashboard() {
           background: #f9f9f9;
         }
         .tag-badge {
-          font-family: 'Geist', system-ui, sans-serif;
+          font-family: var(--font-inter), system-ui, sans-serif;
           font-size: 11px;
           font-weight: 600;
           letter-spacing: 0.08em;
@@ -418,120 +460,51 @@ export default function Dashboard() {
                     className="dash-heading"
                     style={{ fontSize: '20px', fontWeight: 600, color: '#0d0d1a', margin: 0 }}
                   >
-                    My Due Diligence Reports
+                    AI Due Diligence
                   </h2>
                 </div>
                 <p style={{ fontSize: '13.5px', color: '#999', margin: 0, paddingLeft: '44px' }}>
-                  Upload a document to generate an AI due diligence report
+                  Automated diligence reports, launching soon
                 </p>
               </div>
-              <span className="tag-badge" style={{ background: '#fff4f0', color: '#c25c3a' }}>AI</span>
+              <span className="tag-badge" style={{ background: '#eef2ff', color: '#3b3b8f' }}>Soon</span>
             </div>
 
             <div style={{ height: '1px', background: '#f0f0f0', marginBottom: '28px' }} />
 
-            {/* Upload zone */}
+            {/* AI due diligence is gated behind a pilot waitlist (pre-launch). */}
             <div
-              className={cn('upload-zone flex-1', aiLocked && 'opacity-40 pointer-events-none')}
+              className="flex-1"
               style={{
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                padding: '64px 40px', textAlign: 'center',
-                cursor: !file ? 'pointer' : 'default',
+                padding: '56px 40px', textAlign: 'center',
               }}
-              onClick={() => !file && fileInputRef.current?.click()}
             >
-              {!file && (
-                <>
-                  <div style={{
-                    width: '56px', height: '56px', borderRadius: '16px',
-                    background: '#fff4f0', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', marginBottom: '18px'
-                  }}>
-                    <UploadCloud size={24} color="#c25c3a" />
-                  </div>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#0d0d1a', margin: '0 0 6px' }}>
-                    Drag & drop or{' '}
-                    <span
-                      style={{ color: '#3b3b8f', textDecoration: 'underline', textUnderlineOffset: '3px', cursor: 'pointer' }}
-                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                    >
-                      browse
-                    </span>
-                  </p>
-                  <p style={{ fontSize: '13px', color: '#bbb', margin: 0 }}>
-                    PDF, DOCX, XLSX, CSV supported
-                  </p>
-                </>
-              )}
-
-              {file && (
-                <div style={{ width: '100%', maxWidth: '320px' }}>
-                  <div style={{
-                    width: '48px', height: '48px', borderRadius: '12px',
-                    background: '#f0f0f8', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 14px'
-                  }}>
-                    <FileText size={22} color="#3b3b8f" />
-                  </div>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#0d0d1a', margin: '0 0 18px' }}>
-                    {file.name}
-                  </p>
-
-                  {isAnalyzing && (
-                    <>
-                      <Progress value={progress} style={{ height: '6px', borderRadius: '99px' }} />
-                      <p style={{ fontSize: '13px', color: '#aaa', marginTop: '10px' }}>Analyzing document…</p>
-                    </>
-                  )}
-
-                  {!isAnalyzing && !analysisComplete && (
-                    <button
-                      className="btn-primary"
-                      onClick={(e) => { e.stopPropagation(); handleStartAnalysis(); }}
-                    >
-                      Start Analysis <ArrowRight size={14} />
-                    </button>
-                  )}
-
-                  {analysisComplete && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#16a34a', fontSize: '14px', fontWeight: 500 }}>
-                      <CheckCircle size={18} />
-                      Analysis complete
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-                accept=".pdf,.docx,.xlsx,.csv"
-              />
-            </div>
-
-            {aiLocked && (
               <div style={{
-                position: 'absolute', inset: 0, zIndex: 10,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                backdropFilter: 'blur(12px)',
-                backgroundColor: 'rgba(255,255,255,0.85)',
+                width: '56px', height: '56px', borderRadius: '16px',
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', marginBottom: '18px'
               }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#0d0d1a', marginBottom: '16px' }}>
-                  Due Diligence Reports locked
-                </p>
-                <button className="btn-primary" onClick={() => router.push('/choose-role')}>
-                  Upgrade Plan
-                </button>
+                <Sparkles size={24} color="#fff" />
               </div>
-            )}
+              <p style={{ fontSize: '16px', fontWeight: 600, color: '#0d0d1a', margin: '0 0 6px' }}>
+                AI Due Diligence is coming soon
+              </p>
+              <p style={{ fontSize: '13.5px', color: '#999', margin: '0 0 22px', maxWidth: '320px' }}>
+                We&apos;re validating accuracy with a small group of professional investors before launch. Join the waitlist for early access.
+              </p>
+              <button className="btn-primary" onClick={() => setWaitlistOpen(true)}>
+                Join the waitlist <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      <UpcomingFeatureDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} featureName="AI Due Diligence" />
+      {/* First-run guided tour: spotlights real nav items, shows once per user */}
+      <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />
     </>
   );
 }

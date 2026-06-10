@@ -198,7 +198,7 @@ export default function AcceptInvitePage() {
 
       {!userEmail && (
         <p className="mt-4 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-700">
-          Open this link directly from your invitation email - that signs you in automatically.
+          Open this link directly from your invitation email. That signs you in automatically.
         </p>
       )}
 

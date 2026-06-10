@@ -36,11 +36,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { FileRequestsIllustration } from '@/components/illustrations';
+import { ProductTour } from '@/components/product-tour';
 import {
   PlusCircle,
   Calendar as CalendarIcon,
   Clock,
-  Folder,
   Copy,
   Link as LinkIcon,
   MoreHorizontal,
@@ -399,6 +400,20 @@ function FileRequestsPageContent() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ProductTour
+        tourKey="tour-file-requests"
+        steps={[
+          {
+            title: 'Collect files securely',
+            description: 'Send a request link and people can upload documents straight into your data room, even without an account.',
+          },
+          {
+            selector: '[data-tour="fr-create"]',
+            title: 'Create a file request',
+            description: 'Click here to create a request. Choose a destination folder, set an optional passcode or expiry, then share the link.',
+          },
+        ]}
+      />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">File Requests</h1>
         <div className="flex items-center gap-2">
@@ -411,7 +426,7 @@ function FileRequestsPageContent() {
             }}
           >
             <SheetTrigger asChild>
-              <Button onClick={() => handleOpenSheet()}>
+              <Button data-tour="fr-create" onClick={() => handleOpenSheet()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create File Request
               </Button>
@@ -795,13 +810,15 @@ function FileRequestsPageContent() {
                     colSpan={5}
                     className="h-96 text-center text-muted-foreground"
                   >
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                      <Folder className="h-16 w-16" />
-                      <h2 className="text-xl font-semibold">
-                        No File Requests Yet
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                      <div className="w-44">
+                        <FileRequestsIllustration />
+                      </div>
+                      <h2 className="text-xl font-semibold text-foreground">
+                        No file requests yet
                       </h2>
                       <p>
-                        Create a file request to securely receive documents.
+                        Create a file request to securely receive documents from anyone, even if they don&apos;t have an account.
                       </p>
                     </div>
                   </TableCell>

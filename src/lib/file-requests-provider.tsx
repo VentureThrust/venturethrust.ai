@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useState, createContext, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from './supabaseClient';
 
 export type FileRequest = {
   id: string;
@@ -20,8 +20,7 @@ type AddFileRequestInput =
   Omit<FileRequest, 'id' | 'link' | 'uploaders' | 'files' | 'ownerAvatar' | 'isEnabled'>
   & {
     /** Optional: caller-provided link (e.g. from a DB-generated token) so the
-     *  local-store link and the DB link stay in sync. If omitted, a local token
-     *  is generated as a fallback (links won't work cross-browser). */
+     *  local link and the DB link stay in sync. */
     link?: string;
   };
 
@@ -34,44 +33,62 @@ type FileRequestContextType = {
 
 const FileRequestContext = createContext<FileRequestContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'secureShareFileRequests';
+// Legacy browser-global key. It was shared across every account on the same
+// browser, which leaked one user's file requests into another's view. We now
+// load from Supabase scoped to the logged-in user; this key is purged on mount.
+const LEGACY_LOCAL_STORAGE_KEY = 'secureShareFileRequests';
 
 export const FileRequestProvider = ({ children }: { children: ReactNode }) => {
   const [fileRequests, setFileRequests] = useState<FileRequest[]>([]);
-  const [isClient, setIsClient] = useState(false);
 
+  // ── Load THIS user's file requests from Supabase (scoped by created_by) ──
+  // SECURITY: file requests are per-user. We never read a browser-global cache,
+  // so a different account on the same browser can never see someone else's.
   useEffect(() => {
-    setIsClient(true);
-    try {
-      const item = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (item) {
-        const requests = JSON.parse(item).map((req: FileRequest) => ({
-          ...req,
-          expiresAt: req.expiresAt ? new Date(req.expiresAt) : undefined,
-        }));
-        setFileRequests(requests);
-      }
-    } catch (error) {
-      console.error('Error reading file requests from localStorage', error);
-    }
+    // One-time cleanup of the old browser-global cache so stale data can't show.
+    try { window.localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY); } catch { /* SSR */ }
+
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setFileRequests([]); return; }
+
+      const { data, error } = await supabase
+        .from('file_requests')
+        .select('id, token, title, message, target_folder_id, target_folder_name, target_type, target_space_id, expires_at, is_active')
+        .eq('created_by', user.id);
+
+      if (cancelled) return;
+      if (error || !data) { setFileRequests([]); return; }
+
+      setFileRequests(
+        data.map((row: any): FileRequest => ({
+          id: row.id ? String(row.id) : `req_${row.token}`,
+          title: row.title ?? 'Untitled request',
+          message: row.message ?? '',
+          uploadLocation: {
+            id: row.target_folder_id ?? row.target_space_id ?? '',
+            name: row.target_folder_name ?? '',
+            type: row.target_type === 'space' ? 'space' : 'folder',
+          },
+          uploaders: 0, // real counts merged in by the counts poll on the page
+          files: 0,
+          ownerAvatar: 'user-avatar',
+          link: `/request/${row.token}`,
+          isEnabled: row.is_active ?? true,
+          expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+        })),
+      );
+    })();
+
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      try {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fileRequests));
-      } catch (error) {
-        console.error('Error writing file requests to localStorage', error);
-      }
-    }
-  }, [fileRequests, isClient]);
 
   const addFileRequest = useCallback((requestData: AddFileRequestInput) => {
     const newRequestId = `req_${Date.now()}`;
 
     // Prefer the caller-provided link (from the DB token) so the link the user
-    // copies later matches what was actually inserted into Supabase. Only fall
-    // back to a locally-generated token if the DB save didn't return a link.
+    // copies matches the row inserted into Supabase.
     let newRequestLink = requestData.link;
     if (!newRequestLink) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -96,22 +113,18 @@ export const FileRequestProvider = ({ children }: { children: ReactNode }) => {
     setFileRequests(prev => [newRequest, ...prev]);
     return newRequest;
   }, []);
-  
+
   const updateFileRequest = useCallback((updatedRequest: Partial<FileRequest> & { id: string }) => {
-      setFileRequests(prev =>
-        prev.map(req =>
-          req.id === updatedRequest.id
-            ? { ...req, ...updatedRequest }
-            : req
-        )
-      );
+    setFileRequests(prev =>
+      prev.map(req => (req.id === updatedRequest.id ? { ...req, ...updatedRequest } : req)),
+    );
   }, []);
 
   const contextValue = useMemo(() => ({
     fileRequests,
     setFileRequests,
     addFileRequest,
-    updateFileRequest
+    updateFileRequest,
   }), [fileRequests, addFileRequest, updateFileRequest]);
 
   return (

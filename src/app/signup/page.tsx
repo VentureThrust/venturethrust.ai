@@ -215,12 +215,13 @@ function SignupPageInner() {
         </div>
         <div className="max-w-md">
           <h2 className="text-5xl font-bold leading-[1.05] tracking-tight">
-            Due diligence in hours.
-            <span className="block text-gray-400">Not weeks.</span>
+            Share documents securely.
+            <span className="block text-gray-400">Track every page.</span>
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-300">
-            The AI-native virtual data room. Share securely, track every view, and run
-            institutional-grade diligence in minutes - not a $15K law-firm engagement.
+            A secure virtual data room. Share your deck, financials, and contracts
+            with one link, gate access with an NDA or expiry, and see exactly who
+            read what.
           </p>
         </div>
         <p className="text-sm text-gray-500">© {new Date().getFullYear()} VentureThrust</p>

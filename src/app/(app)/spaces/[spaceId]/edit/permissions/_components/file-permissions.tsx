@@ -188,7 +188,7 @@ export function FilePermissions({ spaceId, itemId }: { spaceId: string; itemId: 
         </Link>
         <h1 className="mt-3 text-2xl font-bold tracking-tight">File permissions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          These apply to <strong className="text-foreground">{fileName}</strong> only - on top of the space&apos;s settings.
+          These apply to <strong className="text-foreground">{fileName}</strong> only, on top of the space&apos;s settings.
           A file can only be made <em>more</em> restricted.
         </p>
 

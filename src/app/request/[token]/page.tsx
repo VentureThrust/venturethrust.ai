@@ -76,15 +76,6 @@ function getFileIcon(name: string) {
   return FileIcon;
 }
 
-function getFileType(name: string): 'PDF' | 'Deck' | 'Sheet' | 'Doc' | 'Image' {
-  const ext = name.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf') return 'PDF';
-  if (['ppt', 'pptx', 'key'].includes(ext)) return 'Deck';
-  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'Sheet';
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return 'Image';
-  return 'Doc';
-}
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -102,7 +93,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
             <Shield className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-semibold text-gray-900">VentureTrust</span>
+          <span className="text-lg font-semibold text-gray-900">VentureThrust</span>
         </div>
       </div>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10">{children}</main>
@@ -132,50 +123,43 @@ export default function FileRequestUploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Initial fetch: validate the link ────────────────────────────────────
+  // ── Initial fetch: validate the link via the service-role route ──────────
+  // (We no longer read file_requests / profiles with the anon key, so RLS can
+  //  lock those tables to owners only.)
   useEffect(() => {
     if (!token) return;
     const load = async () => {
-      const { data, error } = await supabase
-        .from('file_requests')
-        .select('*')
-        .eq('token', token)
-        .maybeSingle();
-
-      if (error || !data) {
-        setStep('not_found');
-        return;
-      }
-      if (!data.is_active) {
-        setStep('inactive');
-        return;
-      }
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setStep('expired');
-        return;
-      }
-
-      setRequest(data as FileRequestRow);
-
-      // Resolve owner info from profiles
       try {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', data.created_by)
-          .maybeSingle();
-        const email = (prof?.email as string) ?? null;
-        const local = email?.split('@')[0] ?? 'Owner';
-        setOwner({
-          email,
-          displayName: local,
-          initial: local[0]?.toUpperCase() ?? 'O',
-        });
-      } catch {
-        setOwner({ email: null, displayName: 'Owner', initial: 'O' });
-      }
+        const res = await fetch(`/api/file-requests/resolve?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
 
-      setStep('upload');
+        if (data?.status === 'inactive') { setStep('inactive'); return; }
+        if (data?.status === 'expired') { setStep('expired'); return; }
+        if (data?.status !== 'ok' || !data.request) { setStep('not_found'); return; }
+
+        setRequest({
+          id: data.request.id,
+          token,
+          title: data.request.title ?? 'File request',
+          message: data.request.message ?? null,
+          account_name: null,
+          created_by: '', // owner actions happen server-side now
+          target_folder_id: data.request.target_folder_id ?? null,
+          target_folder_name: data.request.target_folder_name ?? null,
+          target_type: data.request.target_type ?? null,
+          target_space_id: data.request.target_space_id ?? null,
+          expires_at: null,
+          is_active: true,
+        });
+        setOwner({
+          email: null,
+          displayName: data.owner?.displayName ?? 'Owner',
+          initial: data.owner?.initial ?? 'O',
+        });
+        setStep('upload');
+      } catch {
+        setStep('not_found');
+      }
     };
     load();
   }, [token]);
@@ -312,55 +296,26 @@ export default function FileRequestUploadPage() {
     let completed = 0;
     let anyFailed = false;
 
+    // 1. Push the bytes straight to Storage from the browser (so large files
+    //    don't pass through a serverless function). Collect the resulting
+    //    paths to record server-side afterwards.
+    const recorded: { fileId: string; fileName: string; fileSize: number; storagePath: string }[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileId = `file_${Date.now()}_${i}`;
-      // Path scoped to the request so files are organized
-      // Belt-and-braces: even if a file got past addFiles' sanitization,
-      // sanitize again before building the storage key. Storage keys
-      // containing '..' or path separators in untrusted segments would
-      // let an attacker write outside their intended namespace.
+      // Belt-and-braces: sanitize again before building the storage key so an
+      // untrusted segment can't escape the request's namespace.
       const safeName = sanitizeFileName(file.name);
       const storagePath = `file-requests/${request.id}/${fileId}/${safeName}`;
 
       try {
-        // 1. Upload to storage
         const { error: storageErr } = await supabase.storage
           .from('documents')
           .upload(storagePath, file, { upsert: false });
         if (storageErr) throw storageErr;
 
-        // 2. Track in file_request_uploads for the owner's audit log
-        const { error: trackErr } = await supabase.from('file_request_uploads').insert({
-          file_request_id: request.id,
-          uploader_name: uploaderName.trim(),
-          uploader_email: uploaderEmail.trim(),
-          file_name: file.name,
-          file_size: file.size,
-          storage_path: storagePath,
-        });
-        if (trackErr) console.warn('upload-tracking insert failed:', trackErr);
-
-        // 3. Insert into the `files` table at the target folder so it appears
-        //    in the owner's content library / space exactly as if they uploaded.
-        if (request.target_folder_id) {
-          const fileRow: Record<string, unknown> = {
-            id: fileId,
-            user_id: request.created_by,
-            folder_id: request.target_folder_id,
-            name: file.name,
-            type: getFileType(file.name),
-            created_at: new Date().toISOString(),
-            views: 0,
-            storage_path: storagePath,
-          };
-          if (request.target_space_id) {
-            fileRow.space_id = request.target_space_id;
-          }
-          const { error: fileErr } = await supabase.from('files').insert(fileRow);
-          if (fileErr) console.warn('files insert failed:', fileErr);
-        }
-
+        recorded.push({ fileId, fileName: file.name, fileSize: file.size, storagePath });
         completed += 1;
         setUploadProgress(Math.round((completed / totalFiles) * 100));
       } catch (err) {
@@ -369,16 +324,25 @@ export default function FileRequestUploadPage() {
       }
     }
 
-    // 4. Notify the owner via the alerts table (powers the bell + welcome-back popup)
-    try {
-      await supabase.from('alerts').insert({
-        user_id: request.created_by,
-        space_id: request.target_space_id ?? null,
-        type: 'file_request_upload',
-        message: `${uploaderName.trim()} (${uploaderEmail.trim()}) uploaded ${completed} file${completed !== 1 ? 's' : ''} for "${request.title}".`,
-      });
-    } catch (err) {
-      console.warn('alert insert failed:', err);
+    // 2. Record the batch + notify the owner via the secure service-role route.
+    //    (file_request_uploads / files / alerts are no longer writable by anon.)
+    if (recorded.length > 0) {
+      try {
+        const res = await fetch('/api/file-requests/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token,
+            uploaderName: uploaderName.trim(),
+            uploaderEmail: uploaderEmail.trim(),
+            files: recorded,
+          }),
+        });
+        if (!res.ok) anyFailed = true;
+      } catch (err) {
+        console.error('recording upload failed:', err);
+        anyFailed = true;
+      }
     }
 
     if (anyFailed) {
@@ -487,7 +451,7 @@ export default function FileRequestUploadPage() {
           </div>
           <p className="text-sm text-gray-700">
             <span className="font-semibold text-gray-900">{owner?.displayName ?? 'Someone'}</span>{' '}
-            is requesting some files from you. Your files will be uploaded securely to their VentureTrust account.
+            is requesting some files from you. Your files will be uploaded securely to their VentureThrust account.
           </p>
         </div>
 

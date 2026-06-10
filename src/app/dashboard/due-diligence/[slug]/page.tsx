@@ -420,7 +420,7 @@ export default function DueDiligencePage({ params }: { params: { slug: string } 
               <div>
                 <h1 className="text-2xl font-bold">{report.company_name} Due Diligence</h1>
                 <p className="text-muted-foreground">
-                  {report.created_at ? new Date(report.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'February 20'} - 
+                  {report.created_at ? new Date(report.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'February 20'} to
                   {report.updated_at ? new Date(report.updated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Present'}
                   <ChevronDown className='inline h-4 w-4 ml-1' />
                 </p>

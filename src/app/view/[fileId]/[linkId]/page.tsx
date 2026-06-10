@@ -2,7 +2,7 @@
 //
 // Standalone, PUBLIC agreement-signing page. Lives OUTSIDE the (app)
 // route group on purpose, so it does NOT get the dashboard sidebar/header
-// chrome - a recipient (who may not even have a VentureTrust account)
+// chrome - a recipient (who may not even have a VentureThrust account)
 // sees a clean, full-screen DocSend-style signing experience.
 //
 // Data comes from /api/agreements/view (service-role, DB-backed) - never
