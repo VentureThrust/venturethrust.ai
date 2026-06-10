@@ -29,6 +29,7 @@ type Plan = {
   tagline: string;
   popular?: boolean;
   trial?: boolean;
+  note?: string; // small line under the price (e.g. the Access test-cycle notice)
   features: string[];
 };
 
@@ -38,6 +39,7 @@ const CATALOGUE: Record<Category, Plan[]> = {
     {
       id: 'vdr-access', name: 'Access', price: 1, planKey: 'vdr_only',
       tagline: 'Unlock the secure data room for one rupee.',
+      note: 'Test plan: full access for 1 minute after purchase.',
       features: ['2 team members', '25 GB storage', 'All Starter features', 'Secure links, gates & expiry'],
     },
     {
@@ -330,6 +332,7 @@ export default function ChoosePlanPage() {
                 )}
               </div>
               {!plan.trial && <p className="mt-1 text-xs text-muted-foreground">+ 18% GST · billed monthly</p>}
+              {plan.note && <p className="mt-1 text-xs font-medium text-amber-600">{plan.note}</p>}
 
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((f, i) => (
