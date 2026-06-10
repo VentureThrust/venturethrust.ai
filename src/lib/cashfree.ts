@@ -20,15 +20,25 @@ export function cashfreeHeaders(): Record<string, string> {
   };
 }
 
-// Paid VDR plans. `amount` is INR. 'vdr-access' is a one-rupee entry plan that
-// replaced the free trial, so every plan now goes through a real payment (and
-// therefore gets a real 30-day expiry stamped on success).
-export const PAID_PLANS: Record<string, { amount: number; planKey: string; name: string }> = {
-  'vdr-access': { amount: 1, planKey: 'vdr_only', name: 'Access' },
-  'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter' },
-  'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth' },
-  'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business' },
+/** Default billing cycle, in milliseconds (30 days). Used for plan_expires_at. */
+export const BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Paid VDR plans. `amount` is INR. `cycleMs` is how long the plan stays active
+// after payment before it must be renewed. 'vdr-access' is a one-rupee entry
+// plan (it replaced the free trial) with a 1-day cycle, so plan expiry and the
+// downgrade back to /choose-role can be tested without waiting a month.
+export const PAID_PLANS: Record<
+  string,
+  { amount: number; planKey: string; name: string; cycleMs: number }
+> = {
+  'vdr-access': { amount: 1, planKey: 'vdr_only', name: 'Access', cycleMs: DAY_MS },
+  'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter', cycleMs: BILLING_CYCLE_MS },
+  'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth', cycleMs: BILLING_CYCLE_MS },
+  'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business', cycleMs: BILLING_CYCLE_MS },
 };
 
-/** One billing cycle, in milliseconds (30 days). Used to set plan_expires_at. */
-export const BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
+/** How long a paid plan stays active before renewal. Falls back to the default. */
+export function planCycleMs(planId: string): number {
+  return PAID_PLANS[planId]?.cycleMs ?? BILLING_CYCLE_MS;
+}

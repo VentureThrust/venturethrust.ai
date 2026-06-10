@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { BILLING_CYCLE_MS } from '@/lib/cashfree';
+import { planCycleMs } from '@/lib/cashfree';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       .eq('cf_order_id', orderId)
       .maybeSingle();
     if (pay && pay.status !== 'PAID') {
-      const expires = new Date(Date.now() + BILLING_CYCLE_MS).toISOString();
+      const expires = new Date(Date.now() + planCycleMs(pay.plan_id as string)).toISOString();
       await admin.from('payments').update({ status: 'PAID', updated_at: new Date().toISOString() }).eq('id', pay.id);
       await admin
         .from('profiles')
