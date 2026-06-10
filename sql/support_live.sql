@@ -41,9 +41,12 @@ $$;
 revoke all on function public.vt_is_support_admin() from public;
 grant execute on function public.vt_is_support_admin() to authenticated;
 
--- IMPORTANT: mark yourself as the support admin so the inbox is visible to you.
-update public.profiles set is_admin = true
-where email = 'omprakash@venturethrust.com';
+-- IMPORTANT: mark yourself as the support admin so the inbox is visible to you
+-- and you skip the plan gate. Matched via auth.users email (reliable even if
+-- profiles.email is empty or different).
+update public.profiles p set is_admin = true
+from auth.users u
+where p.id = u.id and lower(u.email) = lower('omprakash@venturethrust.com');
 
 -- ── 3. Conversations ────────────────────────────────────────────────────────
 create table if not exists public.support_conversations (
