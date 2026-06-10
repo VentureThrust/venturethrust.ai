@@ -76,14 +76,28 @@ export async function POST(req: NextRequest) {
     await admin.from('support_messages').insert({
       conversation_id: conversationId,
       sender: 'system',
-      body: 'The team closed this conversation. Send another message to reopen it any time.',
+      body: 'The team marked this conversation as resolved. Send another message to reopen it any time.',
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === 'reopen') {
+    if (!isAdmin) return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
+    await admin.from('support_conversations').update({ status: 'awaiting_human', last_message_at: nowIso }).eq('id', conversationId);
+    await admin.from('support_messages').insert({
+      conversation_id: conversationId,
+      sender: 'system',
+      body: 'The team reopened this conversation.',
     });
     return NextResponse.json({ ok: true });
   }
 
   if (!text) return NextResponse.json({ ok: false, error: 'empty' }, { status: 400 });
 
-  const sender = isAdmin ? 'owner' : 'user';
+  // The customer is whoever opened the conversation; anyone else replying (an
+  // admin from the Support Inbox) is staff. Attribution does not rely on the
+  // is_admin flag, so each message renders on the correct side for both views.
+  const sender = (conv as { user_id: string }).user_id === user.id ? 'user' : 'owner';
   const { error: insErr } = await admin
     .from('support_messages')
     .insert({ conversation_id: conversationId, sender, body: text });

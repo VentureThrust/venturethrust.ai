@@ -2,9 +2,11 @@
 
 /**
  * Support Inbox - the owner's live view of escalated support chats. Admin-only
- * (profiles.is_admin). Lists conversations and shows each one's messages in
- * real time (Supabase Realtime); the owner replies via POST /api/support/message,
- * which the user sees instantly in their support widget.
+ * (profiles.is_admin). Lists conversations with status tabs (Needs reply /
+ * Active / Resolved / All) so every complaint is tracked, shows each chat's
+ * messages in real time (Supabase Realtime), and lets the owner reply, mark
+ * resolved, or reopen. The owner's replies appear instantly in the user's
+ * support widget.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -21,6 +23,7 @@ type Conv = {
   last_message_at: string;
 };
 type Msg = { id: string; sender: string; body: string; created_at: string };
+type Filter = 'all' | 'needs' | 'active' | 'resolved';
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -28,9 +31,9 @@ function StatusBadge({ status }: { status: string }) {
     live: 'bg-green-100 text-green-800',
     closed: 'bg-gray-100 text-gray-600',
   };
-  const labels: Record<string, string> = { awaiting_human: 'New', live: 'Live', closed: 'Closed' };
+  const labels: Record<string, string> = { awaiting_human: 'Needs reply', live: 'Active', closed: 'Resolved' };
   return (
-    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', styles[status] ?? 'bg-gray-100 text-gray-600')}>
+    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium', styles[status] ?? 'bg-gray-100 text-gray-600')}>
       {labels[status] ?? status}
     </span>
   );
@@ -39,6 +42,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function SupportInboxPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [convs, setConvs] = useState<Conv[]>([]);
+  const [filter, setFilter] = useState<Filter>('all');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [reply, setReply] = useState('');
@@ -53,7 +57,6 @@ export default function SupportInboxPage() {
     setConvs((data as Conv[]) ?? []);
   };
 
-  // Admin check + initial conversation list.
   useEffect(() => {
     (async () => {
       const {
@@ -70,7 +73,6 @@ export default function SupportInboxPage() {
     })();
   }, []);
 
-  // Live-refresh the conversation list.
   useEffect(() => {
     if (isAdmin !== true) return;
     const ch = supabase
@@ -84,7 +86,6 @@ export default function SupportInboxPage() {
     };
   }, [isAdmin]);
 
-  // Load + subscribe to the active conversation's messages.
   useEffect(() => {
     if (!activeId) {
       setMsgs([]);
@@ -156,30 +157,70 @@ export default function SupportInboxPage() {
     return <div className="p-8 text-center text-muted-foreground">This page is for support admins only.</div>;
   }
 
+  const counts: Record<Filter, number> = {
+    all: convs.length,
+    needs: convs.filter((c) => c.status === 'awaiting_human').length,
+    active: convs.filter((c) => c.status === 'live').length,
+    resolved: convs.filter((c) => c.status === 'closed').length,
+  };
+  const shown = convs.filter((c) =>
+    filter === 'all'
+      ? true
+      : filter === 'needs'
+        ? c.status === 'awaiting_human'
+        : filter === 'active'
+          ? c.status === 'live'
+          : c.status === 'closed',
+  );
   const active = convs.find((c) => c.id === activeId) ?? null;
+  const TABS: [Filter, string][] = [
+    ['all', 'All'],
+    ['needs', 'Needs reply'],
+    ['active', 'Active'],
+    ['resolved', 'Resolved'],
+  ];
 
   return (
     <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border bg-white">
       {/* Conversation list */}
-      <aside className="w-72 shrink-0 overflow-y-auto border-r">
+      <aside className="flex w-80 shrink-0 flex-col border-r">
         <div className="border-b px-4 py-3 text-lg font-semibold">Support inbox</div>
-        {convs.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">No conversations yet.</p>
-        ) : (
-          convs.map((c) => (
+        <div className="flex flex-wrap gap-1 border-b p-2">
+          {TABS.map(([key, label]) => (
             <button
-              key={c.id}
-              onClick={() => setActiveId(c.id)}
-              className={cn('w-full border-b px-4 py-3 text-left transition-colors hover:bg-gray-50', activeId === c.id && 'bg-gray-50')}
+              key={key}
+              onClick={() => setFilter(key)}
+              className={cn(
+                'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
+                filter === key ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              )}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-medium">{c.user_email ?? 'User'}</span>
-                <StatusBadge status={c.status} />
-              </div>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.summary}</p>
+              {label}
+              {counts[key] > 0 && (
+                <span className={cn('ml-1', filter === key ? 'text-gray-300' : 'text-gray-400')}>{counts[key]}</span>
+              )}
             </button>
-          ))
-        )}
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {shown.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">No conversations here.</p>
+          ) : (
+            shown.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setActiveId(c.id)}
+                className={cn('w-full border-b px-4 py-3 text-left transition-colors hover:bg-gray-50', activeId === c.id && 'bg-gray-50')}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium">{c.user_email ?? 'User'}</span>
+                  <StatusBadge status={c.status} />
+                </div>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.summary}</p>
+              </button>
+            ))
+          )}
+        </div>
       </aside>
 
       {/* Active conversation */}
@@ -193,14 +234,21 @@ export default function SupportInboxPage() {
           </div>
         ) : (
           <>
-            <header className="flex items-center justify-between border-b px-4 py-3">
+            <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{active.user_email ?? 'User'}</div>
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-sm font-semibold">{active.user_email ?? 'User'}</span>
+                  <StatusBadge status={active.status} />
+                </div>
                 <div className="truncate text-xs text-muted-foreground">{active.summary}</div>
               </div>
-              {active.status !== 'closed' && (
+              {active.status === 'closed' ? (
+                <Button variant="outline" size="sm" onClick={() => post({ action: 'reopen' })}>
+                  Reopen
+                </Button>
+              ) : (
                 <Button variant="outline" size="sm" onClick={() => post({ action: 'close' })}>
-                  Close
+                  Mark resolved
                 </Button>
               )}
             </header>
@@ -236,7 +284,11 @@ export default function SupportInboxPage() {
               })}
             </div>
 
-            {active.status !== 'closed' && (
+            {active.status === 'closed' ? (
+              <div className="border-t p-3 text-center text-xs text-muted-foreground">
+                This conversation is resolved. Reopen it to reply again.
+              </div>
+            ) : (
               <div className="flex items-center gap-2 border-t p-3">
                 <input
                   value={reply}
