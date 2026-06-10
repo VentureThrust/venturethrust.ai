@@ -23,9 +23,9 @@ export function cashfreeHeaders(): Record<string, string> {
 /** Default billing cycle, in milliseconds (30 days). Used for plan_expires_at. */
 export const BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
 // The 1 rupee Access plan uses a deliberately short cycle so plan expiry and the
-// downgrade back to /choose-role can be watched within a minute, not a month.
+// downgrade back to /choose-role can be watched in a few minutes, not a month.
 // Bump this up (e.g. to 24 * 60 * 60 * 1000 for a day) once testing is done.
-const ACCESS_TEST_CYCLE_MS = 60 * 1000; // 1 minute
+const ACCESS_TEST_CYCLE_MS = 15 * 60 * 1000; // 15 minutes
 
 // Paid VDR plans. `amount` is INR. `cycleMs` is how long the plan stays active
 // after payment before it must be renewed. 'vdr-access' is a one-rupee entry

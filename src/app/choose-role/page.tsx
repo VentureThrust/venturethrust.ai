@@ -39,7 +39,7 @@ const CATALOGUE: Record<Category, Plan[]> = {
     {
       id: 'vdr-access', name: 'Access', price: 1, planKey: 'vdr_only',
       tagline: 'Unlock the secure data room for one rupee.',
-      note: 'Test plan: full access for 1 minute after purchase.',
+      note: 'Test plan: full access for 15 minutes after purchase.',
       features: ['2 team members', '25 GB storage', 'All Starter features', 'Secure links, gates & expiry'],
     },
     {
