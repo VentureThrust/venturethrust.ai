@@ -31,10 +31,12 @@ import {
   Info,
   FileLock,
   Users,
+  Inbox,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { SupportDialog } from '@/components/support-dialog';
+import { supabase } from '@/lib/supabaseClient';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSpaces } from '@/lib/spaces-provider';
@@ -252,6 +254,22 @@ export function AppSidebarContent({
   const [viewingFile, setViewingFile] = useState<TFile | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [isSupportAdmin, setIsSupportAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+      if (active && (data as { is_admin?: boolean } | null)?.is_admin) setIsSupportAdmin(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -659,6 +677,22 @@ export function AppSidebarContent({
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+
+          {isSupportAdmin && (
+            <SidebarMenuItem>
+              <Link href="/dashboard/support">
+                <SidebarMenuButton
+                  tooltip="Support inbox"
+                  className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <Inbox className="h-6 w-6 shrink-0" />
+                    <span className="text-base">Support inbox</span>
+                  </div>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          )}
 
           <SidebarMenuItem>
             <SidebarMenuButton
