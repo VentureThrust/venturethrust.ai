@@ -10,7 +10,9 @@
  * card (good for a welcome step). Missing targets are skipped.
  *
  * Showing rules:
- *   - Runs once per user, gated by localStorage `vt_tour_<tourKey>`.
+ *   - Runs once per ACCOUNT, gated by localStorage `vt_tour_<tourKey>_<userId>`
+ *     so a brand-new account still gets its own tour in a browser where a
+ *     different account already finished it.
  *   - Add `?tour=1` to the URL to force it (testing / a "replay tour" link).
  *   - The "seen" flag is only written when the user Skips or finishes, never
  *     when a target merely isn't on the page, so a transient miss can't disable
@@ -21,6 +23,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export type TourStep = {
   /** CSS selector of the element to spotlight. Omit for a centered card. */
@@ -29,7 +32,7 @@ export type TourStep = {
   description: string;
 };
 
-const seenKey = (k: string) => `vt_tour_${k}`;
+const seenKey = (k: string, uid: string) => `vt_tour_${k}_${uid || 'anon'}`;
 const TOOLTIP_W = 320;
 
 export function ProductTour({ tourKey, steps }: { tourKey: string; steps: TourStep[] }) {
@@ -37,37 +40,63 @@ export function ProductTour({ tourKey, steps }: { tourKey: string; steps: TourSt
   const [active, setActive] = useState(false);
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [storageKey, setStorageKey] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // Start once per user. `?tour=1` forces it regardless of the saved flag.
+  // Start once per ACCOUNT. We resolve the saved-flag key from the signed-in
+  // user id so a new account always gets its own tour, even in a browser where
+  // another account already finished it. `?tour=1` forces it regardless.
   useEffect(() => {
-    let force = false;
-    try {
-      force = new URLSearchParams(window.location.search).get('tour') === '1';
-    } catch {
-      /* ignore */
-    }
-    if (!force) {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      let force = false;
       try {
-        if (window.localStorage.getItem(seenKey(tourKey))) return;
+        force = new URLSearchParams(window.location.search).get('tour') === '1';
       } catch {
-        return;
+        /* ignore */
       }
-    }
-    const t = setTimeout(() => setActive(true), 600);
-    return () => clearTimeout(t);
+
+      let uid = '';
+      try {
+        const { data } = await supabase.auth.getSession();
+        uid = data.session?.user?.id ?? '';
+      } catch {
+        /* ignore, fall back to the anon-scoped key */
+      }
+      if (cancelled) return;
+
+      const key = seenKey(tourKey, uid);
+      setStorageKey(key);
+
+      if (!force) {
+        try {
+          if (window.localStorage.getItem(key)) return;
+        } catch {
+          return;
+        }
+      }
+      timer = setTimeout(() => {
+        if (!cancelled) setActive(true);
+      }, 600);
+    })();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [tourKey]);
 
-  // Close AND remember (the user explicitly skipped or finished).
+  // Close AND remember (the user explicitly skipped or finished). Writes the
+  // per-account key resolved when the tour started.
   const dismiss = useCallback(() => {
     try {
-      window.localStorage.setItem(seenKey(tourKey), '1');
+      if (storageKey) window.localStorage.setItem(storageKey, '1');
     } catch {
       /* ignore */
     }
     setActive(false);
-  }, [tourKey]);
+  }, [storageKey]);
 
   // Close WITHOUT remembering (none of the remaining targets exist yet), so the
   // tour can try again next time.
