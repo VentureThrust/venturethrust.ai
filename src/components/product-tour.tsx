@@ -10,9 +10,10 @@
  * card (good for a welcome step). Missing targets are skipped.
  *
  * Showing rules:
- *   - Runs once per ACCOUNT, gated by localStorage `vt_tour_<tourKey>_<userId>`
- *     so a brand-new account still gets its own tour in a browser where a
- *     different account already finished it.
+ *   - Runs once per ACCOUNT, tracked in the DB (profiles.tours_seen) so the
+ *     tour shows once per account across ALL devices. A localStorage key
+ *     `vt_tour_<tourKey>_<userId>` is kept only as a fallback for when the
+ *     column is missing (before the migration) or the DB is unreachable.
  *   - Add `?tour=1` to the URL to force it (testing / a "replay tour" link).
  *   - The "seen" flag is only written when the user Skips or finishes, never
  *     when a target merely isn't on the page, so a transient miss can't disable
@@ -41,12 +42,14 @@ export function ProductTour({ tourKey, steps }: { tourKey: string; steps: TourSt
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [storageKey, setStorageKey] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // Start once per ACCOUNT. We resolve the saved-flag key from the signed-in
-  // user id so a new account always gets its own tour, even in a browser where
-  // another account already finished it. `?tour=1` forces it regardless.
+  // Start once per ACCOUNT. The source of truth is the DB (profiles.tours_seen),
+  // so the tour shows once per account across every device. localStorage is only
+  // a fallback for before the migration runs or when the DB is unreachable.
+  // `?tour=1` forces it regardless.
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -63,20 +66,44 @@ export function ProductTour({ tourKey, steps }: { tourKey: string; steps: TourSt
         const { data } = await supabase.auth.getSession();
         uid = data.session?.user?.id ?? '';
       } catch {
-        /* ignore, fall back to the anon-scoped key */
+        /* ignore */
       }
       if (cancelled) return;
+      setUserId(uid || null);
 
       const key = seenKey(tourKey, uid);
       setStorageKey(key);
 
       if (!force) {
-        try {
-          if (window.localStorage.getItem(key)) return;
-        } catch {
-          return;
+        // 1) Authoritative cross-device flag in the DB.
+        let resolvedFromDb = false;
+        if (uid) {
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('tours_seen')
+              .eq('id', uid)
+              .maybeSingle();
+            if (cancelled) return;
+            if (!error) {
+              const seen = (data?.tours_seen ?? {}) as Record<string, boolean>;
+              if (seen[tourKey]) return; // already toured on some device
+              resolvedFromDb = true; // column exists and not seen, so show it
+            }
+          } catch {
+            /* fall back to localStorage below */
+          }
+        }
+        // 2) Fallback when the DB has no answer (pre-migration / offline / anon).
+        if (!resolvedFromDb) {
+          try {
+            if (window.localStorage.getItem(key)) return;
+          } catch {
+            return;
+          }
         }
       }
+
       timer = setTimeout(() => {
         if (!cancelled) setActive(true);
       }, 600);
@@ -87,16 +114,24 @@ export function ProductTour({ tourKey, steps }: { tourKey: string; steps: TourSt
     };
   }, [tourKey]);
 
-  // Close AND remember (the user explicitly skipped or finished). Writes the
-  // per-account key resolved when the tour started.
+  // Close AND remember (the user explicitly skipped or finished). Persists to
+  // the DB (cross-device) via a SECURITY DEFINER RPC keyed by auth.uid(), and
+  // also writes the localStorage cache so it will not reopen in this browser
+  // even if the DB write fails or the migration has not run yet.
   const dismiss = useCallback(() => {
     try {
       if (storageKey) window.localStorage.setItem(storageKey, '1');
     } catch {
       /* ignore */
     }
+    if (userId) {
+      supabase.rpc('vt_mark_tour_seen', { p_key: tourKey }).then(
+        () => {},
+        () => {},
+      );
+    }
     setActive(false);
-  }, [storageKey]);
+  }, [storageKey, userId, tourKey]);
 
   // Close WITHOUT remembering (none of the remaining targets exist yet), so the
   // tour can try again next time.
