@@ -1,12 +1,13 @@
 'use client';
 
 /**
- * SupportDialog - the in-app support panel opened by the sidebar "Support"
- * button. Two tabs:
- *   - "Ask AI": a Claude-powered assistant (POST /api/support/chat) that answers
- *     instantly, 24/7, grounded in product knowledge. Escalates to a human.
- *   - "Send a message": a ticket form (POST /api/support) that emails the team
- *     via Zoho and logs to support_tickets.
+ * SupportDialog - in-app support, opened from the sidebar "Support" button.
+ *   - "Ask AI": Claude-powered assistant (POST /api/support/chat), grounded in
+ *     the support_kb knowledge base, with a "Talk to a human" handoff.
+ *   - "Message the team": start a conversation with the team directly.
+ * Either path escalates to a LIVE conversation (POST /api/support/escalate) that
+ * the owner answers from the Support Inbox; the owner's replies stream back in
+ * via Supabase Realtime. Messages are sent through POST /api/support/message.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -18,14 +19,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
-import { LifeBuoy, Loader2, Check, Send, Sparkles } from 'lucide-react';
+import { LifeBuoy, Loader2, Send, Sparkles, User } from 'lucide-react';
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string };
+type LiveMsg = { id: string; sender: string; body: string };
 
-const CATEGORIES = ['General question', 'Billing & plans', 'Technical issue', 'Account', 'Feature request'];
 const SUGGESTIONS = ['How do I share a data room?', 'Can I see who viewed my documents?', 'How does billing work?'];
 
 export function SupportDialog({
@@ -35,45 +35,81 @@ export function SupportDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const [mode, setMode] = useState<'ai' | 'contact'>('ai');
+  const [mode, setMode] = useState<'ai' | 'contact' | 'live'>('ai');
+  const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [escalating, setEscalating] = useState(false);
 
-  // AI chat state
+  // AI chat
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const aiScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Ticket state
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [ticketError, setTicketError] = useState<string | null>(null);
-  const [sentToEmail, setSentToEmail] = useState('');
+  // Contact
+  const [contactMsg, setContactMsg] = useState('');
+
+  // Live conversation
+  const [convId, setConvId] = useState<string | null>(null);
+  const [live, setLive] = useState<LiveMsg[]>([]);
+  const [liveInput, setLiveInput] = useState('');
+  const [liveSending, setLiveSending] = useState(false);
+  const liveScrollRef = useRef<HTMLDivElement | null>(null);
 
   const reset = () => {
     setMode('ai');
+    setHandoffError(null);
+    setEscalating(false);
     setChat([]);
     setInput('');
     setThinking(false);
     setChatError(null);
-    setCategory(CATEGORIES[0]);
-    setSubject('');
-    setMessage('');
-    setSending(false);
-    setSent(false);
-    setTicketError(null);
+    setContactMsg('');
+    setConvId(null);
+    setLive([]);
+    setLiveInput('');
+    setLiveSending(false);
   };
 
-  // Keep the chat scrolled to the latest message.
   useEffect(() => {
-    const el = scrollRef.current;
+    const el = aiScrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat, thinking]);
+  useEffect(() => {
+    const el = liveScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [live]);
 
-  const send = async (text: string) => {
+  // Load history + subscribe to the live conversation.
+  useEffect(() => {
+    if (mode !== 'live' || !convId) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from('support_messages')
+        .select('id, sender, body')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true });
+      if (active && data) setLive(data as LiveMsg[]);
+    })();
+    const channel = supabase
+      .channel(`support:${convId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `conversation_id=eq.${convId}` },
+        (payload) => {
+          const m = payload.new as LiveMsg;
+          setLive((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+        },
+      )
+      .subscribe();
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [mode, convId]);
+
+  const sendAi = async (text: string) => {
     const q = text.trim();
     if (!q || thinking) return;
     setChatError(null);
@@ -98,8 +134,8 @@ export function SupportDialog({
       if (!res.ok || !json?.reply) {
         setChatError(
           json?.error === 'not_configured'
-            ? 'The assistant is not configured yet. Please use "Talk to a human" below.'
-            : 'The assistant is unavailable right now. Please use "Talk to a human" below.',
+            ? 'The assistant is not set up yet. Tap "Talk to a human" below.'
+            : 'The assistant is unavailable. Tap "Talk to a human" below.',
         );
         setThinking(false);
         return;
@@ -111,37 +147,63 @@ export function SupportDialog({
     setThinking(false);
   };
 
-  const submitTicket = async () => {
-    if (message.trim().length < 5) {
-      setTicketError('Please describe your issue in a few words.');
-      return;
-    }
-    setSending(true);
-    setTicketError(null);
+  const escalate = async (summary: string, transcript: ChatMsg[]) => {
+    if (escalating) return;
+    setEscalating(true);
+    setHandoffError(null);
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      setSentToEmail(data.session?.user?.email ?? '');
       if (!token) {
-        setTicketError('Please log in again to contact support.');
-        setSending(false);
+        setHandoffError('Please log in again.');
+        setEscalating(false);
         return;
       }
-      const res = await fetch('/api/support', {
+      const res = await fetch('/api/support/escalate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ subject, category, message }),
+        body: JSON.stringify({ summary, transcript }),
       });
-      if (!res.ok) {
-        setTicketError('Could not send right now. Please try again in a moment.');
-        setSending(false);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.conversationId) {
+        setHandoffError(
+          json?.error === 'not_ready'
+            ? 'Live chat is not set up yet. Please email omprakash@venturethrust.com.'
+            : 'Could not connect you to the team. Please try again.',
+        );
+        setEscalating(false);
         return;
       }
-      setSent(true);
+      setConvId(json.conversationId);
+      setLive([]);
+      setMode('live');
     } catch {
-      setTicketError('Could not send right now. Please try again in a moment.');
+      setHandoffError('Could not connect you. Please try again.');
     }
-    setSending(false);
+    setEscalating(false);
+  };
+
+  const sendLive = async () => {
+    const t = liveInput.trim();
+    if (!t || !convId || liveSending) return;
+    setLiveSending(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setLiveSending(false);
+        return;
+      }
+      await fetch('/api/support/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ conversationId: convId, body: t }),
+      });
+      setLiveInput(''); // the Realtime subscription appends it when it lands
+    } catch {
+      /* user can retry */
+    }
+    setLiveSending(false);
   };
 
   const tabClass = (active: boolean) =>
@@ -159,55 +221,92 @@ export function SupportDialog({
       }}
     >
       <DialogContent className="sm:max-w-lg">
-        {sent ? (
-          <div className="py-4 text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
-              <Check className="h-7 w-7 text-green-600" />
+        <DialogHeader>
+          <div className="mb-1 flex items-center gap-2">
+            <LifeBuoy className="h-5 w-5 text-gray-700" />
+            <DialogTitle>Support</DialogTitle>
+          </div>
+          <DialogDescription>
+            {mode === 'live'
+              ? 'You are connected to support. Replies appear here live, and we also email you.'
+              : 'We are here 24/7. Ask the assistant for an instant answer, or message the team.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {mode === 'live' ? (
+          <div className="flex flex-col">
+            <div ref={liveScrollRef} className="h-80 space-y-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+              <div className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                Connected. A teammate will reply here as soon as possible, and you will also get an email. You can keep typing.
+              </div>
+              {live.map((m) => {
+                if (m.sender === 'system') {
+                  return (
+                    <div key={m.id} className="text-center text-xs text-muted-foreground">
+                      {m.body}
+                    </div>
+                  );
+                }
+                const mine = m.sender === 'user';
+                return (
+                  <div key={m.id} className={mine ? 'flex justify-end' : 'flex flex-col items-start'}>
+                    {!mine && (
+                      <span className="mb-0.5 ml-1 text-[11px] font-medium text-muted-foreground">
+                        {m.sender === 'owner' ? 'Support' : 'Assistant'}
+                      </span>
+                    )}
+                    <div
+                      className={
+                        mine
+                          ? 'max-w-[85%] rounded-2xl bg-gray-900 px-3 py-2 text-sm text-white'
+                          : 'max-w-[85%] whitespace-pre-wrap rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm text-foreground'
+                      }
+                    >
+                      {m.body}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <h3 className="text-xl font-semibold">Message sent</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Thanks! We received your request and will reply{sentToEmail ? ` to ${sentToEmail}` : ''}.
-              We monitor support around the clock and will get back to you as soon as possible.
-            </p>
-            <Button onClick={() => onOpenChange(false)} className="mt-5 w-full bg-gray-900 text-white hover:bg-gray-800">
-              Done
-            </Button>
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                value={liveInput}
+                onChange={(e) => setLiveInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendLive();
+                  }
+                }}
+                placeholder="Type your message..."
+                className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <Button onClick={sendLive} disabled={liveSending || !liveInput.trim()} className="h-10 bg-gray-900 text-white hover:bg-gray-800">
+                {liveSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <div className="mb-1 flex items-center gap-2">
-                <LifeBuoy className="h-5 w-5 text-gray-700" />
-                <DialogTitle>Support</DialogTitle>
-              </div>
-              <DialogDescription>
-                We are here 24/7. Ask the assistant for an instant answer, or send us a message.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Tabs */}
             <div className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
               <button type="button" onClick={() => setMode('ai')} className={tabClass(mode === 'ai')}>
                 <Sparkles className="h-4 w-4" /> Ask AI
               </button>
               <button type="button" onClick={() => setMode('contact')} className={tabClass(mode === 'contact')}>
-                Send a message
+                <User className="h-4 w-4" /> Message the team
               </button>
             </div>
 
             {mode === 'ai' ? (
               <div className="mt-3 flex flex-col">
-                <div
-                  ref={scrollRef}
-                  className="h-72 space-y-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/60 p-3"
-                >
+                <div ref={aiScrollRef} className="h-72 space-y-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/60 p-3">
                   {chat.length === 0 && (
                     <div className="space-y-3">
                       <div className="flex items-start gap-2 text-sm text-muted-foreground">
                         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                         <p>
-                          Hi! I am the VentureThrust assistant. Ask me about data rooms, sharing,
-                          analytics, security, or plans.
+                          Hi! I am the VentureThrust assistant. Ask me about data rooms, sharing, analytics,
+                          security, or plans.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -215,7 +314,7 @@ export function SupportDialog({
                           <button
                             key={s}
                             type="button"
-                            onClick={() => send(s)}
+                            onClick={() => sendAi(s)}
                             className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
                           >
                             {s}
@@ -244,6 +343,7 @@ export function SupportDialog({
                   )}
                 </div>
                 {chatError && <p className="mt-2 text-sm text-red-600">{chatError}</p>}
+                {handoffError && <p className="mt-2 text-sm text-red-600">{handoffError}</p>}
                 <div className="mt-3 flex items-center gap-2">
                   <input
                     value={input}
@@ -251,77 +351,61 @@ export function SupportDialog({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        send(input);
+                        sendAi(input);
                       }
                     }}
                     placeholder="Ask a question..."
                     className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"
                   />
-                  <Button
-                    onClick={() => send(input)}
-                    disabled={thinking || !input.trim()}
-                    className="h-10 bg-gray-900 text-white hover:bg-gray-800"
-                  >
+                  <Button onClick={() => sendAi(input)} disabled={thinking || !input.trim()} className="h-10 bg-gray-900 text-white hover:bg-gray-800">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setMode('contact')}
-                  className="mt-3 self-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    escalate(chat.filter((m) => m.role === 'user').slice(-1)[0]?.content ?? 'I would like to talk to a person.', chat)
+                  }
+                  disabled={escalating}
+                  className="mt-3 w-full"
                 >
-                  Talk to a human instead
-                </button>
+                  {escalating ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Connecting...</>
+                  ) : (
+                    'Talk to a human'
+                  )}
+                </Button>
               </div>
             ) : (
               <div className="mt-3 space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Send us a message and we will reply to your account email, usually as soon as possible.
+                  Tell us what you need. This starts a live chat with the team, and we will also email you.
                 </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sup-cat" className="text-xs">Topic</Label>
-                    <select
-                      id="sup-cat"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sup-subj" className="text-xs">Subject (optional)</Label>
-                    <input
-                      id="sup-subj"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      maxLength={160}
-                      placeholder="Short summary"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="sup-msg" className="text-xs">Message</Label>
-                  <textarea
-                    id="sup-msg"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    maxLength={4000}
-                    placeholder="Tell us what is going on, and we will help."
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                {ticketError && <p className="text-sm text-red-600">{ticketError}</p>}
-                <Button onClick={submitTicket} disabled={sending} className="w-full bg-gray-900 text-white hover:bg-gray-800">
-                  {sending ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                <textarea
+                  value={contactMsg}
+                  onChange={(e) => setContactMsg(e.target.value)}
+                  rows={5}
+                  maxLength={4000}
+                  placeholder="Describe your question or issue..."
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+                {handoffError && <p className="text-sm text-red-600">{handoffError}</p>}
+                <Button
+                  onClick={() => {
+                    const t = contactMsg.trim();
+                    if (t.length < 3) {
+                      setHandoffError('Please describe your issue in a few words.');
+                      return;
+                    }
+                    escalate(t, [{ role: 'user', content: t }]);
+                  }}
+                  disabled={escalating}
+                  className="w-full bg-gray-900 text-white hover:bg-gray-800"
+                >
+                  {escalating ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Connecting...</>
                   ) : (
-                    'Send message'
+                    'Start chat with the team'
                   )}
                 </Button>
               </div>
