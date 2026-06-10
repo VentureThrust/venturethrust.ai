@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { SupportDialog } from '@/components/support-dialog';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSpaces } from '@/lib/spaces-provider';
@@ -250,6 +251,7 @@ export function AppSidebarContent({
   const { toast } = useToast();
   const [viewingFile, setViewingFile] = useState<TFile | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -661,6 +663,7 @@ export function AppSidebarContent({
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Support"
+              onClick={() => setSupportOpen(true)}
               className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-4">
@@ -672,6 +675,8 @@ export function AppSidebarContent({
 
         </SidebarMenu>
       </SidebarFooter>
+
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </>
   );
 }
