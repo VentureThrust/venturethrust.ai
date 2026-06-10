@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
-import { CASHFREE_BASE, cashfreeHeaders, planCycleMs } from '@/lib/cashfree';
+import { CASHFREE_BASE, cashfreeHeaders, planCycleMs, PAID_PLANS } from '@/lib/cashfree';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,15 +67,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === 'PAID') {
+      let expiresAt: string | null = null;
       if (pay.status !== 'PAID') {
-        const expires = new Date(Date.now() + planCycleMs(pay.plan_id as string)).toISOString();
+        expiresAt = new Date(Date.now() + planCycleMs(pay.plan_id as string)).toISOString();
         await admin.from('payments').update({ status: 'PAID', updated_at: new Date().toISOString() }).eq('id', pay.id);
         await admin
           .from('profiles')
-          .update({ plan: pay.plan_key, plan_status: 'active', plan_expires_at: expires })
+          .update({ plan: pay.plan_key, plan_status: 'active', plan_expires_at: expiresAt })
           .eq('id', user.id);
+      } else {
+        // Idempotent re-check (already activated): return the stored expiry.
+        const { data: prof } = await admin
+          .from('profiles')
+          .select('plan_expires_at')
+          .eq('id', user.id)
+          .maybeSingle();
+        expiresAt = (prof?.plan_expires_at as string | null) ?? null;
       }
-      return NextResponse.json({ ok: true, status: 'PAID', plan: pay.plan_key });
+      const planName = PAID_PLANS[pay.plan_id as string]?.name ?? 'VentureThrust';
+      return NextResponse.json({ ok: true, status: 'PAID', plan: pay.plan_key, planName, expiresAt });
     }
 
     return NextResponse.json({ ok: true, status });

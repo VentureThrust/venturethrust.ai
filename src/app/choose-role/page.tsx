@@ -100,6 +100,23 @@ const CATEGORY_META: { key: Category; label: string; icon: typeof Folder }[] = [
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
+// Friendly date + time for the "plan active" confirmation, e.g. 10 Jun 2026, 11:45 AM.
+const formatExpiry = (iso: string | null): string => {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return '';
+  }
+};
+
 export default function ChoosePlanPage() {
   const router = useRouter();
   const [category, setCategory] = useState<Category>('vdr');
@@ -115,6 +132,7 @@ export default function ChoosePlanPage() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [success, setSuccess] = useState<{ planName: string; expiresAt: string | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -146,10 +164,10 @@ export default function ChoosePlanPage() {
         });
         const json = await res.json().catch(() => ({}));
         if (json?.status === 'PAID') {
-          router.replace('/dashboard');
-          return;
+          setSuccess({ planName: json.planName ?? 'VentureThrust', expiresAt: json.expiresAt ?? null });
+        } else {
+          setPayError('Your payment was not completed. Pick a plan to try again.');
         }
-        setPayError('Your payment was not completed. Pick a plan to try again.');
       } catch {
         setPayError('We could not confirm your payment. If you were charged, contact support.');
       }
@@ -395,6 +413,30 @@ export default function ChoosePlanPage() {
             <p className="text-sm text-gray-600">Confirming your payment…</p>
           </div>
         )}
+
+        {/* Positive confirmation after a successful purchase. */}
+        <Dialog open={!!success} onOpenChange={(o) => { if (!o) router.replace('/dashboard'); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
+                <Check className="h-7 w-7 text-green-600" />
+              </div>
+              <DialogTitle className="text-center text-2xl">You&apos;re all set 🎉</DialogTitle>
+              <DialogDescription className="text-center text-base">
+                {success?.planName ? `Your ${success.planName} plan is active. ` : 'Your plan is active. '}
+                {success?.expiresAt
+                  ? `Enjoy full access to VentureThrust until ${formatExpiry(success.expiresAt)}.`
+                  : 'Enjoy your VentureThrust experience.'}
+              </DialogDescription>
+            </DialogHeader>
+            <Button
+              onClick={() => router.replace('/dashboard')}
+              className="mt-2 w-full bg-gray-900 text-white hover:bg-gray-800"
+            >
+              Go to my dashboard
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
