@@ -12,6 +12,8 @@ export function limitsForTier(tierId: string | null) {
   return {
     tier: t,
     seats: t?.seats ?? 1,
+    spaces: t?.spaces ?? null,
+    visitorsPerSpace: t?.visitorsPerSpace ?? null,
     storageGb: t?.storageGb ?? 1,
     storageBytes: (t?.storageGb ?? 1) * 1024 * 1024 * 1024,
   };

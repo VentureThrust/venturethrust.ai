@@ -1,13 +1,13 @@
 /**
  * Plan catalogue (client-safe) - the tiers shown on the plan and billing pages,
  * with a rank used to decide what counts as an upgrade, plus the enforced
- * limits (seats + storage). Ids match the keys in PAID_PLANS (lib/cashfree.ts)
- * and payments.plan_id, so the same id flows through checkout. Prices here are
- * for display only; the amount actually charged is looked up server-side from
- * PAID_PLANS.
+ * usage limits. Ids match the keys in PAID_PLANS (lib/cashfree.ts) and
+ * payments.plan_id. Prices here are display-only; the charged amount is looked
+ * up server-side from PAID_PLANS.
  *
- * `seats` is the TOTAL number of members allowed, including the account holder
- * (so seats - 1 collaborators can be invited). `storageGb` is the storage cap.
+ * Limits: `seats` = total members incl. the account holder (seats - 1 can be
+ * invited). `spaces` = max data rooms. `visitorsPerSpace` = max unique visitors
+ * per space. `storageGb` = storage cap. A `null` limit means UNLIMITED.
  */
 
 export type PlanTier = {
@@ -16,11 +16,13 @@ export type PlanTier = {
   price: number; // INR per month, for display
   rank: number; // higher rank = higher plan; used to detect upgrades
   seats: number; // total members allowed, including the account holder
+  spaces: number | null; // max spaces; null = unlimited
+  visitorsPerSpace: number | null; // max unique visitors per space; null = unlimited
   storageGb: number; // storage cap in GB
   tagline: string;
   features: string[];
   popular?: boolean;
-  note?: string; // small line under the price (e.g. the free-plan notice)
+  note?: string;
   showInGrid: boolean; // false = a current-plan label only, not offered in the grid
 };
 
@@ -31,13 +33,16 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 0,
     rank: 0,
     seats: 1,
+    spaces: 2,
+    visitorsPerSpace: 3,
     storageGb: 2,
     tagline: 'Full access while we are in early access.',
     note: 'No card required.',
     features: [
       '1 member',
+      '2 spaces',
+      '3 visitors per space',
       '2 GB storage',
-      'Secure data room',
       'Secure links, gates & expiry',
       'File requests & Q&A',
     ],
@@ -49,12 +54,15 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 999,
     rank: 1,
     seats: 1,
+    spaces: 5,
+    visitorsPerSpace: 5,
     storageGb: 10,
     tagline: 'For founders sharing a deck or data room.',
     features: [
       '1 member',
+      '5 spaces',
+      '5 visitors per space',
       '10 GB storage',
-      'Unlimited spaces',
       'Secure links, gates & expiry',
       'View & page-time analytics',
       'File requests & Q&A',
@@ -67,11 +75,15 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 2499,
     rank: 2,
     seats: 2,
+    spaces: 20,
+    visitorsPerSpace: 25,
     storageGb: 50,
     popular: true,
     tagline: 'For teams running real deals.',
     features: [
       '2 members',
+      '20 spaces',
+      '25 visitors per space',
       '50 GB storage',
       'Everything in Starter, plus:',
       'Custom branding & domain',
@@ -87,10 +99,14 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 5999,
     rank: 3,
     seats: 3,
+    spaces: null,
+    visitorsPerSpace: null,
     storageGb: 200,
     tagline: 'For firms managing many rooms.',
     features: [
       '3 members',
+      'Unlimited spaces',
+      'Unlimited visitors',
       '200 GB storage',
       'Everything in Growth, plus:',
       'Group & granular permissions',

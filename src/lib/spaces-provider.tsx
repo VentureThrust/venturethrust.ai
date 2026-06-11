@@ -7,6 +7,7 @@ import { teamMembers, type TeamMember } from '@/lib/data';
 import { type ShareLink } from '@/lib/documents-provider';
 import { supabase } from '@/lib/supabaseClient';
 import { getEffectiveOwnerId } from '@/lib/workspace';
+import { getMyPlanTier } from '@/lib/usage-limits';
 
 export type Space = {
   id: string;
@@ -230,6 +231,26 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
     const ownerId = (await getEffectiveOwnerId()) ?? user.id;
+
+    // Usage limit: cap the number of spaces per the owner's plan. Client code
+    // can only resolve its own user's plan, so enforce when the user is the
+    // owner of the workspace they're creating in (the common case).
+    if (ownerId === user.id) {
+      const tier = await getMyPlanTier();
+      const limit = tier?.spaces ?? null; // null = unlimited
+      if (limit !== null) {
+        const { count } = await supabase
+          .from('spaces')
+          .select('id', { count: 'exact', head: true })
+          .eq('created_by', ownerId)
+          .neq('title', 'CONTENT_LIBRARY');
+        if ((count ?? 0) >= limit) {
+          throw new Error(
+            `You've reached your plan's limit of ${limit} space${limit === 1 ? '' : 's'}. Upgrade in Billing to create more.`,
+          );
+        }
+      }
+    }
 
     const spaceName = newSpaceData.name ?? 'Untitled Space';
 
