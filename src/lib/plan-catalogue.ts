@@ -14,6 +14,7 @@ export type PlanTier = {
   tagline: string;
   features: string[];
   popular?: boolean;
+  note?: string; // small line under the price (e.g. the Access test-cycle notice)
   showInGrid: boolean; // false = a current-plan label only, not offered in the grid
 };
 
@@ -23,7 +24,8 @@ export const PLAN_TIERS: PlanTier[] = [
     name: 'Access',
     price: 1,
     rank: 0,
-    tagline: 'Entry test plan.',
+    tagline: 'Unlock the secure data room for one rupee.',
+    note: 'Test plan: full access for 15 minutes after purchase.',
     features: ['2 team members', '25 GB storage', 'All Starter features'],
     showInGrid: false,
   },
