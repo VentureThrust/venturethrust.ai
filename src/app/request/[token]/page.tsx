@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { safeStorageKey } from '@/lib/storage-path';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -306,7 +307,7 @@ export default function FileRequestUploadPage() {
       const fileId = `file_${Date.now()}_${i}`;
       // Belt-and-braces: sanitize again before building the storage key so an
       // untrusted segment can't escape the request's namespace.
-      const safeName = sanitizeFileName(file.name);
+      const safeName = safeStorageKey(file.name);
       const storagePath = `file-requests/${request.id}/${fileId}/${safeName}`;
 
       try {

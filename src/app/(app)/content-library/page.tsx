@@ -73,6 +73,7 @@ import {
 import { useState, useMemo, useRef, useEffect, Suspense, memo, useCallback, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
+import { safeStorageKey } from '@/lib/storage-path';
 import { cn } from '@/lib/utils';
 import {
   Collapsible,
@@ -1849,7 +1850,7 @@ function ContentLibraryPageComponent() {
         const file = readyFiles[index];
         const item = newItems[index];
         const fileId = `file_${Date.now()}_${index}`;
-        const storagePath = `${user.id}/${fileId}/${file.name}`;
+        const storagePath = `${user.id}/${fileId}/${safeStorageKey(file.name)}`;
 
         try {
           let lastProgress = 0;
@@ -1955,7 +1956,7 @@ function ContentLibraryPageComponent() {
         const file = readyFiles[index];
         const item = newItems[index];
         const fileId = `file_in_folder_${Date.now()}_${index}`;
-        const storagePath = `${user.id}/${fileId}/${file.name}`;
+        const storagePath = `${user.id}/${fileId}/${safeStorageKey(file.name)}`;
         try {
           let lastProgress = 0;
           const progressInterval = setInterval(() => {
