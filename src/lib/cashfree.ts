@@ -22,20 +22,14 @@ export function cashfreeHeaders(): Record<string, string> {
 
 /** Default billing cycle, in milliseconds (30 days). Used for plan_expires_at. */
 export const BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
-// The 1 rupee Access plan uses a deliberately short cycle so plan expiry and the
-// downgrade back to /choose-role can be watched in a few minutes, not a month.
-// Bump this up (e.g. to 24 * 60 * 60 * 1000 for a day) once testing is done.
-const ACCESS_TEST_CYCLE_MS = 15 * 60 * 1000; // 15 minutes
 
 // Paid VDR plans. `amount` is INR. `cycleMs` is how long the plan stays active
-// after payment before it must be renewed. 'vdr-access' is a one-rupee entry
-// plan (it replaced the free trial) on a short test cycle, so plan expiry and
-// the downgrade back to /choose-role can be tested without waiting.
+// after payment before it must be renewed. (The free early-access plan is
+// activated separately via /api/plan/activate-free and is not charged.)
 export const PAID_PLANS: Record<
   string,
   { amount: number; planKey: string; name: string; cycleMs: number }
 > = {
-  'vdr-access': { amount: 1, planKey: 'vdr_only', name: 'Access', cycleMs: ACCESS_TEST_CYCLE_MS },
   'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter', cycleMs: BILLING_CYCLE_MS },
   'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth', cycleMs: BILLING_CYCLE_MS },
   'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business', cycleMs: BILLING_CYCLE_MS },

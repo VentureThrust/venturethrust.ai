@@ -20,13 +20,18 @@ export type PlanTier = {
 
 export const PLAN_TIERS: PlanTier[] = [
   {
-    id: 'vdr-access',
-    name: 'Access',
-    price: 1,
+    id: 'vdr-free',
+    name: 'Free',
+    price: 0,
     rank: 0,
-    tagline: 'Unlock the secure data room for one rupee.',
-    note: 'Test plan: full access for 15 minutes after purchase.',
-    features: ['2 team members', '25 GB storage', 'All Starter features'],
+    tagline: 'Full access while we are in early access.',
+    note: 'No card required.',
+    features: [
+      'Secure data room',
+      'Secure links, gates & expiry',
+      'View & page-time analytics',
+      'File requests & Q&A',
+    ],
     showInGrid: false,
   },
   {

@@ -50,7 +50,8 @@ export default function ChoosePlanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  // Cashfree payment state: every plan opens a phone dialog, then hosted checkout.
+  // Cashfree payment state: paid plans open a phone dialog, then hosted checkout.
+  const [selecting, setSelecting] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -105,8 +106,35 @@ export default function ChoosePlanPage() {
     })();
   }, [router]);
 
-  const handleSelect = (plan: PlanTier) => {
+  const handleSelect = async (plan: PlanTier) => {
     if (!userId || !email) return;
+
+    // Free plan: activate immediately, no payment.
+    if (plan.price === 0) {
+      setSelecting(plan.id);
+      try {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) {
+          router.replace('/login');
+          return;
+        }
+        const res = await fetch('/api/plan/activate-free', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          router.replace('/dashboard');
+          return;
+        }
+      } catch {
+        /* fall through to re-enable the button */
+      }
+      setSelecting(null);
+      return;
+    }
+
+    // Paid plan: collect the mobile number Cashfree requires, then checkout.
     setPendingPlan(plan);
     setPhone('');
     setPayError(null);
@@ -198,10 +226,18 @@ export default function ChoosePlanPage() {
               <p className="mt-1 min-h-[40px] text-sm text-muted-foreground">{plan.tagline}</p>
 
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-bold">{inr(plan.price)}</span>
-                <span className="text-muted-foreground">/mo</span>
+                {plan.price === 0 ? (
+                  <span className="text-4xl font-bold">Free</span>
+                ) : (
+                  <>
+                    <span className="text-4xl font-bold">{inr(plan.price)}</span>
+                    <span className="text-muted-foreground">/mo</span>
+                  </>
+                )}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">+ 18% GST, billed monthly</p>
+              {plan.price > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">+ 18% GST, billed monthly</p>
+              )}
               {plan.note && <p className="mt-1 text-xs font-medium text-amber-600">{plan.note}</p>}
 
               <ul className="mt-6 flex-1 space-y-3">
@@ -215,14 +251,20 @@ export default function ChoosePlanPage() {
 
               <Button
                 onClick={() => handleSelect(plan)}
-                disabled={paying}
+                disabled={paying || selecting !== null}
                 className={cn(
                   'mt-8 h-11 w-full text-base',
-                  plan.popular ? 'bg-gray-900 text-white hover:bg-gray-800' : '',
+                  plan.popular || plan.price === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : '',
                 )}
-                variant={plan.popular ? 'default' : 'outline'}
+                variant={plan.popular || plan.price === 0 ? 'default' : 'outline'}
               >
-                {`Choose ${plan.name}`}
+                {selecting === plan.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : plan.price === 0 ? (
+                  'Start free'
+                ) : (
+                  `Choose ${plan.name}`
+                )}
               </Button>
             </div>
           ))}
