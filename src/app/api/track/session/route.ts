@@ -115,6 +115,97 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // ── Deep analytics writes ──────────────────────────────────────────────
+    // Visitors are anonymous (or signed in as a non-member), so RLS rightly
+    // blocks them from writing files.visits / file_page_views /
+    // file_playback_events directly. These actions perform those writes with
+    // the service role after checking the file really belongs to the space.
+
+    if (action === 'file-visit') {
+      const fileId = String(body.fileId ?? '').trim();
+      const sId = String(body.spaceId ?? '').trim();
+      if (!fileId || !sId) {
+        return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
+      }
+      const timeSpent = Math.min(86_400, Math.max(1, Math.floor(Number(body.timeSpent) || 0)));
+      const openedAtMs = Date.parse(String(body.openedAt ?? ''));
+      const openedAt = Number.isFinite(openedAtMs)
+        ? new Date(openedAtMs).toISOString()
+        : new Date(Date.now() - timeSpent * 1000).toISOString();
+
+      const { data: file } = await admin
+        .from('files')
+        .select('id, visits')
+        .eq('id', fileId)
+        .eq('space_id', sId)
+        .maybeSingle();
+      if (!file) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
+
+      const visits = Array.isArray(file.visits) ? file.visits : [];
+      visits.push({
+        email: body.email ? String(body.email).slice(0, 320) : 'anonymous',
+        device: body.device ? String(body.device).slice(0, 40) : 'Unknown',
+        timeSpent,
+        openedAt,
+      });
+      const { error } = await admin.from('files').update({ visits }).eq('id', fileId);
+      if (error) {
+        console.warn('[track-session] file-visit failed:', error.message);
+        return NextResponse.json({ ok: false, error: 'write_failed' }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'page-view') {
+      const fileId = String(body.fileId ?? '').trim();
+      const sId = String(body.spaceId ?? '').trim();
+      const pageNumber = Math.max(0, Math.floor(Number(body.pageNumber) || 0));
+      const secondsViewed = Math.min(86_400, Math.max(1, Math.floor(Number(body.secondsViewed) || 0)));
+      if (!fileId || !sId || pageNumber < 1) {
+        return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
+      }
+      const { data: file } = await admin
+        .from('files').select('id').eq('id', fileId).eq('space_id', sId).maybeSingle();
+      if (!file) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
+
+      const { error } = await admin.from('file_page_views').insert({
+        file_id: fileId,
+        space_id: sId,
+        visitor_email: body.email ? String(body.email).slice(0, 320) : null,
+        session_id: body.sessionId ? String(body.sessionId).slice(0, 64) : null,
+        page_number: pageNumber,
+        seconds_viewed: secondsViewed,
+      });
+      if (error) console.warn('[track-session] page-view failed:', error.message);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'playback') {
+      const fileId = String(body.fileId ?? '').trim();
+      const sId = String(body.spaceId ?? '').trim();
+      const eventType = String(body.eventType ?? '').slice(0, 40);
+      if (!fileId || !sId || !eventType) {
+        return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
+      }
+      const { data: file } = await admin
+        .from('files').select('id').eq('id', fileId).eq('space_id', sId).maybeSingle();
+      if (!file) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
+
+      const row: Record<string, unknown> = {
+        file_id: fileId,
+        space_id: sId,
+        visitor_email: body.email ? String(body.email).slice(0, 320) : null,
+        session_id: body.sessionId ? String(body.sessionId).slice(0, 64) : null,
+        event_type: eventType,
+      };
+      if (body.position !== undefined) row.position_seconds = Number(body.position) || 0;
+      if (body.rangeStart !== undefined) row.range_start = Number(body.rangeStart) || 0;
+      if (body.rangeEnd !== undefined) row.range_end = Number(body.rangeEnd) || 0;
+      const { error } = await admin.from('file_playback_events').insert(row);
+      if (error) console.warn('[track-session] playback failed:', error.message);
+      return NextResponse.json({ ok: true });
+    }
+
     return NextResponse.json({ ok: false, error: 'bad_action' }, { status: 400 });
   } catch (err) {
     console.error('[track-session] error:', err);

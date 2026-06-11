@@ -112,7 +112,23 @@ export function getSessionFiles(session: ViewerSession, files: FileWithVisits[])
       });
     }
   }
-  return result.sort((a, b) => b.timeSpent - a.timeSpent);
+  const sorted = result.sort((a, b) => b.timeSpent - a.timeSpent);
+
+  // Fallback: sessions recorded before per-file visit logging went through the
+  // server (or cut off abruptly) have no visit entries, yet heartbeats stored
+  // which file was open. Surface that file with the session's duration so a
+  // 50 minute visit is never reported as "0 files opened".
+  if (sorted.length === 0 && session.current_file_id) {
+    const f = files.find(x => x.id === session.current_file_id);
+    sorted.push({
+      fileId: session.current_file_id,
+      fileName: f?.name ?? session.current_file_name ?? 'File',
+      fileType: f?.type ?? '',
+      timeSpent: sessionDuration(session),
+      openCount: 1,
+    });
+  }
+  return sorted;
 }
 
 // ─── Small pieces ─────────────────────────────────────────────────────────────

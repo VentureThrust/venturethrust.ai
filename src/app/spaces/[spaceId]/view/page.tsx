@@ -631,18 +631,23 @@ export default function SpaceViewPage() {
   const handlePageView = useCallback(
     async (fileId: string, pageNumber: number, secondsViewed: number) => {
       if (secondsViewed <= 0) return;
+      // Written via the service-role track endpoint: visitors are anonymous
+      // (or non-members), so RLS blocks a direct insert from the browser.
       try {
-        const { error } = await supabase.from('file_page_views').insert({
-          file_id: fileId,
-          space_id: spaceId,
-          visitor_email: visitorEmail || null,
-          session_id: viewerSessionIdRef.current,
-          page_number: pageNumber,
-          seconds_viewed: secondsViewed,
+        await fetch('/api/track/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'page-view',
+            fileId,
+            spaceId,
+            email: visitorEmail || null,
+            sessionId: viewerSessionIdRef.current,
+            pageNumber,
+            secondsViewed,
+          }),
+          keepalive: true,
         });
-        if (error) {
-          console.warn('[file_page_views] insert failed - table may not exist yet:', error.message);
-        }
       } catch (err) {
         console.warn('[file_page_views] write error:', err);
       }
@@ -653,21 +658,24 @@ export default function SpaceViewPage() {
   const handlePlaybackEvent = useCallback(
     async (fileId: string, event: PlaybackEvent) => {
       try {
-        const row: Record<string, unknown> = {
-          file_id: fileId,
-          space_id: spaceId,
-          visitor_email: visitorEmail || null,
-          session_id: viewerSessionIdRef.current,
-          event_type: event.type,
+        const payload: Record<string, unknown> = {
+          action: 'playback',
+          fileId,
+          spaceId,
+          email: visitorEmail || null,
+          sessionId: viewerSessionIdRef.current,
+          eventType: event.type,
         };
-        if ('position' in event) row.position_seconds = event.position;
-        if ('range_start' in event) row.range_start = event.range_start;
-        if ('range_end' in event) row.range_end = event.range_end;
+        if ('position' in event) payload.position = event.position;
+        if ('range_start' in event) payload.rangeStart = event.range_start;
+        if ('range_end' in event) payload.rangeEnd = event.range_end;
 
-        const { error } = await supabase.from('file_playback_events').insert(row);
-        if (error) {
-          console.warn('[file_playback_events] insert failed - table may not exist yet:', error.message);
-        }
+        await fetch('/api/track/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
       } catch (err) {
         console.warn('[file_playback_events] write error:', err);
       }
@@ -682,18 +690,28 @@ export default function SpaceViewPage() {
     // breakdown).
     if (isPreview) return;
     const timeSpent = Math.max(1, Math.floor((Date.now() - session.openedAt) / 1000));
-    const visitEntry: FileVisitEntry = {
-      email: visitorEmail || 'anonymous',
-      device: getDeviceType(),
-      timeSpent,
-      openedAt: new Date(session.openedAt).toISOString(),
-    };
-    const { data, error: readErr } = await supabase.from('files').select('visits').eq('id', session.file.id).single();
-    if (readErr) { console.error('visit read error:', readErr); return; }
-    const currentVisits: FileVisitEntry[] = Array.isArray(data?.visits) ? data.visits : [];
-    const { error: writeErr } = await supabase.from('files').update({ visits: [...currentVisits, visitEntry] }).eq('id', session.file.id);
-    if (writeErr) console.error('visit write error:', writeErr);
-  }, [visitorEmail, isPreview]);
+    // Written via the service-role track endpoint: RLS blocks visitors from
+    // updating files.visits directly. keepalive lets the request survive the
+    // tab closing (beforeunload), so long viewing sessions are not lost.
+    try {
+      await fetch('/api/track/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'file-visit',
+          spaceId,
+          fileId: session.file.id,
+          email: visitorEmail || null,
+          device: getDeviceType(),
+          timeSpent,
+          openedAt: new Date(session.openedAt).toISOString(),
+        }),
+        keepalive: true,
+      });
+    } catch (err) {
+      console.warn('[file-visit] write failed:', err);
+    }
+  }, [visitorEmail, isPreview, spaceId]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
