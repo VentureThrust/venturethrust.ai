@@ -4,8 +4,8 @@
  * Choose your plan - the gate destination for users without an active plan.
  * Virtual Data Room only (AI due diligence is a future product). Plans come
  * from the shared catalogue (lib/plan-catalogue.ts) so this page and the
- * billing page never drift apart. Every plan is paid, so selecting one opens
- * the phone dialog and runs Cashfree checkout.
+ * billing page never drift apart. The Free plan activates instantly; paid
+ * plans open the phone dialog and run Cashfree checkout.
  */
 
 import { useEffect, useState } from 'react';
@@ -20,13 +20,30 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Check, Loader2 } from 'lucide-react';
+import {
+  Check,
+  Loader2,
+  Sparkles,
+  Rocket,
+  TrendingUp,
+  Building2,
+  ShieldCheck,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/layout/logo';
 import { supabase } from '@/lib/supabaseClient';
 import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+// Per-plan icon + chip colour, so each card has its own personality.
+const PLAN_META: Record<string, { icon: LucideIcon; chip: string }> = {
+  'vdr-free': { icon: Sparkles, chip: 'bg-emerald-50 text-emerald-600' },
+  'vdr-starter': { icon: Rocket, chip: 'bg-blue-50 text-[#4285F4]' },
+  'vdr-growth': { icon: TrendingUp, chip: 'bg-white/10 text-white' },
+  'vdr-business': { icon: Building2, chip: 'bg-violet-50 text-violet-600' },
+};
 
 // Friendly date + time for the "plan active" confirmation, e.g. 10 Jun 2026, 11:45 AM.
 const formatExpiry = (iso: string | null): string => {
@@ -189,102 +206,151 @@ export default function ChoosePlanPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#F0F5FF] via-white to-white px-4 py-12 sm:px-6 lg:px-8">
+      {/* Soft brand glow behind the header */}
+      <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-[#4285F4]/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-40 right-0 -z-10 h-72 w-72 rounded-full bg-[#FBBC05]/10 blur-3xl" />
+
       <div className="mx-auto w-full max-w-6xl">
         {/* Header */}
         <header className="flex flex-col items-center text-center">
           <Logo isPen />
-          <h1 className="mt-8 text-4xl font-bold tracking-tight sm:text-5xl">Choose your plan</h1>
+          <span className="mt-8 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-[#4285F4]">
+            <Sparkles className="h-3.5 w-3.5" /> Simple, transparent pricing
+          </span>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+            Choose your plan
+          </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            A secure virtual data room to share your documents and track investor interest. Pick a
-            plan to get started.
+            A secure virtual data room to share your documents and track investor interest. Start
+            free, upgrade when you grow.
           </p>
         </header>
 
         {/* Plan cards */}
         <div
           className={cn(
-            'mt-12 grid gap-6 sm:grid-cols-2',
+            'mt-14 grid gap-6 sm:grid-cols-2',
             PLAN_TIERS.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
           )}
         >
-          {PLAN_TIERS.map((plan) => (
-            <div
-              key={plan.id}
-              className={cn(
-                'relative flex flex-col rounded-2xl border bg-white p-6 transition-shadow hover:shadow-md',
-                plan.popular ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-200',
-              )}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-6 rounded-full bg-gray-900 px-3 py-1 text-xs font-semibold text-white">
-                  Most popular
-                </span>
-              )}
-
-              <h3 className="text-xl font-semibold">{plan.name}</h3>
-              <p className="mt-1 min-h-[40px] text-sm text-muted-foreground">{plan.tagline}</p>
-
-              <div className="mt-4 flex items-baseline gap-1">
-                {plan.price === 0 ? (
-                  <span className="text-4xl font-bold">Free</span>
-                ) : (
-                  <>
-                    <span className="text-4xl font-bold">{inr(plan.price)}</span>
-                    <span className="text-muted-foreground">/mo</span>
-                  </>
-                )}
-              </div>
-              {plan.price > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">+ 18% GST, billed monthly</p>
-              )}
-              {plan.note && <p className="mt-1 text-xs font-medium text-amber-600">{plan.note}</p>}
-
-              <ul className="mt-6 flex-1 space-y-3">
-                {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-                    <span className={cn(f.endsWith(':') && 'font-medium text-foreground')}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                onClick={() => handleSelect(plan)}
-                disabled={paying || selecting !== null}
+          {PLAN_TIERS.map((plan) => {
+            const featured = !!plan.popular;
+            const meta = PLAN_META[plan.id] ?? { icon: Sparkles, chip: 'bg-gray-100 text-gray-600' };
+            const Icon = meta.icon;
+            return (
+              <div
+                key={plan.id}
                 className={cn(
-                  'mt-8 h-11 w-full text-base',
-                  plan.popular || plan.price === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : '',
+                  'relative flex flex-col rounded-3xl border p-6 transition-all duration-200',
+                  featured
+                    ? 'border-transparent bg-gradient-to-b from-[#1b2a4e] to-[#2a4a7f] text-white shadow-2xl shadow-blue-900/25 lg:-translate-y-2'
+                    : 'border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-xl',
                 )}
-                variant={plan.popular || plan.price === 0 ? 'default' : 'outline'}
               >
-                {selecting === plan.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : plan.price === 0 ? (
-                  'Start free'
-                ) : (
-                  `Choose ${plan.name}`
+                {featured && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#FBBC05] px-3 py-1 text-xs font-bold text-[#1b2a4e] shadow-md">
+                    Most popular
+                  </span>
                 )}
-              </Button>
-            </div>
-          ))}
+
+                <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', meta.chip)}>
+                  <Icon className="h-5 w-5" />
+                </div>
+
+                <h3 className={cn('mt-4 text-xl font-bold', featured ? 'text-white' : 'text-gray-900')}>
+                  {plan.name}
+                </h3>
+                <p className={cn('mt-1 min-h-[40px] text-sm', featured ? 'text-blue-100' : 'text-muted-foreground')}>
+                  {plan.tagline}
+                </p>
+
+                <div className="mt-4 flex items-baseline gap-1">
+                  {plan.price === 0 ? (
+                    <span className="text-4xl font-extrabold">Free</span>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-extrabold">{inr(plan.price)}</span>
+                      <span className={featured ? 'text-blue-200' : 'text-muted-foreground'}>/mo</span>
+                    </>
+                  )}
+                </div>
+                {plan.price > 0 && (
+                  <p className={cn('mt-1 text-xs', featured ? 'text-blue-200' : 'text-muted-foreground')}>
+                    + 18% GST, billed monthly
+                  </p>
+                )}
+                {plan.note && (
+                  <p className={cn('mt-1 text-xs font-medium', featured ? 'text-amber-300' : 'text-amber-600')}>
+                    {plan.note}
+                  </p>
+                )}
+
+                <ul className="mt-6 flex-1 space-y-3">
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm">
+                      <Check className={cn('mt-0.5 h-4 w-4 shrink-0', featured ? 'text-amber-300' : 'text-[#4285F4]')} />
+                      <span
+                        className={cn(
+                          featured ? 'text-blue-50' : 'text-gray-700',
+                          f.endsWith(':') && 'font-semibold',
+                        )}
+                      >
+                        {f}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  onClick={() => handleSelect(plan)}
+                  disabled={paying || selecting !== null}
+                  className={cn(
+                    'mt-8 h-11 w-full rounded-xl text-base font-semibold shadow-sm transition-colors',
+                    featured
+                      ? 'bg-white text-[#1b2a4e] hover:bg-blue-50'
+                      : plan.price === 0
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-[#4285F4] text-white hover:bg-[#3367d6]',
+                  )}
+                >
+                  {selecting === plan.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : plan.price === 0 ? (
+                    'Start free'
+                  ) : (
+                    `Choose ${plan.name}`
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Enterprise footer */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 px-6 py-6 text-center sm:flex-row sm:gap-4">
-          <p className="text-sm text-muted-foreground">
-            Need unlimited seats, SSO, white-label, or a custom contract?
-          </p>
+        {/* Enterprise / sales */}
+        <div className="mt-12 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F0F5FF] to-white px-6 py-6 sm:flex sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#4285F4]/10 text-[#4285F4]">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">Need something custom?</p>
+              <p className="text-sm text-muted-foreground">
+                Unlimited seats, SSO, white-label, or a custom contract.
+              </p>
+            </div>
+          </div>
           <a
             href="mailto:omprakash@venturethrust.com"
-            className="text-sm font-semibold text-gray-900 underline underline-offset-4"
+            className="mt-4 inline-flex items-center justify-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800 sm:mt-0"
           >
             Talk to sales
           </a>
         </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          All plans are billed securely through Cashfree.
+        <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" /> Secured by Cashfree · UPI, cards &amp;
+          netbanking
         </p>
 
         {/* Phone collection, then Cashfree hosted checkout */}
@@ -312,7 +378,7 @@ export default function ChoosePlanPage() {
             <Button
               onClick={startPayment}
               disabled={paying}
-              className="w-full bg-gray-900 text-white hover:bg-gray-800"
+              className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]"
             >
               {paying ? (
                 <>
@@ -327,7 +393,7 @@ export default function ChoosePlanPage() {
 
         {verifying && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-white/90">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#4285F4]" />
             <p className="text-sm text-gray-600">Confirming your payment...</p>
           </div>
         )}
@@ -349,7 +415,7 @@ export default function ChoosePlanPage() {
             </DialogHeader>
             <Button
               onClick={() => router.replace('/dashboard')}
-              className="mt-2 w-full bg-gray-900 text-white hover:bg-gray-800"
+              className="mt-2 w-full bg-[#4285F4] text-white hover:bg-[#3367d6]"
             >
               Go to my dashboard
             </Button>

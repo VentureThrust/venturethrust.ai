@@ -246,12 +246,12 @@ export default function BillingPage() {
               key={t.id}
               className={cn(
                 'relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md',
-                t.popular ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-200',
+                t.popular ? 'border-[#4285F4] ring-1 ring-[#4285F4]' : 'border-gray-200',
                 isCurrent && 'border-green-500 ring-2 ring-green-500',
               )}
             >
               {t.popular && !isCurrent && (
-                <span className="absolute -top-3 left-6 rounded-full bg-gray-900 px-3 py-1 text-xs font-semibold text-white">
+                <span className="absolute -top-3 left-6 rounded-full bg-[#4285F4] px-3 py-1 text-xs font-semibold text-white">
                   Most popular
                 </span>
               )}
@@ -281,11 +281,11 @@ export default function BillingPage() {
                     Current plan
                   </Button>
                 ) : isCurrent && !active ? (
-                  <Button onClick={() => openCheckout(t)} className="w-full bg-gray-900 text-white hover:bg-gray-800">
+                  <Button onClick={() => openCheckout(t)} className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]">
                     Renew {t.name}
                   </Button>
                 ) : isUpgrade ? (
-                  <Button onClick={() => openCheckout(t)} className="w-full bg-gray-900 text-white hover:bg-gray-800">
+                  <Button onClick={() => openCheckout(t)} className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]">
                     Upgrade to {t.name}
                   </Button>
                 ) : (
@@ -341,7 +341,7 @@ export default function BillingPage() {
             />
             {payError && <p className="text-sm text-red-600">{payError}</p>}
           </div>
-          <Button onClick={pay} disabled={paying} className="w-full bg-gray-900 text-white hover:bg-gray-800">
+          <Button onClick={pay} disabled={paying} className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]">
             {paying ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
@@ -374,7 +374,7 @@ export default function BillingPage() {
               {success?.expiresAt ? `Enjoy full access until ${fmtDate(success.expiresAt)}.` : ''}
             </DialogDescription>
           </DialogHeader>
-          <Button onClick={() => window.location.reload()} className="mt-2 w-full bg-gray-900 text-white hover:bg-gray-800">
+          <Button onClick={() => window.location.reload()} className="mt-2 w-full bg-[#4285F4] text-white hover:bg-[#3367d6]">
             Done
           </Button>
         </DialogContent>
