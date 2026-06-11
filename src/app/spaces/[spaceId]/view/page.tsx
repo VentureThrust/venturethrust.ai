@@ -522,6 +522,7 @@ export default function SpaceViewPage() {
   const [folderTree, setFolderTree] = useState<FolderNode[]>([]);
   const [rootFiles, setRootFiles] = useState<FileRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [visitorLimited, setVisitorLimited] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -747,9 +748,13 @@ export default function SpaceViewPage() {
             location,
           }),
         });
-        const json = res.ok ? await res.json() : { ok: false };
+        const json = await res.json().catch(() => ({ ok: false }));
 
         if (cancelled) return;
+        if ((json as { error?: string }).error === 'visitor_limit') {
+          setVisitorLimited(true);
+          return;
+        }
         if (!json.ok || !json.sessionId) {
           console.warn('[viewer_sessions] start failed - live tracking disabled.');
           return;
@@ -1201,6 +1206,20 @@ export default function SpaceViewPage() {
       </Button>
     );
   };
+
+  if (visitorLimited) return (
+    <div className="flex items-center justify-center min-h-screen bg-muted p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center items-center gap-4">
+          <div className="rounded-full border border-amber-300/40 bg-amber-50 p-3"><Link2Off className="h-8 w-8 text-amber-500" /></div>
+          <CardTitle className="text-2xl">This data room is full</CardTitle>
+          <p className="text-muted-foreground">
+            This data room has reached its visitor limit. Please contact the owner for access.
+          </p>
+        </CardHeader>
+      </Card>
+    </div>
+  );
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-screen bg-muted">

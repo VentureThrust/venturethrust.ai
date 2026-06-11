@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { resolveUserTierId, limitsForTier } from '@/lib/plan-limits';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,31 @@ export async function POST(req: NextRequest) {
     if (action === 'start') {
       const spaceId = String(body.spaceId ?? '').trim();
       if (!spaceId) return NextResponse.json({ ok: false, error: 'missing_space' }, { status: 400 });
+
+      // Visitor cap: block a brand-new visitor (identified by email) once the
+      // space has reached the owner's plan limit. Unlimited plans and anonymous
+      // (no email) visitors are not capped.
+      const visEmail = body.email ? String(body.email).trim().toLowerCase() : null;
+      if (visEmail) {
+        const { data: sp } = await admin.from('spaces').select('created_by').eq('id', spaceId).maybeSingle();
+        const ownerId = (sp as { created_by?: string } | null)?.created_by ?? null;
+        if (ownerId) {
+          const { visitorsPerSpace } = limitsForTier(await resolveUserTierId(admin, ownerId));
+          if (visitorsPerSpace !== null) {
+            const { data: rows } = await admin
+              .from('viewer_sessions')
+              .select('visitor_email')
+              .eq('space_id', spaceId)
+              .not('visitor_email', 'is', null);
+            const seen = new Set(
+              (rows ?? []).map((r) => String((r as { visitor_email?: string }).visitor_email ?? '').toLowerCase()),
+            );
+            if (!seen.has(visEmail) && seen.size >= visitorsPerSpace) {
+              return NextResponse.json({ ok: false, error: 'visitor_limit' }, { status: 403 });
+            }
+          }
+        }
+      }
       // NOTE: viewer_sessions has no `location` column - only the columns below.
       const { data, error } = await admin
         .from('viewer_sessions')
