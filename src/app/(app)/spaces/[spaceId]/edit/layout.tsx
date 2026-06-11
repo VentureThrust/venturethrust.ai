@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { UpgradeDialog } from '@/components/upgrade-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,6 +147,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   // ── Collaborators ──
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
   const [members, setMembers] = useState<{ email: string; role: string; status: 'pending' | 'accepted' }[]>([]);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState<string | null>(null);
@@ -320,11 +322,9 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
         return;
       }
       if (json.code === 'seat_limit') {
-        toast({
-          variant: 'destructive',
-          title: 'Member limit reached',
-          description: `Your plan includes ${json.seats} member${json.seats === 1 ? '' : 's'}. Upgrade in Billing to add more.`,
-        });
+        setUpgradeMsg(
+          `Your plan includes ${json.seats} member${json.seats === 1 ? '' : 's'}, and every seat is taken.`,
+        );
         return;
       }
       if (!res.ok || !json.ok) throw new Error(json.detail || json.error || 'Could not send invitation.');
@@ -766,6 +766,13 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UpgradeDialog
+        open={!!upgradeMsg}
+        onOpenChange={(o) => { if (!o) setUpgradeMsg(null); }}
+        title="Member limit reached"
+        description={upgradeMsg ?? ''}
+      />
     </>
   );
 }

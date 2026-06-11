@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
 import { UploadProgressPanel, useUploadTracker, type UploadItem } from '@/components/upload-progress-panel';
+import { UpgradeDialog } from '@/components/upgrade-dialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -231,6 +232,7 @@ function SpaceEditPageComponent() {
 
   const [isUploading, setIsUploading] = useState(false);
   const uploadTracker = useUploadTracker();
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
   const [isAddFolderOpen, setIsAddFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [isSignableDocOpen, setIsSignableDocOpen] = useState(false);
@@ -570,11 +572,9 @@ function SpaceEditPageComponent() {
     const room = await checkStorageRoom(user.id, incoming);
     if (!room.ok) {
       const free = Math.max(0, room.capBytes - room.usageBytes);
-      toast({
-        variant: 'destructive',
-        title: 'Not enough storage',
-        description: `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} plan is free. Upgrade in Billing for more storage.`,
-      });
+      setUpgradeMsg(
+        `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} storage is free.`,
+      );
       return false;
     }
     return true;
@@ -1161,6 +1161,13 @@ function SpaceEditPageComponent() {
       {uploadTracker.visible && uploadTracker.items.length > 0 && (
         <UploadProgressPanel items={uploadTracker.items} onClose={uploadTracker.close} />
       )}
+
+      <UpgradeDialog
+        open={!!upgradeMsg}
+        onOpenChange={(o) => { if (!o) setUpgradeMsg(null); }}
+        title="Storage limit reached"
+        description={upgradeMsg ?? ''}
+      />
     </TooltipProvider>
   );
 }

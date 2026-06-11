@@ -42,6 +42,7 @@ import { format } from 'date-fns';
 import { useSpaces, type Space } from '@/lib/spaces-provider';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { UpgradeDialog } from '@/components/upgrade-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useState, useMemo } from 'react';
@@ -516,6 +517,7 @@ const spaceTemplates = [
 export default function SpacesPage() {
   const { spaces, updateSpace, deleteSpace, addSpace } = useSpaces();
   const { toast } = useToast();
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
   const router = useRouter();
 
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -567,11 +569,17 @@ export default function SpacesPage() {
       toast({ title: `Space "${trimmedName}" created!` });
       router.push(`/spaces/${newId}/edit`);
     } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to create space',
-        description: err.message || 'An unexpected error occurred.',
-      });
+      const msg = err?.message || 'An unexpected error occurred.';
+      if (msg.includes("plan's limit")) {
+        setIsNameDialogOpen(false);
+        setUpgradeMsg(msg.replace(' Upgrade in Billing to create more.', ''));
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to create space',
+          description: msg,
+        });
+      }
     } finally {
       setIsCreating(false);
     }
@@ -927,6 +935,13 @@ export default function SpacesPage() {
           space={selectedSpace}
         />
     )}
+
+    <UpgradeDialog
+      open={!!upgradeMsg}
+      onOpenChange={(o) => { if (!o) setUpgradeMsg(null); }}
+      title="Space limit reached"
+      description={upgradeMsg ?? ''}
+    />
     </>
   );
 }

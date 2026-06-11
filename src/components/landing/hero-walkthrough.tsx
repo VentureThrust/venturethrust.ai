@@ -55,11 +55,14 @@ function MiniSidebar({ active }: { active: 'spaces' | 'analytics' }) {
   return (
     <div className="hidden w-40 shrink-0 flex-col border-r border-gray-100 bg-white md:flex">
       <div className="flex items-center gap-1.5 border-b border-gray-100 px-3 py-3">
-        <span className="grid h-4 w-4 place-items-center rounded bg-[#F0F5FF]">
-          <span className="h-2 w-2 rounded-[2px]" style={{ background: BLUE }} />
+        <span
+          className="grid h-4 w-4 shrink-0 place-items-center rounded-[5px] text-[7px] font-extrabold leading-none text-white"
+          style={{ background: BLUE }}
+        >
+          VT
         </span>
         <span className="text-[11px] font-bold text-gray-900">
-          VentureThrust.<span style={{ color: BLUE }}>ai</span>
+          VentureThrust<span style={{ color: BLUE }}>.ai</span>
         </span>
       </div>
       <div className="space-y-0.5 p-2">

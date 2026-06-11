@@ -74,6 +74,7 @@ import { useState, useMemo, useRef, useEffect, Suspense, memo, useCallback, useT
 import { useToast } from '@/hooks/use-toast';
 import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
 import { safeStorageKey } from '@/lib/storage-path';
+import { UpgradeDialog } from '@/components/upgrade-dialog';
 import { cn } from '@/lib/utils';
 import {
   Collapsible,
@@ -1471,6 +1472,7 @@ function ContentLibraryPageComponent() {
 
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
 
   const [isCreateLinkOpen, setIsCreateLinkOpen] = useState(false);
   const [createLinkFile, setCreateLinkFile] = useState<File | null>(null);
@@ -1793,11 +1795,9 @@ function ContentLibraryPageComponent() {
     const room = await checkStorageRoom(user.id, incoming);
     if (!room.ok) {
       const free = Math.max(0, room.capBytes - room.usageBytes);
-      toast({
-        variant: 'destructive',
-        title: 'Not enough storage',
-        description: `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} plan is free. Upgrade in Billing for more storage.`,
-      });
+      setUpgradeMsg(
+        `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} storage is free.`,
+      );
       return false;
     }
     return true;
@@ -2345,6 +2345,13 @@ function ContentLibraryPageComponent() {
         error={passwordDialogState.error}
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
+      />
+
+      <UpgradeDialog
+        open={!!upgradeMsg}
+        onOpenChange={(o) => { if (!o) setUpgradeMsg(null); }}
+        title="Storage limit reached"
+        description={upgradeMsg ?? ''}
       />
 
       {/* ══════ UPLOAD PROGRESS PANEL ══════ */}
