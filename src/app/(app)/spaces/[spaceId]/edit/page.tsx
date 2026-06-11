@@ -31,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -553,13 +554,33 @@ function SpaceEditPageComponent() {
     const { data, error } = await supabase.from('files').insert({
       id: uuidv4(), user_id: user.id, folder_id: folderId, name: file.name,
       type: getFileType(file), storage_path: storagePath, space_id: spaceId, views: 0,
+      size_bytes: file.size,
     }).select().single();
     if (error) { console.error('files insert error:', error); throw error; }
     return { id: data.id, name: data.name, type: data.type, createdAt: data.created_at, views: data.views, storagePath: data.storage_path };
   };
 
+  // Block uploads that would exceed the plan's storage cap.
+  const ensureStorageRoom = async (files: globalThis.File[]): Promise<boolean> => {
+    const incoming = files.reduce((s, f) => s + (f.size || 0), 0);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const room = await checkStorageRoom(user.id, incoming);
+    if (!room.ok) {
+      const free = Math.max(0, room.capBytes - room.usageBytes);
+      toast({
+        variant: 'destructive',
+        title: 'Not enough storage',
+        description: `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} plan is free. Upgrade in Billing for more storage.`,
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleAddFiles = async (filesToAdd: globalThis.File[]) => {
     if (!space || filesToAdd.length === 0) return;
+    if (!(await ensureStorageRoom(filesToAdd))) return;
     // Files can only live inside a folder. If we're at the root view with
     // no current folder selected, fall back to the first root-level folder
     // (legacy-compat for spaces that still have an auto-created "Files"
@@ -623,6 +644,7 @@ function SpaceEditPageComponent() {
   const handleAddUploadedFolder = async () => {
     if (!space || uploadedFolder.length === 0) return;
     const folderToUpload = [...uploadedFolder];
+    if (!(await ensureStorageRoom(folderToUpload))) return;
     setIsFolderUploadDialogOpen(false);
     setUploadedFolder([]);
     await waitForDialogClose();
