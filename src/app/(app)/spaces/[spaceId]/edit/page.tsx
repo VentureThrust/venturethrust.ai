@@ -981,59 +981,138 @@ function SpaceEditPageComponent() {
 
       {/* Upload File Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Upload to "{space.name}"</DialogTitle>
             <DialogDescription>Select files from your computer to upload.</DialogDescription>
           </DialogHeader>
-          <div
-            className="py-4 flex flex-col items-center justify-center text-center gap-4 border-dashed border-2 rounded-lg h-64 mt-4"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files) setUploadedFiles(Array.from(e.dataTransfer.files)); }}
-          >
-            <Upload className="h-12 w-12 text-muted-foreground" />
-            <p className="text-muted-foreground">Drag and drop files here or</p>
-            <Input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>Browse Files</Button>
-          </div>
-          {uploadedFiles.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h4 className="font-semibold">Selected files:</h4>
-              <ul className="list-disc list-inside text-sm text-muted-foreground bg-gray-100 p-4 rounded-md max-h-32 overflow-y-auto">
-                {uploadedFiles.map((file, index) => <li key={index} className="truncate">{file.name}</li>)}
-              </ul>
+
+          <Input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
+
+          {/* Scrollable body so the dialog never overflows the screen */}
+          <div className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 py-1">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files) setUploadedFiles(Array.from(e.dataTransfer.files)); }}
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 px-6 py-8 text-center transition-colors hover:border-[#4285F4] hover:bg-blue-50/40"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[#4285F4]">
+                <Upload className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Drag and drop files here, or click to browse</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">You can select multiple files</p>
+              </div>
             </div>
-          )}
-          <DialogFooter className="mt-4">
-            <Button onClick={handleFileUploadConfirm} className="w-full" disabled={uploadedFiles.length === 0}>Upload</Button>
+
+            {uploadedFiles.length > 0 && (
+              <div className="overflow-hidden rounded-xl border bg-gray-50">
+                <div className="flex items-center justify-between border-b bg-white px-4 py-2.5">
+                  <span className="text-sm font-semibold text-gray-900">Selected files</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {uploadedFiles.length} file{uploadedFiles.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <ul className="max-h-48 space-y-0.5 overflow-y-auto px-4 py-2 text-sm">
+                  {uploadedFiles.map((file, index) => (
+                    <li key={index} className="flex items-center gap-2 py-0.5 text-muted-foreground">
+                      <FileIcon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{file.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="mt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFileUploadConfirm}
+              disabled={uploadedFiles.length === 0 || isUploading}
+              className="bg-[#4285F4] text-white hover:bg-[#3367d6]"
+            >
+              {isUploading
+                ? 'Uploading...'
+                : uploadedFiles.length > 0
+                  ? `Upload ${uploadedFiles.length} file${uploadedFiles.length === 1 ? '' : 's'}`
+                  : 'Upload'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Upload Folder Dialog */}
       <Dialog open={isFolderUploadDialogOpen} onOpenChange={setIsFolderUploadDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Upload Folder to "{space.name}"</DialogTitle>
-            <DialogDescription>Select a folder from your computer to upload.</DialogDescription>
+            <DialogTitle>Upload folder to "{space.name}"</DialogTitle>
+            <DialogDescription>Select a folder from your computer to upload its files.</DialogDescription>
           </DialogHeader>
-          <div className="py-4 flex flex-col items-center justify-center text-center gap-4 border-dashed border-2 rounded-lg h-64 mt-4">
-            <Upload className="h-12 w-12 text-muted-foreground" />
-            <p className="text-muted-foreground">Click below to select a folder</p>
-            <input type="file" /* @ts-ignore */ webkitdirectory="true" directory="true" ref={folderInputRef} onChange={handleFolderSelect} className="hidden" multiple />
-            <Button variant="outline" onClick={() => folderInputRef.current?.click()}>Browse Folder</Button>
+
+          <input type="file" /* @ts-ignore */ webkitdirectory="true" directory="true" ref={folderInputRef} onChange={handleFolderSelect} className="hidden" multiple />
+
+          {/* Scrollable body so the dialog never overflows the screen */}
+          <div className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 py-1">
+            <button
+              type="button"
+              onClick={() => folderInputRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 px-6 py-8 text-center transition-colors hover:border-[#4285F4] hover:bg-blue-50/40"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[#4285F4]">
+                <Upload className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {uploadedFolder.length > 0 ? 'Choose a different folder' : 'Click to select a folder'}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Everything inside the folder will be uploaded</p>
+              </div>
+            </button>
+
+            {uploadedFolder.length > 0 && (
+              <div className="overflow-hidden rounded-xl border bg-gray-50">
+                <div className="flex items-center justify-between border-b bg-white px-4 py-2.5">
+                  <span className="truncate text-sm font-semibold text-gray-900">
+                    {uploadedFolder[0]?.webkitRelativePath.split('/')[0] || 'Folder'}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {uploadedFolder.length} file{uploadedFolder.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <ul className="max-h-48 space-y-0.5 overflow-y-auto px-4 py-2 text-sm">
+                  {uploadedFolder.map((file, index) => (
+                    <li key={index} className="flex items-center gap-2 py-0.5 text-muted-foreground">
+                      <FileIcon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{file.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          {uploadedFolder.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h4 className="font-semibold">Selected folder contents:</h4>
-              <ul className="list-disc list-inside text-sm text-muted-foreground bg-gray-100 p-4 rounded-md max-h-32 overflow-y-auto">
-                <li className="truncate font-medium">{uploadedFolder[0]?.webkitRelativePath.split('/')[0]}</li>
-                {uploadedFolder.map((file, index) => <li key={index} className="truncate ml-4">{file.name}</li>)}
-              </ul>
-            </div>
-          )}
-          <DialogFooter className="mt-4">
-            <Button onClick={handleAddUploadedFolder} className="w-full" disabled={uploadedFolder.length === 0}>Upload Folder</Button>
+
+          <DialogFooter className="mt-2 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsFolderUploadDialogOpen(false)} disabled={isUploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddUploadedFolder}
+              disabled={uploadedFolder.length === 0 || isUploading}
+              className="bg-[#4285F4] text-white hover:bg-[#3367d6]"
+            >
+              {isUploading
+                ? 'Uploading...'
+                : uploadedFolder.length > 0
+                  ? `Upload ${uploadedFolder.length} file${uploadedFolder.length === 1 ? '' : 's'}`
+                  : 'Upload folder'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
