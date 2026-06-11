@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
 
   // Cashfree signs webhooks as base64( HMAC-SHA256( timestamp + rawBody, secret ) ).
   const expected = crypto.createHmac('sha256', secret).update(timestamp + raw).digest('base64');
-  if (!signature || signature !== expected) {
+  // Constant-time comparison so a forged signature can't be tuned via timing.
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  if (!signature || sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     return NextResponse.json({ ok: false, error: 'bad_signature' }, { status: 401 });
   }
 
