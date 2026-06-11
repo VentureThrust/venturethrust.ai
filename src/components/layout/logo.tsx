@@ -38,15 +38,15 @@ export function Logo({
   className?: string;
   isPen?: boolean;
 }) {
+  // Wordmark only - the VT mark lives in the favicon (src/app/icon.svg).
   return (
     <Link
       href="/"
       className={cn(
-        'flex items-center gap-2.5 rounded-md p-1 -m-1 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex items-center rounded-md p-1 -m-1 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         className,
       )}
     >
-      <LogoMark className="h-7 w-auto shrink-0" />
       <span className="text-xl font-bold tracking-tight">VentureThrust</span>
     </Link>
   );
