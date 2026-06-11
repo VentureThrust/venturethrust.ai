@@ -72,6 +72,7 @@ import {
 } from '@/components/ui/sheet';
 import { useState, useMemo, useRef, useEffect, Suspense, memo, useCallback, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
 import { cn } from '@/lib/utils';
 import {
   Collapsible,
@@ -1783,6 +1784,24 @@ function ContentLibraryPageComponent() {
     }
   };
 
+  // Block uploads that would exceed the plan's storage cap.
+  const ensureStorageRoom = async (files: globalThis.File[]): Promise<boolean> => {
+    const incoming = files.reduce((s, f) => s + (f.size || 0), 0);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const room = await checkStorageRoom(user.id, incoming);
+    if (!room.ok) {
+      const free = Math.max(0, room.capBytes - room.usageBytes);
+      toast({
+        variant: 'destructive',
+        title: 'Not enough storage',
+        description: `This upload needs ${formatGib(incoming)}, but only ${formatGib(free)} of your ${formatGib(room.capBytes)} plan is free. Upgrade in Billing for more storage.`,
+      });
+      return false;
+    }
+    return true;
+  };
+
   // ── handleAddFiles ────────────────────────────────────────────────────────
   const handleAddFiles = async () => {
     if (!uploadedFiles.length) return;
@@ -1808,6 +1827,7 @@ function ContentLibraryPageComponent() {
       toast({ title: 'No files to upload.', variant: 'destructive' });
       return;
     }
+    if (!(await ensureStorageRoom(readyFiles))) return;
 
     const newItems: UploadItem[] = readyFiles.map((f, i) => ({
       id: `upload_${Date.now()}_${i}`,
@@ -1865,6 +1885,7 @@ function ContentLibraryPageComponent() {
             views: 0,
             storagePath,
             contentUrl: urlData?.signedUrl,
+            size: file.size,
           };
           newDocs.push(doc);
           updateUploadItem(item.id, { progress: 100, status: 'completed', fileId, contentUrl: urlData?.signedUrl });
@@ -1908,6 +1929,7 @@ function ContentLibraryPageComponent() {
     setIsFolderUploadSheetOpen(false);
 
     const readyFiles = await prepareFiles(uploadedFolder);
+    if (!(await ensureStorageRoom(readyFiles))) return;
 
     const newItems: UploadItem[] = readyFiles.map((f, i) => ({
       id: `upload_folder_${Date.now()}_${i}`,
@@ -1944,7 +1966,7 @@ function ContentLibraryPageComponent() {
           clearInterval(progressInterval);
           if (error) throw error;
           const { data: urlData } = await supabase.storage.from('documents').createSignedUrl(storagePath, 604800);
-          const doc: File = { id: fileId, name: file.name, type: getFileType(file) as File['type'], createdAt: new Date().toISOString(), views: 0, storagePath, contentUrl: urlData?.signedUrl };
+          const doc: File = { id: fileId, name: file.name, type: getFileType(file) as File['type'], createdAt: new Date().toISOString(), views: 0, storagePath, contentUrl: urlData?.signedUrl, size: file.size };
           newDocs.push(doc);
           updateUploadItem(item.id, { progress: 100, status: 'completed', fileId, contentUrl: urlData?.signedUrl });
         } catch {

@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { resolveUserTierId, limitsForTier } from '@/lib/plan-limits';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
         created_at: nowIso,
         views: 0,
         storage_path: storagePath,
+        size_bytes: fileSize,
       };
       if (reqRow.target_space_id) fileRow.space_id = reqRow.target_space_id;
       fileRows.push(fileRow);
@@ -163,6 +165,22 @@ export async function POST(req: NextRequest) {
 
   if (accepted === 0) {
     return NextResponse.json({ ok: false, error: 'no_valid_files' }, { status: 400 });
+  }
+
+  // ── Enforce the owner's storage cap (visitor uploads consume the owner's
+  //    space). The bytes are already in storage, but refusing to record them
+  //    keeps usage within the plan and out of the owner's library. ──
+  const ownerId = reqRow.created_by as string;
+  const incomingBytes = uploadRows.reduce((s, r) => s + Number(r.file_size ?? 0), 0);
+  const tierId = await resolveUserTierId(supabase, ownerId);
+  const { storageBytes } = limitsForTier(tierId);
+  const { data: usageRows } = await supabase.from('files').select('size_bytes').eq('user_id', ownerId);
+  const usedBytes = (usageRows ?? []).reduce(
+    (s, r) => s + Number((r as { size_bytes?: number }).size_bytes ?? 0),
+    0,
+  );
+  if (usedBytes + incomingBytes > storageBytes) {
+    return NextResponse.json({ ok: false, error: 'storage_full' }, { status: 403 });
   }
 
   // Audit log (best-effort).

@@ -364,6 +364,7 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
         name: file.name,
         type: file.type,
         storage_path: file.storagePath,
+        size_bytes: (file as { size?: number }).size ?? 0,
       });
 
       if (error) {

@@ -51,6 +51,7 @@ export type File = {
   views: number;
   storagePath: string;
   contentUrl?: string;
+  size?: number;
   agreementFields?: PlacedField[];
   links?: ShareLink[];
   signatures?: Signature[];
@@ -566,6 +567,7 @@ export const FoldersProvider = ({ children }: { children: ReactNode }) => {
           created_at: f.createdAt,
           views: f.views ?? 0,
           storage_path: f.storagePath,
+          size_bytes: f.size ?? 0,
           agreement_fields: f.agreementFields ?? [],
           links: f.links ?? [],
           signatures: f.signatures ?? [],
