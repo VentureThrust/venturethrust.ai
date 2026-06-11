@@ -19,55 +19,19 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { getFileTypeStyle } from '@/lib/file-icons';
-import { formatDuration, sessionDuration, type ViewerSession, type FileWithVisits } from './live-viewers';
-
-const ACTIVE_WINDOW_MS = 15_000;
+import {
+  formatDuration,
+  sessionDuration,
+  getSessionFiles,
+  type ViewerSession,
+  type FileWithVisits,
+} from './live-viewers';
 
 function DeviceIcon({ device }: { device: string | null }) {
   const d = (device ?? '').toLowerCase();
   if (d.includes('mobile') || d.includes('phone')) return <Smartphone className="h-4 w-4" />;
   if (d.includes('tablet') || d.includes('ipad')) return <Tablet className="h-4 w-4" />;
   return <Laptop className="h-4 w-4" />;
-}
-
-type SessionFile = {
-  fileId: string;
-  fileName: string;
-  fileType: string;
-  timeSpent: number;
-  openCount: number;
-};
-
-function getSessionFiles(session: ViewerSession, files: FileWithVisits[]): SessionFile[] {
-  const start = new Date(session.started_at).getTime();
-  const end = session.ended_at
-    ? new Date(session.ended_at).getTime()
-    : new Date(session.last_heartbeat).getTime() + ACTIVE_WINDOW_MS;
-
-  const result: SessionFile[] = [];
-
-  for (const file of files) {
-    const matches = (file.visits ?? []).filter(v => {
-      const emailMatch =
-        v.email === (session.visitor_email ?? 'anonymous') ||
-        (session.visitor_email === null && (!v.email || v.email === 'anonymous'));
-      if (!emailMatch) return false;
-      const t = new Date(v.openedAt).getTime();
-      return t >= start && t <= end;
-    });
-    if (matches.length > 0) {
-      result.push({
-        fileId: file.id,
-        fileName: file.name,
-        fileType: file.type ?? '',
-        timeSpent: matches.reduce((s, v) => s + (v.timeSpent || 0), 0),
-        openCount: matches.length,
-      });
-    }
-  }
-
-  // Highest-attention file first
-  return result.sort((a, b) => b.timeSpent - a.timeSpent);
 }
 
 export function SessionDetailView({

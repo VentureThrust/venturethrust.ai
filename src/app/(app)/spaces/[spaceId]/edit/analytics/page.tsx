@@ -280,6 +280,29 @@ export default function SpaceAnalyticsPage() {
     };
   }, [sessionMeta, files]);
 
+  // Collective file engagement: the file every visitor spent the most time on
+  // ranks first (total time, then opens, then most recently opened).
+  const rankedFiles = useMemo(() => {
+    const ranked = files.map((f) => {
+      const visits = f.visits ?? [];
+      const totalTime = visits.reduce((s, v) => s + (v.timeSpent || 0), 0);
+      const opens = visits.length;
+      const viewers = new Set(visits.map((v) => v.email || 'anonymous')).size;
+      const lastOpened = visits.reduce(
+        (m, v) => Math.max(m, new Date(v.openedAt).getTime()),
+        0,
+      );
+      return { ...f, totalTime, opens, viewers, lastOpened };
+    });
+    return ranked.sort(
+      (a, b) =>
+        b.totalTime - a.totalTime ||
+        b.opens - a.opens ||
+        b.lastOpened - a.lastOpened ||
+        a.name.localeCompare(b.name),
+    );
+  }, [files]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -318,7 +341,7 @@ export default function SpaceAnalyticsPage() {
 
   // ── Mode: Overview ──
   return (
-    <div className="mx-auto w-full max-w-5xl flex flex-col gap-6 pb-10">
+    <div className="flex w-full flex-col gap-6 pb-10">
       {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -346,7 +369,12 @@ export default function SpaceAnalyticsPage() {
       <WeekChart sessions={sessionMeta} />
 
       {/* Live + sessions + visitors */}
-      <LiveViewers spaceId={spaceId} onSelectSession={setDrillSession} />
+      <LiveViewers
+        spaceId={spaceId}
+        files={files as FileWithVisits[]}
+        onSelectSession={setDrillSession}
+        onSelectFile={(f) => setDrillFile(f)}
+      />
 
       {/* Per-file drilldown launcher */}
       {!hasFiles ? (
@@ -363,7 +391,7 @@ export default function SpaceAnalyticsPage() {
                 <h2 className="text-base font-semibold text-gray-900">File engagement</h2>
               </div>
               <p className="mt-0.5 text-xs text-gray-400">
-                Open any file for per page time on PDFs or a playback heatmap on videos.
+                Ranked by total attention across every visitor. Open a PDF or video for page level detail.
               </p>
             </div>
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
@@ -371,7 +399,7 @@ export default function SpaceAnalyticsPage() {
             </span>
           </div>
           <div className="divide-y divide-gray-50">
-            {files.map(file => {
+            {rankedFiles.map((file, idx) => {
               const { Icon, bg, text } = getFileTypeStyle(file.name);
               const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
               const isPdf = ext === 'pdf' || file.type?.includes('pdf');
@@ -379,7 +407,8 @@ export default function SpaceAnalyticsPage() {
                 ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext) ||
                 file.type?.startsWith('video/');
               const supported = isPdf || isVideo;
-              const opens = (file.visits ?? []).length;
+              const maxTime = rankedFiles[0]?.totalTime || 1;
+              const isTop = idx === 0 && file.totalTime > 0;
               return (
                 <button
                   key={file.id}
@@ -391,14 +420,45 @@ export default function SpaceAnalyticsPage() {
                     !supported && 'cursor-not-allowed opacity-50',
                   )}
                 >
+                  <span
+                    className={cn(
+                      'w-5 shrink-0 text-center text-sm font-semibold tabular-nums',
+                      isTop ? '' : 'text-gray-300',
+                    )}
+                    style={isTop ? { color: BLUE } : undefined}
+                  >
+                    {idx + 1}
+                  </span>
                   <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', bg)}>
                     <Icon className={cn('h-4 w-4', text)} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">{file.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-gray-900">{file.name}</p>
+                      {isTop && (
+                        <span
+                          className="shrink-0 rounded-full bg-[#F0F5FF] px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ color: BLUE }}
+                        >
+                          Most attention
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 text-xs text-gray-400">
-                      {opens > 0 ? `${opens} open${opens === 1 ? '' : 's'}` : 'No opens yet'}
+                      {file.totalTime > 0
+                        ? `${formatDuration(file.totalTime)} total · ${file.opens} open${file.opens === 1 ? '' : 's'} · ${file.viewers} viewer${file.viewers === 1 ? '' : 's'}`
+                        : file.opens > 0
+                          ? `${file.opens} open${file.opens === 1 ? '' : 's'}`
+                          : 'No opens yet'}
                     </p>
+                    {file.totalTime > 0 && (
+                      <div className="mt-1.5 h-1 w-full max-w-md rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${Math.max(4, (file.totalTime / maxTime) * 100)}%`, background: BLUE }}
+                        />
+                      </div>
+                    )}
                   </div>
                   <span className="shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                     {isPdf ? 'PDF' : isVideo ? 'Video' : ext || 'File'}

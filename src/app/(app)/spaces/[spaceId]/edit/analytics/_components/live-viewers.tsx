@@ -76,6 +76,45 @@ export function sessionDuration(s: ViewerSession): number {
   return Math.max(0, Math.floor((end - new Date(s.started_at).getTime()) / 1000));
 }
 
+export type SessionFile = {
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  timeSpent: number;
+  openCount: number;
+};
+
+/** Files a visitor opened during one session: matches each file's visit log by
+ *  the session's email + time window. Highest attention (most time) first. */
+export function getSessionFiles(session: ViewerSession, files: FileWithVisits[]): SessionFile[] {
+  const start = new Date(session.started_at).getTime();
+  const end = session.ended_at
+    ? new Date(session.ended_at).getTime()
+    : new Date(session.last_heartbeat).getTime() + ACTIVE_WINDOW_MS;
+
+  const result: SessionFile[] = [];
+  for (const file of files) {
+    const matches = (file.visits ?? []).filter(v => {
+      const emailMatch =
+        v.email === (session.visitor_email ?? 'anonymous') ||
+        (session.visitor_email === null && (!v.email || v.email === 'anonymous'));
+      if (!emailMatch) return false;
+      const t = new Date(v.openedAt).getTime();
+      return t >= start && t <= end;
+    });
+    if (matches.length > 0) {
+      result.push({
+        fileId: file.id,
+        fileName: file.name,
+        fileType: file.type ?? '',
+        timeSpent: matches.reduce((s, v) => s + (v.timeSpent || 0), 0),
+        openCount: matches.length,
+      });
+    }
+  }
+  return result.sort((a, b) => b.timeSpent - a.timeSpent);
+}
+
 // ─── Small pieces ─────────────────────────────────────────────────────────────
 
 function DeviceIcon({ device }: { device: string | null }) {
@@ -123,15 +162,18 @@ function CardHeader({
 function VisitorRow({
   email,
   sessions,
+  files,
   onSelectSession,
+  onSelectFile,
 }: {
   email: string;
   sessions: ViewerSession[];
+  files: FileWithVisits[];
   onSelectSession: (session: ViewerSession) => void;
+  onSelectFile?: (file: { id: string; name: string; type: string }) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const lastSession = sessions[0];
-  const lastDuration = sessionDuration(lastSession);
   const displayEmail = email === 'anonymous' ? 'Anonymous' : email;
   const initial = displayEmail[0].toUpperCase();
   const totalSeconds = sessions.reduce((sum, s) => sum + sessionDuration(s), 0);
@@ -155,10 +197,7 @@ function VisitorRow({
         </div>
         <div className="hidden text-right sm:block">
           <div className="text-xs text-gray-400">
-            {formatDistanceToNow(new Date(lastSession.started_at), { addSuffix: true })}
-          </div>
-          <div className="mt-0.5 text-sm font-medium tabular-nums text-gray-700">
-            {formatDuration(lastDuration)}
+            last visit {formatDistanceToNow(new Date(lastSession.started_at), { addSuffix: true })}
           </div>
         </div>
         <ChevronDown
@@ -167,26 +206,83 @@ function VisitorRow({
       </div>
 
       {expanded && (
-        <div className="border-t border-gray-50 bg-gray-50/50">
+        <div className="space-y-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4">
           {sessions.map((s) => {
             const dur = sessionDuration(s);
+            const sessionFiles = getSessionFiles(s, files);
+            const maxTime = Math.max(1, ...sessionFiles.map(f => f.timeSpent));
             return (
-              <div
-                key={s.id}
-                className="flex cursor-pointer items-center gap-3 py-2.5 pl-[4.25rem] pr-5 transition-colors hover:bg-gray-100/70"
-                onClick={() => onSelectSession(s)}
-              >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300" />
-                <span className="flex-1 truncate text-[13px] font-medium text-gray-700">
-                  {format(new Date(s.started_at), 'MMM d, h:mm a')}
-                </span>
-                <span className="hidden text-xs text-gray-400 sm:block">
-                  {formatDistanceToNow(new Date(s.started_at), { addSuffix: true })}
-                </span>
-                <span className="min-w-[64px] text-right text-[13px] tabular-nums text-gray-600">
-                  {formatDuration(dur)}
-                </span>
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+              <div key={s.id} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                {/* Session header: when + duration; opens the full session view */}
+                <div
+                  className="flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-2.5 transition-colors hover:bg-gray-50"
+                  onClick={() => onSelectSession(s)}
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: BLUE }} />
+                  <span className="flex-1 truncate text-[13px] font-semibold text-gray-800">
+                    {format(new Date(s.started_at), 'MMM d, h:mm a')}
+                  </span>
+                  <span className="hidden text-xs text-gray-400 sm:block">
+                    {sessionFiles.length} file{sessionFiles.length === 1 ? '' : 's'} viewed
+                  </span>
+                  <span className="text-[13px] font-medium tabular-nums text-gray-700">
+                    {formatDuration(dur)}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+                </div>
+
+                {/* What was viewed in this session, most attention first */}
+                {sessionFiles.length === 0 ? (
+                  <p className="px-4 py-3 text-xs text-gray-400">No file activity recorded in this visit.</p>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {sessionFiles.map(f => {
+                      const { Icon, text } = getFileTypeStyle(f.fileName);
+                      const ext = f.fileName.toLowerCase().split('.').pop() ?? '';
+                      const isPdf = ext === 'pdf' || (f.fileType ?? '').includes('pdf');
+                      const isVideo =
+                        ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext) ||
+                        (f.fileType ?? '').startsWith('video/');
+                      const drillable = (isPdf || isVideo) && !!onSelectFile;
+                      return (
+                        <button
+                          key={f.fileId}
+                          disabled={!drillable}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (drillable) onSelectFile!({ id: f.fileId, name: f.fileName, type: f.fileType });
+                          }}
+                          className={cn(
+                            'flex w-full items-center gap-2.5 px-4 py-2 text-left',
+                            drillable ? 'cursor-pointer transition-colors hover:bg-gray-50' : 'cursor-default',
+                          )}
+                        >
+                          <Icon className={cn('h-3.5 w-3.5 shrink-0', text)} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="truncate text-[13px] font-medium text-gray-800">{f.fileName}</span>
+                              <span className="shrink-0 text-[12px] tabular-nums text-gray-500">
+                                {formatDuration(f.timeSpent)}
+                              </span>
+                            </div>
+                            <div className="mt-1 h-1 w-full rounded-full bg-gray-100">
+                              <div
+                                className="h-full rounded-full"
+                                style={{ width: `${Math.max(6, (f.timeSpent / maxTime) * 100)}%`, background: BLUE }}
+                              />
+                            </div>
+                          </div>
+                          {isPdf && (
+                            <span className="shrink-0 text-[10px] font-medium text-gray-400">
+                              {drillable ? 'Pages' : 'PDF'}
+                            </span>
+                          )}
+                          {drillable && <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -200,15 +296,20 @@ function VisitorRow({
 
 export function LiveViewers({
   spaceId,
+  files = [],
   onSelectSession,
+  onSelectFile,
 }: {
   spaceId: string;
-  /** Files prop kept for backward-compat; no longer used here since session
-   *  drilldown moved to the dedicated SessionDetailView. */
+  /** Space files with their visit logs - used to show, inside each visitor's
+   *  expanded sessions, which files were viewed and for how long. */
   files?: FileWithVisits[];
   /** Fires when the owner clicks a specific session row - parent swaps the
    *  analytics overview for a dedicated session view. */
   onSelectSession: (session: ViewerSession) => void;
+  /** Fires when a PDF/video inside a session breakdown is clicked - parent
+   *  opens the per page / playback drilldown. */
+  onSelectFile?: (file: { id: string; name: string; type: string }) => void;
 }) {
   const [sessions, setSessions] = useState<ViewerSession[]>([]);
   const [now, setNow] = useState<number>(Date.now());
@@ -492,12 +593,19 @@ export function LiveViewers({
           <CardHeader
             icon={UsersIcon}
             title="Visitors"
-            description="Everyone who has opened this space, with their full visit history."
+            description="Expand a visitor to see each visit, which files they opened, and where their attention went."
             right={<CountChip n={visitorGroups.length} />}
           />
           <div className="divide-y divide-gray-50">
             {visitorGroups.map(([email, ss]) => (
-              <VisitorRow key={email} email={email} sessions={ss} onSelectSession={onSelectSession} />
+              <VisitorRow
+                key={email}
+                email={email}
+                sessions={ss}
+                files={files}
+                onSelectSession={onSelectSession}
+                onSelectFile={onSelectFile}
+              />
             ))}
           </div>
         </section>
