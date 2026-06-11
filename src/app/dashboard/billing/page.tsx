@@ -169,7 +169,12 @@ export default function BillingPage() {
     }
   };
 
-  const currentTier = tierById(currentTierId);
+  const paidTier = tierById(currentTierId);
+  // Free users have no payment row, so fall back to the Free tier when the
+  // account is on the free early-access plan.
+  const onFree = !paidTier && user?.planStatus === 'free';
+  const currentTier = paidTier ?? (onFree ? tierById('vdr-free') : null);
+  const isFree = currentTier?.id === 'vdr-free';
   const currentRank = currentTier?.rank ?? -1;
   const active = isPlanActive(user?.plan ?? null, user?.planExpiresAt ?? null);
   const grid = PLAN_TIERS.filter((t) => t.showInGrid);
@@ -201,16 +206,24 @@ export default function BillingPage() {
               </div>
               <div className="mt-1 text-2xl font-bold">{currentTier.name}</div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {user?.planExpiresAt
-                  ? active
-                    ? `Your access runs until ${fmtDate(user.planExpiresAt)}.`
-                    : `Expired on ${fmtDate(user.planExpiresAt)}. Choose a plan below to continue.`
-                  : 'Active.'}
+                {isFree
+                  ? 'Full access during early access. Upgrade any time for more.'
+                  : user?.planExpiresAt
+                    ? active
+                      ? `Your access runs until ${fmtDate(user.planExpiresAt)}.`
+                      : `Expired on ${fmtDate(user.planExpiresAt)}. Choose a plan below to continue.`
+                    : 'Active.'}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold">{inr(currentTier.price)}</div>
-              <div className="text-sm text-muted-foreground">/mo</div>
+              {isFree ? (
+                <div className="text-3xl font-bold">Free</div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold">{inr(currentTier.price)}</div>
+                  <div className="text-sm text-muted-foreground">/mo</div>
+                </>
+              )}
             </div>
           </div>
         ) : (
