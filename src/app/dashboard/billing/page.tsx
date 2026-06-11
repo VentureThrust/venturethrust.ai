@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Check, Loader2, BadgeCheck, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StorageMeter } from '@/components/storage-meter';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 const SALES = 'mailto:omprakash@venturethrust.com?subject=VentureThrust%20plan%20enquiry';
@@ -235,6 +236,9 @@ export default function BillingPage() {
           </div>
         )}
       </div>
+
+      {/* Storage usage */}
+      <StorageMeter className="mt-4" />
 
       {/* Plans */}
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
