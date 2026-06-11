@@ -32,6 +32,7 @@ import {
   FileLock,
   Users,
   Inbox,
+  CreditCard,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -673,6 +674,20 @@ export function AppSidebarContent({
                 <div className="flex items-center gap-4">
                   <Settings className="h-6 w-6 shrink-0" />
                   <span className="text-base">Settings</span>
+                </div>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
+            <Link href="/dashboard/billing">
+              <SidebarMenuButton
+                tooltip="Billing & plans"
+                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <CreditCard className="h-6 w-6 shrink-0" />
+                  <span className="text-base">Billing</span>
                 </div>
               </SidebarMenuButton>
             </Link>

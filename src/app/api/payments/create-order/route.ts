@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await authed.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
-    let body: { planId?: unknown; phone?: unknown };
+    let body: { planId?: unknown; phone?: unknown; returnPath?: unknown };
     try {
       body = await req.json();
     } catch {
@@ -72,8 +72,15 @@ export async function POST(req: NextRequest) {
     const base = envBase.startsWith('https://')
       ? envBase
       : rawOrigin.replace(/^http:\/\//, 'https://');
+    // Where Cashfree returns the buyer after checkout. The caller may pass a
+    // safe relative path (e.g. /dashboard/billing for an in-app upgrade);
+    // anything unsafe falls back to the plan page.
+    const rp = typeof body.returnPath === 'string' ? body.returnPath : '';
+    const returnPath =
+      rp.startsWith('/') && !rp.startsWith('//') && !rp.includes('..') ? rp.slice(0, 200) : '/choose-role';
+    const sep = returnPath.includes('?') ? '&' : '?';
     // Cashfree substitutes {order_id} in the return URL after checkout.
-    const returnUrl = `${base}/choose-role?order_id={order_id}`;
+    const returnUrl = `${base}${returnPath}${sep}order_id={order_id}`;
 
     const cfRes = await fetch(`${CASHFREE_BASE}/orders`, {
       method: 'POST',
