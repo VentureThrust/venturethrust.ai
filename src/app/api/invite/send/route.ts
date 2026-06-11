@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { resolveUserTierId, limitsForTier } from '@/lib/plan-limits';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +99,30 @@ export async function POST(req: NextRequest) {
     if (existingInvite && !resend) {
       // 200 so the client parses it cleanly and shows the resend dialog.
       return NextResponse.json({ ok: false, code: 'already_invited' });
+    }
+
+    // ── Seat limit: a brand-new invite must fit within the plan's seats. The
+    //    account holder occupies one seat, so seats - 1 collaborators may be
+    //    invited (members already joined + invites still pending). Resends of an
+    //    existing invite are already counted, so they skip this check. ──
+    if (!existingInvite) {
+      const tierId = await resolveUserTierId(admin, inviter.id);
+      const { seats } = limitsForTier(tierId);
+      const [members, pending] = await Promise.all([
+        admin
+          .from('workspace_members')
+          .select('id', { count: 'exact', head: true })
+          .eq('workspace_owner_id', inviter.id),
+        admin
+          .from('space_invitations')
+          .select('id', { count: 'exact', head: true })
+          .eq('workspace_owner_id', inviter.id)
+          .eq('status', 'pending'),
+      ]);
+      const usedExtra = (members.count ?? 0) + (pending.count ?? 0); // excludes the owner seat
+      if (usedExtra >= seats - 1) {
+        return NextResponse.json({ ok: false, code: 'seat_limit', seats });
+      }
     }
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin).replace(/\/$/, '');

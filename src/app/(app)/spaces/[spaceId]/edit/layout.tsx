@@ -319,6 +319,14 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
         setResendEmail(email); // opens the "resend?" dialog
         return;
       }
+      if (json.code === 'seat_limit') {
+        toast({
+          variant: 'destructive',
+          title: 'Member limit reached',
+          description: `Your plan includes ${json.seats} member${json.seats === 1 ? '' : 's'}. Upgrade in Billing to add more.`,
+        });
+        return;
+      }
       if (!res.ok || !json.ok) throw new Error(json.detail || json.error || 'Could not send invitation.');
 
       toast({ title: resend ? 'Invitation resent' : 'Invitation sent', description: `We emailed an invite to ${email}.` });
