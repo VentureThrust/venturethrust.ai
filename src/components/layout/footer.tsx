@@ -7,7 +7,7 @@ const footerLinks = {
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
     { href: '#security', label: 'Security' },
-    { href: '#', label: 'Pricing' },
+    { href: '/choose-role', label: 'Pricing' },
   ],
   Company: [
     { href: '#', label: 'About Us' },

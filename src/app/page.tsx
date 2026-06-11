@@ -14,11 +14,10 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
+import { HeroWalkthrough } from '@/components/landing/hero-walkthrough';
 import {
   ArrowRight,
-  FileText,
   Check,
-  Eye,
   Clock,
   Lock,
   Globe2,
@@ -27,100 +26,6 @@ import {
 } from 'lucide-react';
 
 const BLUE = '#4285F4';
-
-// ── Hero product mock: a data room with live activity ────────────────────────
-
-function ProductMock() {
-  const files = [
-    { name: 'Pitch Deck.pdf', meta: '14 pages', views: 32 },
-    { name: 'Financial Model.xlsx', meta: 'Updated 2d ago', views: 18 },
-    { name: 'Cap Table.pdf', meta: '3 pages', views: 11 },
-    { name: 'Term Sheet Draft.pdf', meta: '6 pages', views: 7 },
-  ];
-  const visits = [
-    { who: 'priya@sequoiacap.in', what: 'Viewed Pitch Deck', when: '2m ago', live: true },
-    { who: 'rahul@blume.vc', what: 'Spent 4:32 on Financial Model', when: '1h ago' },
-    { who: 'ankit@matrixpartners.in', what: 'Signed NDA, entered room', when: '3h ago' },
-  ];
-  return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.35)]">
-      {/* Browser chrome */}
-      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-        <div className="ml-3 flex h-6 flex-1 max-w-md items-center rounded-md bg-white px-3 text-[11px] text-gray-400 ring-1 ring-gray-200">
-          venturethrust.com/spaces/series-a
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-5">
-        {/* File list */}
-        <div className="md:col-span-3 border-b border-gray-100 md:border-b-0 md:border-r">
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Series A Data Room</p>
-              <p className="text-xs text-gray-400">Shared with 9 investors</p>
-            </div>
-            <span className="rounded-md bg-gray-900 px-2.5 py-1 text-[11px] font-medium text-white">Share</span>
-          </div>
-          <div className="px-2 pb-3">
-            {files.map((f) => (
-              <div key={f.name} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-gray-50">
-                <FileText className="h-4 w-4 shrink-0 text-gray-400" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-gray-800">{f.name}</p>
-                  <p className="text-[11px] text-gray-400">{f.meta}</p>
-                </div>
-                <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                  <Eye className="h-3 w-3" /> {f.views}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Activity feed */}
-        <div className="md:col-span-2 bg-gray-50/60">
-          <div className="px-5 py-4">
-            <p className="text-sm font-semibold text-gray-900">Activity</p>
-          </div>
-          <div className="space-y-1 px-2 pb-4">
-            {visits.map((v) => (
-              <div key={v.who} className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-gray-100">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[12px] font-medium text-gray-800">{v.who}</p>
-                  {v.live ? (
-                    <span className="flex items-center gap-1 text-[10px] font-medium text-green-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Live
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-gray-400">{v.when}</span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-[11px] text-gray-500">{v.what}</p>
-              </div>
-            ))}
-            {/* Page time mini chart */}
-            <div className="rounded-lg bg-white px-3 py-3 ring-1 ring-gray-100">
-              <p className="text-[11px] font-medium text-gray-700">Time per page, Pitch Deck</p>
-              <div className="mt-2 space-y-1.5">
-                {[88, 64, 95, 42, 23].map((w, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="w-6 text-[10px] text-gray-400">p{i + 1}</span>
-                    <div className="h-1.5 flex-1 rounded-full bg-gray-100">
-                      <div className="h-full rounded-full" style={{ width: `${w}%`, background: BLUE }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Small mock visuals for the feature sections ───────────────────────────────
 
@@ -300,8 +205,8 @@ export default function LandingPage() {
           <p className="mt-3 text-sm text-gray-400">Free plan available. No card required.</p>
         </div>
 
-        <div className="mx-auto mt-14 max-w-5xl sm:mt-16">
-          <ProductMock />
+        <div className="mx-auto mt-12 max-w-5xl sm:mt-14">
+          <HeroWalkthrough />
         </div>
       </section>
 
