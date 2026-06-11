@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { checkStorageRoom, formatGib } from '@/lib/storage-usage';
+import { UploadProgressPanel, useUploadTracker, type UploadItem } from '@/components/upload-progress-panel';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -229,6 +230,7 @@ function SpaceEditPageComponent() {
   }, [spaces, spaceId]);
 
   const [isUploading, setIsUploading] = useState(false);
+  const uploadTracker = useUploadTracker();
   const [isAddFolderOpen, setIsAddFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [isSignableDocOpen, setIsSignableDocOpen] = useState(false);
@@ -602,26 +604,36 @@ function SpaceEditPageComponent() {
       resolvedFolderId = currentFolderId;
     }
     setIsUploading(true);
+    const items: UploadItem[] = filesToAdd.map((f, i) => ({
+      id: `up_${Date.now()}_${i}`,
+      name: f.name,
+      type: (f.name.split('.').pop() ?? 'file').toUpperCase(),
+      progress: 0,
+      status: 'in_progress',
+    }));
+    uploadTracker.addItems(items);
     let successCount = 0;
-    try {
-      for (const file of filesToAdd) {
-        try {
-          const storagePath = await uploadFileToSupabase(file, space.id, resolvedFolderId);
-          await createFileRecord(file, space.id, resolvedFolderId, storagePath);
-          successCount++;
-        } catch (err) {
-          toast({ variant: 'destructive', title: `Failed to upload ${file.name}`, description: err instanceof Error ? err.message : 'Upload failed' });
-        }
+    for (let i = 0; i < filesToAdd.length; i++) {
+      const file = filesToAdd[i];
+      const item = items[i];
+      let prog = 0;
+      const iv = window.setInterval(() => {
+        prog = Math.min(prog + Math.random() * 15, 90);
+        uploadTracker.updateItem(item.id, { progress: Math.round(prog) });
+      }, 300);
+      try {
+        const storagePath = await uploadFileToSupabase(file, space.id, resolvedFolderId);
+        const created = await createFileRecord(file, space.id, resolvedFolderId, storagePath);
+        window.clearInterval(iv);
+        uploadTracker.updateItem(item.id, { progress: 100, status: 'completed', fileId: created.id });
+        successCount++;
+      } catch {
+        window.clearInterval(iv);
+        uploadTracker.updateItem(item.id, { status: 'failed', progress: 0 });
       }
-      if (successCount > 0) {
-        await refreshSpace(space.id);
-        toast({ title: `${successCount} file(s) added successfully.` });
-      }
-    } catch (err) {
-      toast({ variant: 'destructive', title: 'Upload failed', description: err instanceof Error ? err.message : 'An unexpected error occurred.' });
-    } finally {
-      setIsUploading(false);
     }
+    if (successCount > 0) await refreshSpace(space.id);
+    setIsUploading(false);
   };
 
   const handleFileUploadConfirm = async () => {
@@ -662,20 +674,35 @@ function SpaceEditPageComponent() {
         id: newFolderDbId, user_id: user.id, name: folderName, space_id: space.id, parent_id: parentDbId,
       });
       if (folderError) throw new Error(`Could not create folder: ${folderError.message}`);
+      const items: UploadItem[] = folderToUpload.map((f, i) => ({
+        id: `upf_${Date.now()}_${i}`,
+        name: f.name,
+        type: (f.name.split('.').pop() ?? 'file').toUpperCase(),
+        progress: 0,
+        status: 'in_progress',
+      }));
+      uploadTracker.addItems(items);
       let successCount = 0;
-      for (const file of folderToUpload) {
+      for (let i = 0; i < folderToUpload.length; i++) {
+        const file = folderToUpload[i];
+        const item = items[i];
+        let prog = 0;
+        const iv = window.setInterval(() => {
+          prog = Math.min(prog + Math.random() * 15, 90);
+          uploadTracker.updateItem(item.id, { progress: Math.round(prog) });
+        }, 300);
         try {
           const storagePath = await uploadFileToSupabase(file, space.id, newFolderDbId);
-          await createFileRecord(file, space.id, newFolderDbId, storagePath);
+          const created = await createFileRecord(file, space.id, newFolderDbId, storagePath);
+          window.clearInterval(iv);
+          uploadTracker.updateItem(item.id, { progress: 100, status: 'completed', fileId: created.id });
           successCount++;
-        } catch (err) {
-          toast({ variant: 'destructive', title: `Failed to upload ${file.name}` });
+        } catch {
+          window.clearInterval(iv);
+          uploadTracker.updateItem(item.id, { status: 'failed', progress: 0 });
         }
       }
-      if (successCount > 0) {
-        await refreshSpace(space.id);
-        toast({ title: `Folder "${folderName}" and ${successCount} files added.` });
-      }
+      if (successCount > 0) await refreshSpace(space.id);
     } catch (err) {
       toast({ variant: 'destructive', title: 'Upload failed', description: err instanceof Error ? err.message : 'An unexpected error occurred.' });
     } finally {
@@ -1129,6 +1156,11 @@ function SpaceEditPageComponent() {
       </Dialog>
 
       <FileViewer file={viewingFile} open={isFileViewerOpen} onOpenChange={setIsFileViewerOpen} bucket="vdr-files" />
+
+      {/* Bottom-right upload tracker (per-file progress, auto-hides after 30s) */}
+      {uploadTracker.visible && uploadTracker.items.length > 0 && (
+        <UploadProgressPanel items={uploadTracker.items} onClose={uploadTracker.close} />
+      )}
     </TooltipProvider>
   );
 }
