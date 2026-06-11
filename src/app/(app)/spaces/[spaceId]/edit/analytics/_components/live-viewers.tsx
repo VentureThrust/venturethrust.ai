@@ -1,30 +1,24 @@
 'use client';
 
 /**
- * LiveViewers - editorial-style analytics overview.
+ * LiveViewers - the analytics overview sections, redesigned as premium cards:
  *
- * Three sections stacked top-to-bottom, separated by horizontal rules
- * (NO card wrappers - the user explicitly didn't want "AI template"
- * card-heavy layout):
+ *   1. Live now            (realtime + heartbeat; green is reserved for live)
+ *   2. Recent sessions     (table card, first 5 + see more)
+ *   3. Visitors            (grouped by email; expand to sessions; click a
+ *                           session and the parent opens SessionDetailView)
  *
- *   1. Currently active viewers (real-time + heartbeat)
- *   2. Recent visitor sessions (first 5 + see-more)
- *   3. Visitors grouped by email - click a visitor expands to their
- *      sessions. Click a session calls `onSelectSession` so the parent
- *      can swap the overview for a dedicated session-detail view.
- *
- * Color-coded throughout - green for live, indigo/purple/red etc. for
- * file types via @/lib/file-icons.
+ * White rounded cards, quiet gray chrome, one blue accent, tabular numbers.
+ * All data logic (fetch, realtime channel, grouping) is unchanged.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Eye, Laptop, FileText, Users as UsersIcon,
-  Smartphone, Tablet, MapPin, ChevronDown, ChevronRight,
+  Eye, Laptop, Smartphone, Tablet, MapPin, ChevronDown, ChevronRight,
+  Users as UsersIcon, Radio,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -62,6 +56,7 @@ export type FileWithVisits = {
 
 const ACTIVE_WINDOW_MS = 15_000;
 const INITIAL_SESSION_COUNT = 5;
+const BLUE = '#4285F4';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -81,7 +76,7 @@ export function sessionDuration(s: ViewerSession): number {
   return Math.max(0, Math.floor((end - new Date(s.started_at).getTime()) / 1000));
 }
 
-// ─── Device icon ──────────────────────────────────────────────────────────────
+// ─── Small pieces ─────────────────────────────────────────────────────────────
 
 function DeviceIcon({ device }: { device: string | null }) {
   const d = (device ?? '').toLowerCase();
@@ -90,45 +85,40 @@ function DeviceIcon({ device }: { device: string | null }) {
   return <Laptop className="h-3.5 w-3.5" />;
 }
 
-// ─── Section header - replaces <CardHeader>/<CardTitle>/<CardDescription> ─────
+function CountChip({ n }: { n: number }) {
+  return (
+    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium tabular-nums text-gray-500">
+      {n}
+    </span>
+  );
+}
 
-function SectionHeader({
+function CardHeader({
   icon: Icon,
   title,
-  count,
   description,
-  iconClassName,
-  accessory,
+  right,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string }>;
   title: React.ReactNode;
-  count?: number;
   description?: React.ReactNode;
-  iconClassName?: string;
-  accessory?: React.ReactNode;
+  right?: React.ReactNode;
 }) {
   return (
-    <div className="pb-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5">
-          <Icon className={cn('h-5 w-5', iconClassName ?? 'text-muted-foreground')} />
-          <h2 className="text-xl font-medium tracking-tight">{title}</h2>
-          {count !== undefined && (
-            <Badge variant="secondary" className="ml-1 text-sm font-medium">
-              {count}
-            </Badge>
-          )}
+    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="h-4 w-4 text-gray-400" />}
+          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
         </div>
-        {accessory}
+        {description && <p className="mt-0.5 text-xs text-gray-400">{description}</p>}
       </div>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">{description}</p>
-      )}
+      {right}
     </div>
   );
 }
 
-// ─── Visitor row (inside the Visitors section) ───────────────────────────────
+// ─── Visitor row (inside the Visitors card) ───────────────────────────────────
 
 function VisitorRow({
   email,
@@ -144,72 +134,65 @@ function VisitorRow({
   const lastDuration = sessionDuration(lastSession);
   const displayEmail = email === 'anonymous' ? 'Anonymous' : email;
   const initial = displayEmail[0].toUpperCase();
+  const totalSeconds = sessions.reduce((sum, s) => sum + sessionDuration(s), 0);
 
   return (
-    <>
-      {/* Visitor summary row (clickable to expand session list) */}
+    <div>
       <div
-        className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-6 py-4 cursor-pointer hover:bg-muted/30 transition-colors -mx-2 px-2 rounded-md"
+        className="flex cursor-pointer items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50"
         onClick={() => setExpanded(p => !p)}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="h-10 w-10 shrink-0">
-            <AvatarFallback className="text-sm bg-blue-100 text-blue-700 font-semibold">{initial}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="font-semibold text-base leading-tight truncate">{displayEmail}</div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {sessions.length} session{sessions.length !== 1 ? 's' : ''}
-            </div>
+        <Avatar className="h-9 w-9 shrink-0">
+          <AvatarFallback className="bg-[#F0F5FF] text-sm font-semibold" style={{ color: BLUE }}>
+            {initial}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-gray-900">{displayEmail}</div>
+          <div className="mt-0.5 text-xs text-gray-400">
+            {sessions.length} session{sessions.length !== 1 ? 's' : ''} · {formatDuration(totalSeconds)} total
           </div>
         </div>
-        <div className="text-base text-muted-foreground whitespace-nowrap min-w-[140px] text-right">
-          {formatDistanceToNow(new Date(lastSession.started_at), { addSuffix: true })}
+        <div className="hidden text-right sm:block">
+          <div className="text-xs text-gray-400">
+            {formatDistanceToNow(new Date(lastSession.started_at), { addSuffix: true })}
+          </div>
+          <div className="mt-0.5 text-sm font-medium tabular-nums text-gray-700">
+            {formatDuration(lastDuration)}
+          </div>
         </div>
-        <div className="font-mono text-base tabular-nums whitespace-nowrap min-w-[80px] text-right">
-          {formatDuration(lastDuration)}
-        </div>
-        <div className="w-6 text-right">
-          {expanded
-            ? <ChevronDown className="h-5 w-5 text-muted-foreground" />
-            : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-        </div>
+        <ChevronDown
+          className={cn('h-4 w-4 shrink-0 text-gray-300 transition-transform', expanded && 'rotate-180')}
+        />
       </div>
 
-      {/* Sessions list - each one opens the dedicated session view on click */}
       {expanded && (
-        <div className="bg-muted/20 -mx-2 px-2">
-          {sessions.map((s, idx) => {
+        <div className="border-t border-gray-50 bg-gray-50/50">
+          {sessions.map((s) => {
             const dur = sessionDuration(s);
-            const isLast = idx === sessions.length - 1;
             return (
               <div
                 key={s.id}
-                className={cn(
-                  'flex items-center gap-4 py-3 pl-14 pr-2 cursor-pointer hover:bg-muted/40 transition-colors',
-                  !isLast && 'border-b border-gray-100'
-                )}
+                className="flex cursor-pointer items-center gap-3 py-2.5 pl-[4.25rem] pr-5 transition-colors hover:bg-gray-100/70"
                 onClick={() => onSelectSession(s)}
               >
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm font-medium flex-1 truncate">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300" />
+                <span className="flex-1 truncate text-[13px] font-medium text-gray-700">
                   {format(new Date(s.started_at), 'MMM d, h:mm a')}
                 </span>
-                <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[120px] text-right">
+                <span className="hidden text-xs text-gray-400 sm:block">
                   {formatDistanceToNow(new Date(s.started_at), { addSuffix: true })}
                 </span>
-                <span className="font-mono text-sm tabular-nums whitespace-nowrap min-w-[80px] text-right">
+                <span className="min-w-[64px] text-right text-[13px] tabular-nums text-gray-600">
                   {formatDuration(dur)}
                 </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
               </div>
             );
           })}
         </div>
       )}
-
-      {/* Thin divider between visitors */}
-      <div className="border-b border-gray-200" />
-    </>
+    </div>
   );
 }
 
@@ -323,84 +306,89 @@ export function LiveViewers({
 
   if (isLoading) {
     return (
-      <div className="py-10 text-center text-muted-foreground text-sm">
+      <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm text-muted-foreground shadow-sm">
         Loading session data…
       </div>
     );
   }
 
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-6">
 
-      {/* ── 1. Currently active ─────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between gap-3 flex-wrap pb-3">
+      {/* ── 1. Live now ──────────────────────────────────────────────────── */}
+      <section
+        className={cn(
+          'overflow-hidden rounded-xl border shadow-sm',
+          active.length > 0 ? 'border-green-200 bg-green-50/40' : 'border-gray-200 bg-white',
+        )}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3">
+            <span className="relative flex h-2.5 w-2.5">
               {active.length > 0 && (
-                <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
               )}
-              <span className={cn('relative inline-flex h-3 w-3 rounded-full',
+              <span className={cn('relative inline-flex h-2.5 w-2.5 rounded-full',
                 active.length > 0 ? 'bg-green-500' : 'bg-gray-300')} />
             </span>
-            <h2 className="text-xl font-medium tracking-tight">
+            <h2 className="text-base font-semibold text-gray-900">
               {active.length > 0
-                ? `${active.length} viewer${active.length > 1 ? 's' : ''} currently inside`
-                : 'No viewers right now'}
+                ? `Live now · ${active.length} viewer${active.length > 1 ? 's' : ''}`
+                : 'Live now'}
             </h2>
           </div>
-          <Badge variant="outline" className="text-xs gap-1 border-green-300 text-green-700 bg-green-50">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            LIVE
-          </Badge>
+          <span className={cn(
+            'flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+            active.length > 0 ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-400',
+          )}>
+            <Radio className="h-3 w-3" /> LIVE
+          </span>
         </div>
-        <div className="-mx-4 sm:-mx-6 border-t border-gray-200" />
-        {active.length === 0 && (
-          <p className="py-6 text-sm text-muted-foreground">
-            Heartbeats fire every 5 seconds. When someone opens this space&apos;s share link, they&apos;ll show up here in real time.
+
+        {active.length === 0 ? (
+          <p className="border-t border-gray-100 px-5 py-4 text-sm text-gray-400">
+            No one is inside right now. Visitors appear here the moment they open your link.
           </p>
-        )}
-        {active.length > 0 && (
-          <div className="divide-y divide-gray-100">
+        ) : (
+          <div className="divide-y divide-green-100 border-t border-green-100">
             {active.map(s => {
               const elapsed = Math.floor((now - new Date(s.started_at).getTime()) / 1000);
               return (
-                <div key={s.id} className="flex items-center gap-3 py-4">
+                <div key={s.id} className="flex items-center gap-3 px-5 py-3.5">
                   <div className="relative shrink-0">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-green-600 text-white text-sm font-semibold">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-green-600 text-sm font-semibold text-white">
                         {(s.visitor_email ?? 'A')[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-base truncate">{s.visitor_email ?? 'Anonymous viewer'}</span>
-                      <Badge variant="outline" className="text-xs py-0 h-5 border-green-300 text-green-700 bg-white">Active</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-gray-900">
+                      {s.visitor_email ?? 'Anonymous viewer'}
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
                       {s.current_file_name ? (() => {
                         const { Icon, text } = getFileTypeStyle(s.current_file_name);
                         return (
-                          <span className="flex items-center gap-1.5 truncate min-w-0">
-                            <Icon className={cn('h-4 w-4 shrink-0', text)} />
-                            Viewing: <span className="font-medium text-foreground ml-1">{s.current_file_name}</span>
+                          <span className="flex min-w-0 items-center gap-1.5 truncate">
+                            <Icon className={cn('h-3.5 w-3.5 shrink-0', text)} />
+                            <span className="truncate">{s.current_file_name}</span>
                           </span>
                         );
                       })() : (
-                        <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" />Browsing space</span>
+                        <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" />Browsing the space</span>
                       )}
                       {s.location && (
-                        <span className="flex items-center gap-1.5 shrink-0">
-                          <MapPin className="h-3.5 w-3.5 text-rose-500" />{s.location}
+                        <span className="flex shrink-0 items-center gap-1">
+                          <MapPin className="h-3 w-3 text-gray-400" />{s.location}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-mono font-semibold text-base tabular-nums text-green-700">{formatDuration(elapsed)}</div>
-                    <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground mt-0.5">
+                  <div className="shrink-0 text-right">
+                    <div className="text-sm font-semibold tabular-nums text-green-700">{formatDuration(elapsed)}</div>
+                    <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-gray-400">
                       <DeviceIcon device={s.device} />{s.device ?? 'Unknown'}
                     </div>
                   </div>
@@ -411,71 +399,68 @@ export function LiveViewers({
         )}
       </section>
 
-      {/* ── 2. Recent visitor sessions ──────────────────────────────────── */}
-      <section>
-        <SectionHeader
-          icon={UsersIcon}
-          iconClassName="text-blue-600"
-          title="Recent visitor sessions"
-          count={past.length}
-          description="Click any row to open the full session and see which files were opened."
+      {/* ── 2. Recent sessions ───────────────────────────────────────────── */}
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <CardHeader
+          icon={Eye}
+          title="Recent sessions"
+          description="Every visit, most recent first. Open one to see exactly what they viewed."
+          right={<CountChip n={past.length} />}
         />
-        <div className="-mx-4 sm:-mx-6 border-t border-gray-200" />
         {past.length === 0 ? (
-          <p className="py-10 text-center text-muted-foreground text-sm">No completed visits yet.</p>
+          <p className="px-5 py-10 text-center text-sm text-gray-400">
+            No completed visits yet. Share your link to start tracking.
+          </p>
         ) : (
           <>
-            <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.8fr_1fr_1fr] gap-4 py-3 text-sm text-muted-foreground uppercase tracking-wider font-semibold border-b border-gray-100">
+            <div className="hidden grid-cols-[1.5fr_1.2fr_0.7fr_0.8fr_1fr] gap-4 border-b border-gray-100 bg-gray-50/60 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:grid">
               <div>Visitor</div>
               <div>Last file</div>
               <div>Duration</div>
               <div>Device</div>
-              <div>Location</div>
               <div className="text-right">When</div>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-50">
               {displayedSessions.map(s => {
                 const duration = sessionDuration(s);
                 return (
                   <div
                     key={s.id}
-                    className="grid grid-cols-[1.4fr_1fr_0.8fr_0.8fr_1fr_1fr] gap-4 py-4 items-center hover:bg-muted/30 transition-colors cursor-pointer -mx-2 px-2 rounded-md"
+                    className="grid cursor-pointer grid-cols-[1.5fr_auto] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50 md:grid-cols-[1.5fr_1.2fr_0.7fr_0.8fr_1fr] md:gap-4"
                     onClick={() => onSelectSession(s)}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Avatar className="h-9 w-9 shrink-0">
-                        <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="bg-[#F0F5FF] text-xs font-semibold" style={{ color: BLUE }}>
                           {(s.visitor_email ?? 'A')[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="truncate font-medium text-sm">{s.visitor_email ?? 'Anonymous'}</span>
+                      <span className="truncate text-sm font-medium text-gray-900">
+                        {s.visitor_email ?? 'Anonymous'}
+                      </span>
                     </div>
-                    <div className="min-w-0">
+                    <div className="hidden min-w-0 md:block">
                       {s.current_file_name ? (() => {
                         const { Icon, text } = getFileTypeStyle(s.current_file_name);
                         return (
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Icon className={cn('h-4 w-4 shrink-0', text)} />
-                            <span className="truncate text-sm" title={s.current_file_name}>{s.current_file_name}</span>
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <Icon className={cn('h-3.5 w-3.5 shrink-0', text)} />
+                            <span className="truncate text-[13px] text-gray-600" title={s.current_file_name}>
+                              {s.current_file_name}
+                            </span>
                           </div>
                         );
-                      })() : <span className="text-sm text-muted-foreground">-</span>}
+                      })() : <span className="text-[13px] text-gray-300">No file opened</span>}
                     </div>
-                    <div className="font-mono text-sm tabular-nums">{formatDuration(duration)}</div>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <DeviceIcon device={s.device} />{s.device ?? '-'}
+                    <div className="hidden text-[13px] font-medium tabular-nums text-gray-700 md:block">
+                      {formatDuration(duration)}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {s.location ? (
-                        <span className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-rose-500" />
-                          <span className="truncate" title={s.location}>{s.location}</span>
-                        </span>
-                      ) : '-'}
+                    <div className="hidden items-center gap-1.5 text-[13px] text-gray-500 md:flex">
+                      <DeviceIcon device={s.device} />{s.device ?? 'Unknown'}
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <div>{format(new Date(s.started_at), 'MMM d, h:mm a')}</div>
-                      <div className="text-xs">
+                    <div className="text-right">
+                      <div className="text-[13px] text-gray-600">{format(new Date(s.started_at), 'MMM d, h:mm a')}</div>
+                      <div className="text-[11px] text-gray-400">
                         {formatDistanceToNow(new Date(s.started_at), { addSuffix: true })}
                       </div>
                     </div>
@@ -485,14 +470,14 @@ export function LiveViewers({
             </div>
 
             {past.length > INITIAL_SESSION_COUNT && (
-              <div className="mt-4 pt-3 flex justify-center">
+              <div className="border-t border-gray-100 py-2 text-center">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-sm gap-1.5 text-muted-foreground hover:text-foreground"
+                  className="gap-1.5 text-xs text-gray-500 hover:text-gray-900"
                   onClick={() => setShowAllSessions(p => !p)}
                 >
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showAllSessions ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAllSessions ? 'rotate-180' : ''}`} />
                   {showAllSessions ? 'Show less' : `See ${hiddenCount} more session${hiddenCount !== 1 ? 's' : ''}`}
                 </Button>
               </div>
@@ -501,26 +486,20 @@ export function LiveViewers({
         )}
       </section>
 
-      {/* ── 3. Visitors - grouped by email ──────────────────────────────── */}
+      {/* ── 3. Visitors, grouped by email ────────────────────────────────── */}
       {visitorGroups.length > 0 && (
-        <section>
-          <SectionHeader
+        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <CardHeader
             icon={UsersIcon}
-            iconClassName="text-purple-600"
             title="Visitors"
-            count={visitorGroups.length}
-            description="Click a visitor to expand their sessions. Click a session to see which files were opened and how long was spent on each."
+            description="Everyone who has opened this space, with their full visit history."
+            right={<CountChip n={visitorGroups.length} />}
           />
-          <div className="-mx-4 sm:-mx-6 border-t border-gray-200" />
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-6 py-3 text-sm text-muted-foreground uppercase tracking-wider font-semibold border-b border-gray-100">
-            <div>Visitor</div>
-            <div className="text-right min-w-[140px]">Last visited</div>
-            <div className="text-right min-w-[80px]">Time (last visit)</div>
-            <div className="w-6" />
+          <div className="divide-y divide-gray-50">
+            {visitorGroups.map(([email, ss]) => (
+              <VisitorRow key={email} email={email} sessions={ss} onSelectSession={onSelectSession} />
+            ))}
           </div>
-          {visitorGroups.map(([email, ss]) => (
-            <VisitorRow key={email} email={email} sessions={ss} onSelectSession={onSelectSession} />
-          ))}
         </section>
       )}
 

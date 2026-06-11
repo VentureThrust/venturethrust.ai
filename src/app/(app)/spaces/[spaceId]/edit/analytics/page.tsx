@@ -3,19 +3,20 @@
 /**
  * Space Analytics page - three modes via state:
  *
- *   1. Overview      → header + stats strip + LiveViewers + file analytics list
+ *   1. Overview      → header + stat cards + weekly chart + LiveViewers + files
  *   2. Session       → SessionDetailView for the clicked session
  *   3. File drilldown→ FileAnalyticsDrilldown (per-page PDF / video heatmap)
  *
- * Editorial layout - no card wrappers, horizontal rule separators.
+ * Premium dashboard look: white cards on a quiet background, one blue accent
+ * (#4285F4), green reserved for live, tabular numbers, micro uppercase labels.
  */
 
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
-  Loader2, Package, BarChart3, ChevronRight,
-  Users, Clock, Eye, Files,
+  Loader2, Package, ChevronRight,
+  Users, Clock, Eye, Files, BarChart3,
 } from 'lucide-react';
 import type { FileVisitEntry } from '@/app/spaces/[spaceId]/view/page';
 import {
@@ -29,6 +30,8 @@ import { FileAnalyticsDrilldown } from './_components/file-analytics-drilldown';
 import { getFileTypeStyle } from '@/lib/file-icons';
 import { cn } from '@/lib/utils';
 
+const BLUE = '#4285F4';
+
 type FileWithVisitsLocal = {
   id: string;
   name: string;
@@ -36,56 +39,127 @@ type FileWithVisitsLocal = {
   visits: FileVisitEntry[] | null;
 };
 
-// ─── Stats strip (no cards - labels + big numbers separated by lines) ─────────
+// ─── Stat cards ───────────────────────────────────────────────────────────────
 
-function StatsStrip({
+function StatCards({
   uniqueVisitors,
   totalSessions,
   totalSeconds,
   filesEngaged,
+  totalFiles,
 }: {
   uniqueVisitors: number;
   totalSessions: number;
   totalSeconds: number;
   filesEngaged: number;
+  totalFiles: number;
 }) {
+  const avg = totalSessions > 0 ? Math.floor(totalSeconds / totalSessions) : 0;
   const stats = [
     {
-      icon: <Users className="h-4 w-4 text-blue-600" />,
+      icon: Users,
       label: 'Unique visitors',
-      value: uniqueVisitors,
+      value: String(uniqueVisitors),
+      sub: `across ${totalSessions} session${totalSessions === 1 ? '' : 's'}`,
     },
     {
-      icon: <Eye className="h-4 w-4 text-green-600" />,
+      icon: Eye,
       label: 'Sessions',
-      value: totalSessions,
+      value: String(totalSessions),
+      sub: avg > 0 ? `avg ${formatDuration(avg)} each` : 'no time recorded yet',
     },
     {
-      icon: <Clock className="h-4 w-4 text-amber-600" />,
+      icon: Clock,
       label: 'Total time',
       value: totalSeconds > 0 ? formatDuration(totalSeconds) : '0s',
+      sub: 'all visitors combined',
     },
     {
-      icon: <Files className="h-4 w-4 text-purple-600" />,
+      icon: Files,
       label: 'Files engaged',
-      value: filesEngaged,
+      value: String(filesEngaged),
+      sub: `of ${totalFiles} file${totalFiles === 1 ? '' : 's'} in this space`,
     },
   ];
 
   return (
-    // -mx-4 sm:-mx-6 pulls the strip out past the page padding so the
-    // top/bottom borders go fully edge-to-edge (no gap on the sides).
-    // Numbers are font-semibold (was bold) to match the lighter heading.
-    <div className="-mx-4 sm:-mx-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 border-y border-gray-200 py-6">
-      {stats.map((s, i) => (
-        <div key={i} className="px-6">
-          <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-            {s.icon}
-            {s.label}
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {stats.map((s) => (
+        <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              {s.label}
+            </span>
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#F0F5FF]">
+              <s.icon className="h-3.5 w-3.5" style={{ color: BLUE }} />
+            </span>
           </div>
-          <div className="text-3xl font-semibold tracking-tight mt-2 tabular-nums">{s.value}</div>
+          <div className="mt-3 text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-gray-900">
+            {s.value}
+          </div>
+          <p className="mt-2 text-xs text-gray-400">{s.sub}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Visits this week (pure CSS bar chart from session timestamps) ───────────
+
+function WeekChart({ sessions }: { sessions: { started_at: string }[] }) {
+  const days = useMemo(() => {
+    const out: { label: string; date: string; count: number; today: boolean }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      out.push({
+        label: d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2),
+        date: d.toDateString(),
+        count: 0,
+        today: i === 0,
+      });
+    }
+    for (const s of sessions) {
+      const ds = new Date(s.started_at).toDateString();
+      const hit = out.find((o) => o.date === ds);
+      if (hit) hit.count += 1;
+    }
+    return out;
+  }, [sessions]);
+
+  const max = Math.max(1, ...days.map((d) => d.count));
+  const total = days.reduce((s, d) => s + d.count, 0);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Visits this week</p>
+          <p className="mt-0.5 text-xs text-gray-400">Sessions started in the last 7 days</p>
+        </div>
+        <span className="text-2xl font-semibold tabular-nums tracking-tight text-gray-900">{total}</span>
+      </div>
+      <div className="mt-5 flex h-28 items-end gap-3">
+        {days.map((d) => (
+          <div key={d.date} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+            <span className={cn('text-[11px] tabular-nums', d.count > 0 ? 'text-gray-500' : 'text-transparent')}>
+              {d.count}
+            </span>
+            <div
+              className="w-full max-w-[42px] rounded-md transition-all"
+              style={{
+                height: `${Math.max(d.count > 0 ? 14 : 4, (d.count / max) * 100)}%`,
+                background: d.count > 0 ? BLUE : '#F3F4F6',
+                opacity: d.count > 0 ? (d.today ? 1 : 0.55) : 1,
+              }}
+            />
+            <span className={cn('text-[11px]', d.today ? 'font-semibold text-gray-900' : 'text-gray-400')}>
+              {d.label}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -154,9 +228,6 @@ export default function SpaceAnalyticsPage() {
 
     // Realtime: silently re-load so Visitors, Recent sessions and Deep file
     // analytics all refresh live (debounced to coalesce bursts).
-    //   - viewer_sessions → visitor enters / heart-beats / leaves
-    //   - file_page_views → a visitor flips a page (instant, not just on the
-    //     next heartbeat) so per-file engagement updates immediately.
     const channel = supabase
       .channel(`space_analytics:${spaceId}`)
       .on('postgres_changes', {
@@ -173,13 +244,9 @@ export default function SpaceAnalyticsPage() {
       }, scheduleReload)
       .subscribe();
 
-    // Safety-net polling - guarantees the Visitors list, sessions and Deep file
-    // analytics refresh within ~12s even if a realtime event is missed (RLS,
-    // connection hiccup, or free-tier limits). Realtime makes it instant; this
-    // makes it reliable.
+    // Safety-net polling - keeps everything fresh even if realtime misses.
     const poll = setInterval(() => load(true), 12000);
 
-    // Also re-load when the tab regains focus (owner switches back to it).
     const onFocus = () => load(true);
     window.addEventListener('focus', onFocus);
 
@@ -251,84 +318,97 @@ export default function SpaceAnalyticsPage() {
 
   // ── Mode: Overview ──
   return (
-    <div className="w-full flex flex-col gap-10">
-      {/* Header - title + space context. font-medium (not bold) reads as
-          editorial / refined; tight tracking gives it presence without the
-          heavy "chunky" look the user flagged on the previous bold version. */}
-      <header>
-        <p className="text-sm text-muted-foreground font-medium uppercase tracking-[0.15em]">
-          {spaceName}
-        </p>
-        <h1 className="text-[2.25rem] leading-[1.1] font-medium tracking-tight mt-2">Analytics</h1>
+    <div className="mx-auto w-full max-w-5xl flex flex-col gap-6 pb-10">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-400">
+            {spaceName}
+          </p>
+          <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-gray-900">Analytics</h1>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          Updating live
+        </span>
       </header>
 
-      {/* Stats strip - high-density summary, no card boxes */}
-      <StatsStrip
+      {/* Stat cards */}
+      <StatCards
         uniqueVisitors={stats.uniqueVisitors}
         totalSessions={stats.totalSessions}
         totalSeconds={stats.totalSeconds}
         filesEngaged={stats.filesEngaged}
+        totalFiles={files.length}
       />
 
-      {!hasFiles ? (
-        <>
-          <LiveViewers spaceId={spaceId} onSelectSession={setDrillSession} />
-          <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
-            <Package className="h-12 w-12" />
-            <p className="text-sm">No files in this space yet.</p>
-          </div>
-        </>
-      ) : (
-        <>
-          <LiveViewers spaceId={spaceId} onSelectSession={setDrillSession} />
+      {/* Weekly visits chart */}
+      <WeekChart sessions={sessionMeta} />
 
-          {/* Per-file drilldown launcher */}
-          <section>
-            <div className="pb-4">
-              <div className="flex items-center gap-2.5">
-                <BarChart3 className="h-5 w-5 text-orange-500" />
-                <h2 className="text-xl font-medium tracking-tight">Deep file analytics</h2>
+      {/* Live + sessions + visitors */}
+      <LiveViewers spaceId={spaceId} onSelectSession={setDrillSession} />
+
+      {/* Per-file drilldown launcher */}
+      {!hasFiles ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-14 text-muted-foreground">
+          <Package className="h-10 w-10 text-gray-300" />
+          <p className="text-sm">No files in this space yet.</p>
+        </div>
+      ) : (
+        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-gray-400" />
+                <h2 className="text-base font-semibold text-gray-900">File engagement</h2>
               </div>
-              <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
-                Click any file to see per-page time for PDFs or a playback heatmap for videos.
-                Updates in real time as visitors browse.
+              <p className="mt-0.5 text-xs text-gray-400">
+                Open any file for per page time on PDFs or a playback heatmap on videos.
               </p>
             </div>
-            <div className="-mx-4 sm:-mx-6 border-t border-gray-200" />
-            <div className="divide-y divide-gray-100">
-              {files.map(file => {
-                const { Icon, bg, text } = getFileTypeStyle(file.name);
-                const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-                const isPdf = ext === 'pdf' || file.type?.includes('pdf');
-                const isVideo =
-                  ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext) ||
-                  file.type?.startsWith('video/');
-                const supported = isPdf || isVideo;
-                return (
-                  <button
-                    key={file.id}
-                    onClick={() => supported && setDrillFile({ id: file.id, name: file.name, type: file.type ?? '' })}
-                    disabled={!supported}
-                    className={cn(
-                      'w-full flex items-center gap-3 py-4 text-left -mx-2 px-2 rounded-md transition-colors',
-                      supported && 'hover:bg-muted/30 cursor-pointer',
-                      !supported && 'cursor-not-allowed opacity-60',
-                    )}
-                  >
-                    <div className={cn('h-10 w-10 rounded-md flex items-center justify-center shrink-0', bg)}>
-                      <Icon className={cn('h-5 w-5', text)} />
-                    </div>
-                    <span className="flex-1 text-base truncate">{file.name}</span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                      {isPdf ? 'PDF' : isVideo ? 'Video' : ext || 'File'}
-                    </span>
-                    {supported && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        </>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+              {files.length}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {files.map(file => {
+              const { Icon, bg, text } = getFileTypeStyle(file.name);
+              const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+              const isPdf = ext === 'pdf' || file.type?.includes('pdf');
+              const isVideo =
+                ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext) ||
+                file.type?.startsWith('video/');
+              const supported = isPdf || isVideo;
+              const opens = (file.visits ?? []).length;
+              return (
+                <button
+                  key={file.id}
+                  onClick={() => supported && setDrillFile({ id: file.id, name: file.name, type: file.type ?? '' })}
+                  disabled={!supported}
+                  className={cn(
+                    'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors',
+                    supported && 'cursor-pointer hover:bg-gray-50',
+                    !supported && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', bg)}>
+                    <Icon className={cn('h-4 w-4', text)} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-900">{file.name}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      {opens > 0 ? `${opens} open${opens === 1 ? '' : 's'}` : 'No opens yet'}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                    {isPdf ? 'PDF' : isVideo ? 'Video' : ext || 'File'}
+                  </span>
+                  {supported && <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />}
+                </button>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );
