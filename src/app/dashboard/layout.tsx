@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { AlertsProvider } from '@/lib/alerts-provider';
 import { UserProvider } from '@/hooks/use-user';
 import { PlanGate } from '@/components/plan-gate';
+import { AuthSyncGuard } from '@/components/auth-sync-guard';
 import { NavigationLoader } from '@/components/NavigationLoader';
 import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
@@ -74,6 +75,7 @@ export default function DashboardLayout({
 }) {
   return (
     <UserProvider>
+      <AuthSyncGuard />
       <PlanGate>
         <AlertsProvider>
           <LayoutProvider>
