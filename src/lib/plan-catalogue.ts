@@ -36,8 +36,8 @@ export const PLAN_TIERS: PlanTier[] = [
     spaces: 2,
     visitorsPerSpace: 3,
     storageGb: 2,
-    tagline: 'Full access while we are in early access.',
-    note: 'No card required.',
+    tagline: 'Try everything free for 7 days.',
+    note: '7-day free trial. No card required.',
     features: [
       '1 member',
       '2 spaces',

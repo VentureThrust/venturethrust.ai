@@ -20,9 +20,10 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-// Free access does not expire on its own. A far-future date keeps it "active"
-// under the (strict) plan gate, which requires a future plan_expires_at.
-const FAR_FUTURE = '2099-12-31T23:59:59.000Z';
+// The free plan is a 7-day trial. After it lapses the plan gate sends the user
+// back to choose a plan, and the device fingerprint blocks re-claiming the
+// trial with a fresh email on the same device.
+const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
         email: user.email ?? null,
         plan: 'vdr_only',
         plan_status: 'free',
-        plan_expires_at: FAR_FUTURE,
+        plan_expires_at: new Date(Date.now() + TRIAL_MS).toISOString(),
       },
       { onConflict: 'id' },
     );

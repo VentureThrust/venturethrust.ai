@@ -208,7 +208,9 @@ export default function BillingPage() {
               <div className="mt-1 text-2xl font-bold">{currentTier.name}</div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isFree
-                  ? 'Full access during early access. Upgrade any time for more.'
+                  ? user?.planExpiresAt
+                    ? `Your free trial runs until ${fmtDate(user.planExpiresAt)}. Upgrade to keep access.`
+                    : 'Your free trial is active. Upgrade to keep access.'
                   : user?.planExpiresAt
                     ? active
                       ? `Your access runs until ${fmtDate(user.planExpiresAt)}.`

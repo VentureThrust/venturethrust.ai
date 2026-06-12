@@ -15,6 +15,7 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
 import { HeroWalkthrough } from '@/components/landing/hero-walkthrough';
+import { LinkSettingsDemo } from '@/components/landing/link-settings-demo';
 import {
   ArrowRight,
   Check,
@@ -28,42 +29,6 @@ import {
 const BLUE = '#4285F4';
 
 // ── Small mock visuals for the feature sections ───────────────────────────────
-
-function LinkControlsMock() {
-  const rows = [
-    { label: 'Require email to view', on: true },
-    { label: 'Passcode', on: true, value: '••••••' },
-    { label: 'Expires', on: true, value: 'Jul 15, 2026' },
-    { label: 'Allow downloading', on: false },
-    { label: 'Watermark with viewer email', on: true },
-  ];
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-gray-900">Link settings</p>
-      <p className="text-xs text-gray-400">Series A Data Room</p>
-      <div className="mt-4 space-y-3">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between">
-            <span className="text-[13px] text-gray-700">{r.label}</span>
-            <span className="flex items-center gap-2">
-              {r.value && <span className="text-[12px] text-gray-400">{r.value}</span>}
-              <span
-                className={`flex h-5 w-9 items-center rounded-full px-0.5 ${r.on ? '' : 'bg-gray-200'}`}
-                style={r.on ? { background: BLUE } : undefined}
-              >
-                <span className={`h-4 w-4 rounded-full bg-white shadow ${r.on ? 'ml-auto' : ''}`} />
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 ring-1 ring-gray-200">
-        <span className="truncate text-[12px] text-gray-500">venturethrust.com/shared/x7Kq2m</span>
-        <span className="text-[12px] font-medium" style={{ color: BLUE }}>Copy</span>
-      </div>
-    </div>
-  );
-}
 
 function AnalyticsMock() {
   const viewers = [
@@ -233,7 +198,7 @@ export default function LandingPage() {
           'Set expiry dates and revoke access any time',
           'Watermark pages with the viewer’s email',
         ]}
-        visual={<LinkControlsMock />}
+        visual={<LinkSettingsDemo />}
       />
 
       <Feature

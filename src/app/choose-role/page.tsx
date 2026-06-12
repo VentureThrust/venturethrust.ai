@@ -334,7 +334,7 @@ export default function ChoosePlanPage() {
                   {selecting === plan.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : plan.price === 0 ? (
-                    'Start free'
+                    'Start free trial'
                   ) : (
                     `Choose ${plan.name}`
                   )}

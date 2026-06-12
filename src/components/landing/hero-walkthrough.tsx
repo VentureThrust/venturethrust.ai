@@ -246,10 +246,10 @@ function LinkScreen() {
 function PermissionsScreen() {
   const rows = [
     { label: 'Require email to view', on: true },
-    { label: 'Passcode', on: true, value: '••••••' },
-    { label: 'Expires', on: true, value: 'Jul 15, 2026' },
-    { label: 'Allow downloading', on: false },
-    { label: 'Watermark with viewer email', on: true },
+    { label: 'Password', on: true, value: '••••••' },
+    { label: 'Expiration', on: true, value: 'Jul 15, 2026' },
+    { label: 'Require NDA', on: false },
+    { label: 'Watermark', on: true },
   ];
   return (
     <div className="relative h-full">
