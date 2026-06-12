@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/layout/logo';
 import { supabase } from '@/lib/supabaseClient';
+import { getDeviceFingerprint } from '@/lib/device-id';
 import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
@@ -76,6 +77,7 @@ export default function ChoosePlanPage() {
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState<{ planName: string; expiresAt: string | null } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -129,6 +131,7 @@ export default function ChoosePlanPage() {
     // Free plan: activate immediately, no payment.
     if (plan.price === 0) {
       setSelecting(plan.id);
+      setNotice(null);
       try {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
@@ -136,13 +139,21 @@ export default function ChoosePlanPage() {
           router.replace('/login');
           return;
         }
+        const fingerprint = await getDeviceFingerprint();
         const res = await fetch('/api/plan/activate-free', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ fingerprint }),
         });
         if (res.ok) {
           router.replace('/dashboard');
           return;
+        }
+        const json = await res.json().catch(() => ({}));
+        if (json?.error === 'device_used') {
+          setNotice(
+            'This device has already used the free plan. Choose a paid plan below to continue.',
+          );
         }
       } catch {
         /* fall through to re-enable the button */
@@ -226,6 +237,12 @@ export default function ChoosePlanPage() {
             free, upgrade when you grow.
           </p>
         </header>
+
+        {notice && (
+          <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+            {notice}
+          </div>
+        )}
 
         {/* Plan cards */}
         <div

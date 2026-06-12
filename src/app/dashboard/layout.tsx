@@ -26,6 +26,7 @@ import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
 import { WelcomeBackPopup } from '@/components/welcome-back-popup';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
+import { GlobalSearch } from '@/components/global-search';
 import { cn } from '@/lib/utils';
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
@@ -49,10 +50,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 items-center justify-between border-b px-4 sm:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="flex flex-1 justify-center">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search everything..." className="pl-9" />
-            </div>
+            <GlobalSearch />
           </div>
           <div className="flex items-center gap-2">
             <WorkspaceSwitcher />

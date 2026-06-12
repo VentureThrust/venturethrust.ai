@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,39 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await authed.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+
+    // ── One free plan per device ────────────────────────────────────────────
+    // Device fingerprint stops someone claiming the free plan repeatedly with
+    // throwaway emails on the same machine. Fails open if the table is missing
+    // (run the free_plan_claims migration to switch enforcement on).
+    let fingerprint = '';
+    try {
+      const body = await req.json();
+      fingerprint = typeof body?.fingerprint === 'string' ? body.fingerprint.slice(0, 64) : '';
+    } catch {
+      /* no body / not JSON - skip fingerprint check */
+    }
+    if (fingerprint) {
+      try {
+        const { data: claim } = await admin
+          .from('free_plan_claims')
+          .select('user_id')
+          .eq('fingerprint', fingerprint)
+          .maybeSingle();
+        if (claim && (claim as { user_id?: string }).user_id !== user.id) {
+          return NextResponse.json({ ok: false, error: 'device_used' }, { status: 403 });
+        }
+        if (!claim) {
+          await admin.from('free_plan_claims').insert({
+            fingerprint,
+            user_id: user.id,
+            ip: clientIp(req),
+          });
+        }
+      } catch (err) {
+        console.warn('[plan/activate-free] fingerprint check skipped:', (err as Error)?.message);
+      }
+    }
 
     const { error } = await admin.from('profiles').upsert(
       {
