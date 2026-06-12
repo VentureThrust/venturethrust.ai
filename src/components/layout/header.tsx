@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { Logo } from './logo';
+import { FeaturesMenu } from './features-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
@@ -23,15 +24,18 @@ export function Header() {
         <div className="flex items-center gap-6">
           <Logo />
           <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
+            <FeaturesMenu />
+            {navLinks
+              .filter((link) => link.label !== 'Features')
+              .map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
           </nav>
         </div>
         
