@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -42,7 +43,11 @@ export interface ShareSettings {
   watermark: { enabled: boolean; text?: string; position?: string; rotation?: string; opacity?: string };
   requireSignature: boolean;
   requireNDA: boolean;
+  ndaText?: string;
 }
+
+const DEFAULT_NDA_TEXT =
+  'By accessing this data room, I agree to keep all documents and information contained within it strictly confidential, to use them solely for the purpose of evaluating a potential transaction, and not to share, copy, or distribute them to any third party without the owner\'s written consent.';
 
 interface ShareSpaceDialogProps {
   isOpen: boolean;
@@ -136,7 +141,9 @@ export function ShareSpaceDialog({
     watermark: { enabled: false, text: '{{email}}', position: 'center', rotation: 'diagonal', opacity: '50' },
     requireSignature: false,
     requireNDA: false,
+    ndaText: DEFAULT_NDA_TEXT,
   });
+  const [isNdaOpen, setIsNdaOpen] = useState(false);
 
   const [isWatermarkOpen, setIsWatermarkOpen] = useState(false);
   const [passwordValue, setPasswordValue] = useState('');
@@ -205,6 +212,7 @@ export function ShareSpaceDialog({
           },
           requireSignature: data.require_signature ?? false,
           requireNDA: data.require_nda ?? false,
+          ndaText: data.nda_text ?? DEFAULT_NDA_TEXT,
           allowBlockList: {
             enabled: !!data.allow_block_type,
             type: (data.allow_block_type as 'allow' | 'block') ?? 'allow',
@@ -301,6 +309,7 @@ export function ShareSpaceDialog({
         ...basePayload,
         require_signature: settings.requireSignature,
         require_nda: settings.requireNDA,
+        nda_text: settings.requireNDA ? (settings.ndaText?.trim() || DEFAULT_NDA_TEXT) : null,
         allow_block_type: settings.allowBlockList.enabled ? settings.allowBlockList.type : null,
         allow_block_emails: settings.allowBlockList.enabled ? parsedEmails : null,
         watermark_text: settings.watermark.enabled ? settings.watermark.text : null,
@@ -531,19 +540,20 @@ export function ShareSpaceDialog({
             <div className="flex-1 flex flex-col gap-4">
               <h3 className="text-lg font-semibold">Advanced</h3>
 
-              <ControlButton icon={PenSquare} title="Require Signature" subtitle="Visitors must sign to access">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">PRO</Badge>
-                  <Switch
-                    checked={settings.requireSignature}
-                    onCheckedChange={(c) => setSettings(prev => ({ ...prev, requireSignature: c }))}
-                  />
-                </div>
+              <ControlButton icon={PenSquare} title="Require Signature" subtitle="Visitors must sign their name to enter">
+                <Switch
+                  checked={settings.requireSignature}
+                  onCheckedChange={(c) => setSettings(prev => ({ ...prev, requireSignature: c }))}
+                />
               </ControlButton>
 
-              <ControlButton icon={ShieldQuestion} title="Require NDA" subtitle="Visitors must agree to an NDA">
+              <ControlButton icon={ShieldQuestion} title="Require NDA" subtitle="Visitors must accept an NDA before viewing">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">PRO</Badge>
+                  {settings.requireNDA && (
+                    <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={() => setIsNdaOpen(true)}>
+                      Edit NDA
+                    </Button>
+                  )}
                   <Switch
                     checked={settings.requireNDA}
                     onCheckedChange={(c) => setSettings(prev => ({ ...prev, requireNDA: c }))}
@@ -801,6 +811,63 @@ export function ShareSpaceDialog({
               onClick={() => setIsWatermarkOpen(false)}
               disabled={!settings.watermark.text?.trim()}
             >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ NDA TEXT EDITOR ════════════════════════════════════════════════
+          Opens from the "Edit NDA" link. Visitors must read and accept this
+          exact text (via the NDA gate in /shared/[token]) before they can view
+          the space. Defaults to a sensible confidentiality undertaking.
+      ════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={isNdaOpen} onOpenChange={setIsNdaOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldQuestion className="h-5 w-5 text-blue-500" />
+              Non-disclosure agreement
+            </DialogTitle>
+            <DialogDescription>
+              Visitors must read and accept this before they can open the space. Edit the wording to suit your deal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-2">
+            <Label htmlFor="nda-text">NDA text</Label>
+            <Textarea
+              id="nda-text"
+              rows={9}
+              value={settings.ndaText ?? ''}
+              onChange={(e) => setSettings(prev => ({ ...prev, ndaText: e.target.value }))}
+              placeholder={DEFAULT_NDA_TEXT}
+              className="text-sm leading-relaxed"
+            />
+            <div className="flex justify-between">
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-xs text-muted-foreground"
+                onClick={() => setSettings(prev => ({ ...prev, ndaText: DEFAULT_NDA_TEXT }))}
+              >
+                Reset to default
+              </Button>
+              <span className="text-xs text-muted-foreground">{(settings.ndaText ?? '').length} characters</span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsNdaOpen(false);
+                setSettings(prev => ({ ...prev, requireNDA: false }));
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => setIsNdaOpen(false)} disabled={!settings.ndaText?.trim()}>
               Done
             </Button>
           </DialogFooter>
