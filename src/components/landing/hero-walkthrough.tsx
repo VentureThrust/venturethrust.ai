@@ -28,9 +28,7 @@ import {
   Search,
   Copy,
   Download,
-  MapPin,
-  History,
-  type LucideIcon,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -290,20 +288,56 @@ function PermissionsScreen() {
 const heatColor = (t: number) =>
   t >= 85 ? '#1e3a8a' : t >= 60 ? '#2563eb' : t >= 40 ? '#60a5fa' : t >= 20 ? '#93c5fd' : '#dbeafe';
 
+type VFile = { name: string; time: string; pct: number; action?: string };
+type Visitor = { email: string; initial: string; summary: string; live?: boolean; when?: string; files: VFile[] };
+
 function TrackScreen() {
+  const [open, setOpen] = useState(0);
   const stats = [
     { label: 'Visits', value: '12' },
     { label: 'Unique', value: '9' },
     { label: 'Avg time', value: '4m 38s' },
     { label: 'Downloads', value: '5' },
   ];
-  const activity: { who: string; what: string; when: string; live?: boolean; icon: LucideIcon; tone: string }[] = [
-    { who: 'priya@sequoiacap.in', what: 'Reading page 3 of Pitch Deck right now', when: 'now', live: true, icon: Eye, tone: 'bg-green-100 text-green-600' },
-    { who: 'priya@sequoiacap.in', what: 'Read 92% of the deck · 6:48 total', when: '2m', icon: Clock, tone: 'bg-blue-50 text-[#4285F4]' },
-    { who: 'rahul@blume.vc', what: 'Downloaded Financial Model.xlsx', when: '1h', icon: Download, tone: 'bg-violet-50 text-violet-600' },
-    { who: 'ankit@matrixpartners.in', what: 'Signed the NDA and entered the room', when: '3h', icon: FileSignature, tone: 'bg-amber-50 text-amber-600' },
-    { who: 'neha@accel.in', what: 'Opened the link · Mumbai · iPhone', when: '4h', icon: MapPin, tone: 'bg-rose-50 text-rose-500' },
-    { who: 'rahul@blume.vc', what: 'Returned for a 2nd visit', when: '5h', icon: History, tone: 'bg-blue-50 text-[#4285F4]' },
+  const visitors: Visitor[] = [
+    {
+      email: 'priya@sequoiacap.in',
+      initial: 'P',
+      live: true,
+      summary: 'On page 3 now · read 92% · 6:48',
+      files: [
+        { name: 'Pitch Deck.pdf', time: '4:32', pct: 92 },
+        { name: 'Financial Model.xlsx', time: '1:48', pct: 64 },
+        { name: 'Cap Table.pdf', time: '0:28', pct: 30 },
+      ],
+    },
+    {
+      email: 'rahul@blume.vc',
+      initial: 'R',
+      when: '1h',
+      summary: 'Read 71% · 4:32 · 1 download',
+      files: [
+        { name: 'Financial Model.xlsx', time: '3:10', pct: 88, action: 'Downloaded' },
+        { name: 'Pitch Deck.pdf', time: '1:22', pct: 40 },
+      ],
+    },
+    {
+      email: 'ankit@matrixpartners.in',
+      initial: 'A',
+      when: '3h',
+      summary: 'Signed NDA · 2:10 · 2 files',
+      files: [
+        { name: 'Pitch Deck.pdf', time: '1:40', pct: 55 },
+        { name: 'Term Sheet Draft.pdf', time: '0:30', pct: 20 },
+      ],
+    },
+    {
+      email: 'neha@accel.in',
+      initial: 'N',
+      when: '4h',
+      summary: 'Mumbai · iPhone · 1:05',
+      files: [{ name: 'Pitch Deck.pdf', time: '1:05', pct: 35 }],
+    },
   ];
   const pages = [78, 56, 100, 38, 22, 64, 14];
 
@@ -319,25 +353,55 @@ function TrackScreen() {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[11px] font-semibold text-gray-900">Visitor activity</p>
-        <div className="mt-1.5 min-h-0 flex-1 space-y-1.5 overflow-hidden">
-          {activity.map((a, i) => {
-            const Icon = a.icon;
+        <p className="mt-3 text-[11px] font-semibold text-gray-900">Visitors</p>
+        <p className="text-[9px] text-gray-400">Click a visitor to see every file and time spent</p>
+        <div className="mt-1.5 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
+          {visitors.map((v, idx) => {
+            const isOpen = open === idx;
             return (
-              <div key={i} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5">
-                <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full', a.tone)}>
-                  <Icon className="h-3 w-3" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-medium text-gray-800">{a.who}</p>
-                  <p className="truncate text-[10px] text-gray-500">{a.what}</p>
-                </div>
-                {a.live ? (
-                  <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold text-green-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Live
+              <div key={v.email} className="overflow-hidden rounded-lg border border-gray-100 bg-white">
+                <button
+                  onClick={() => setOpen(isOpen ? -1 : idx)}
+                  className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-gray-50"
+                >
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-blue-50 text-[10px] font-semibold text-[#4285F4]">
+                    {v.initial}
                   </span>
-                ) : (
-                  <span className="shrink-0 text-[9px] text-gray-400">{a.when}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-medium text-gray-800">{v.email}</p>
+                    <p className="truncate text-[10px] text-gray-500">{v.summary}</p>
+                  </div>
+                  {v.live ? (
+                    <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold text-green-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Live
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[9px] text-gray-400">{v.when}</span>
+                  )}
+                  <ChevronDown className={cn('h-3 w-3 shrink-0 text-gray-300 transition-transform', isOpen && 'rotate-180')} />
+                </button>
+                {isOpen && (
+                  <div className="space-y-1.5 border-t border-gray-50 bg-gray-50/60 px-2.5 py-2">
+                    {v.files.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <FileText className="h-3 w-3 shrink-0 text-gray-400" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[10px] font-medium text-gray-700">{f.name}</span>
+                            <span className="shrink-0 text-[10px] tabular-nums text-gray-500">{f.time}</span>
+                          </div>
+                          <div className="mt-0.5 h-1 w-full rounded-full bg-gray-100">
+                            <div className="h-full rounded-full" style={{ width: `${f.pct}%`, background: BLUE }} />
+                          </div>
+                        </div>
+                        {f.action && (
+                          <span className="shrink-0 rounded bg-violet-100 px-1 py-0.5 text-[8px] font-semibold text-violet-600">
+                            {f.action}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             );
