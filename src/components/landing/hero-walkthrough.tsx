@@ -27,6 +27,10 @@ import {
   Clock,
   Search,
   Copy,
+  Download,
+  MapPin,
+  History,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -283,56 +287,87 @@ function PermissionsScreen() {
   );
 }
 
+const heatColor = (t: number) =>
+  t >= 85 ? '#1e3a8a' : t >= 60 ? '#2563eb' : t >= 40 ? '#60a5fa' : t >= 20 ? '#93c5fd' : '#dbeafe';
+
 function TrackScreen() {
-  const viewers = [
-    { who: 'priya@sequoiacap.in', time: '6:48', pct: 92, live: true },
-    { who: 'rahul@blume.vc', time: '4:32', pct: 71 },
-    { who: 'ankit@matrixpartners.in', time: '2:10', pct: 38 },
+  const stats = [
+    { label: 'Visits', value: '12' },
+    { label: 'Unique', value: '9' },
+    { label: 'Avg time', value: '4m 38s' },
+    { label: 'Downloads', value: '5' },
   ];
+  const activity: { who: string; what: string; when: string; live?: boolean; icon: LucideIcon; tone: string }[] = [
+    { who: 'priya@sequoiacap.in', what: 'Reading page 3 of Pitch Deck right now', when: 'now', live: true, icon: Eye, tone: 'bg-green-100 text-green-600' },
+    { who: 'priya@sequoiacap.in', what: 'Read 92% of the deck · 6:48 total', when: '2m', icon: Clock, tone: 'bg-blue-50 text-[#4285F4]' },
+    { who: 'rahul@blume.vc', what: 'Downloaded Financial Model.xlsx', when: '1h', icon: Download, tone: 'bg-violet-50 text-violet-600' },
+    { who: 'ankit@matrixpartners.in', what: 'Signed the NDA and entered the room', when: '3h', icon: FileSignature, tone: 'bg-amber-50 text-amber-600' },
+    { who: 'neha@accel.in', what: 'Opened the link · Mumbai · iPhone', when: '4h', icon: MapPin, tone: 'bg-rose-50 text-rose-500' },
+    { who: 'rahul@blume.vc', what: 'Returned for a 2nd visit', when: '5h', icon: History, tone: 'bg-blue-50 text-[#4285F4]' },
+  ];
+  const pages = [78, 56, 100, 38, 22, 64, 14];
+
   return (
-    <div className="grid h-full grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-      <div>
-        <p className="text-sm font-semibold text-gray-900">Visits</p>
-        <p className="text-xs text-gray-400">Series A Data Room, last 7 days</p>
-        <div className="mt-3 space-y-3">
-          {viewers.map((v) => (
-            <div key={v.who} className="rounded-lg border border-gray-100 bg-white p-3">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="truncate font-medium text-gray-800">{v.who}</span>
-                {v.live ? (
-                  <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-green-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Live now
-                  </span>
-                ) : (
-                  <span className="flex shrink-0 items-center gap-1 text-gray-400">
-                    <Clock className="h-3 w-3" /> {v.time}
-                  </span>
-                )}
-              </div>
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-100">
-                <div className="h-full rounded-full" style={{ width: `${v.pct}%`, background: BLUE }} />
-              </div>
-              <p className="mt-1 text-[10px] text-gray-400">Read {v.pct}% of the deck</p>
+    <div className="grid h-full grid-cols-5 gap-3 p-4">
+      {/* Activity timeline */}
+      <div className="col-span-3 flex min-h-0 flex-col">
+        <div className="grid grid-cols-4 gap-2">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-wider text-gray-400">{s.label}</p>
+              <p className="text-[13px] font-bold tabular-nums text-gray-900">{s.value}</p>
             </div>
           ))}
         </div>
+        <p className="mt-3 text-[11px] font-semibold text-gray-900">Visitor activity</p>
+        <div className="mt-1.5 min-h-0 flex-1 space-y-1.5 overflow-hidden">
+          {activity.map((a, i) => {
+            const Icon = a.icon;
+            return (
+              <div key={i} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5">
+                <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full', a.tone)}>
+                  <Icon className="h-3 w-3" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-medium text-gray-800">{a.who}</p>
+                  <p className="truncate text-[10px] text-gray-500">{a.what}</p>
+                </div>
+                {a.live ? (
+                  <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold text-green-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Live
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-[9px] text-gray-400">{a.when}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="hidden sm:block">
-        <p className="text-sm font-semibold text-gray-900">Time per page</p>
-        <p className="text-xs text-gray-400">Pitch Deck.pdf</p>
-        <div className="mt-3 space-y-2 rounded-lg border border-gray-100 bg-white p-3">
-          {[88, 64, 95, 42, 23, 51, 12].map((w, i) => (
+
+      {/* Per-page attention heatmap */}
+      <div className="col-span-2 flex min-h-0 flex-col rounded-xl border border-gray-100 bg-white p-3">
+        <p className="text-[11px] font-semibold text-gray-900">Pitch Deck.pdf</p>
+        <p className="text-[10px] text-gray-400">Attention by page</p>
+        <div className="mt-2 min-h-0 flex-1 space-y-1.5">
+          {pages.map((t, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="w-6 text-[10px] text-gray-400">p{i + 1}</span>
-              <div className="h-1.5 flex-1 rounded-full bg-gray-100">
-                <div className="h-full rounded-full" style={{ width: `${w}%`, background: BLUE }} />
+              <span className="w-5 text-[9px] text-gray-400">p{i + 1}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full rounded-full" style={{ width: `${t}%`, background: heatColor(t) }} />
               </div>
             </div>
           ))}
-          <p className="pt-1 text-[10px] text-gray-400">
-            <Eye className="mr-1 inline h-3 w-3" />
-            Page 3 is where investors spend the most time.
-          </p>
+        </div>
+        <div className="mt-2 flex items-center gap-1 text-[9px] text-gray-400">
+          Less
+          {['#dbeafe', '#93c5fd', '#60a5fa', '#2563eb', '#1e3a8a'].map((c) => (
+            <span key={c} className="h-2 w-3 rounded-sm" style={{ background: c }} />
+          ))}
+          More
+        </div>
+        <div className="mt-2 rounded-lg bg-blue-50 px-2.5 py-1.5">
+          <p className="text-[10px] font-medium text-[#1e3a8a]">Page 3 held attention longest — 1:12 avg.</p>
         </div>
       </div>
     </div>
