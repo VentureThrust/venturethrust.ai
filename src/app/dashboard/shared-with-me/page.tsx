@@ -570,8 +570,8 @@ export default function SharedWithMePage() {
           <TabsTrigger value="reports" className="rounded-lg gap-2 px-4">
             <FileText className="h-4 w-4" />
             Reports
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-              {isLoading ? '…' : filteredReports.length}
+            <Badge variant="secondary" className="ml-1 h-5 bg-amber-100 px-1.5 text-[10px] text-amber-700">
+              Soon
             </Badge>
           </TabsTrigger>
         </TabsList>
@@ -640,50 +640,27 @@ export default function SharedWithMePage() {
               <CardTitle className="text-xl flex items-center gap-2">
                 <FileText className="h-5 w-5 text-purple-500" />
                 Reports Shared With Me
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                  Coming soon
+                </span>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                AI-generated due diligence reports that other analysts have shared with you.
+                AI-generated due diligence reports that analysts share with you.
               </p>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="rounded-2xl border border-gray-200 overflow-hidden">
-                      <Skeleton className="h-24 w-full" />
-                      <div className="p-4 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-gray-200 py-14 text-center">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-purple-50">
+                  <Sparkles className="h-7 w-7 text-purple-500" />
                 </div>
-              ) : filteredReports.length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  illustration={<SharedIllustration />}
-                  title={search ? 'No reports match your search' : 'No reports shared yet'}
-                  description={
-                    search
-                      ? 'Try a different keyword or clear the search.'
-                      : 'When another analyst shares a due diligence report with you, it will appear here.'
-                  }
-                  cta={{
-                    label: 'Generate my own report',
-                    onClick: () => router.push('/dashboard'),
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredReports.map((report) => (
-                    <SharedReportCard
-                      key={report.reportId}
-                      report={report}
-                      onOpen={() => router.push(`/dashboard/due-diligence/${report.reportId}`)}
-                    />
-                  ))}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">AI Due Diligence is coming soon</h3>
+                  <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
+                    Soon you&apos;ll be able to receive AI-generated diligence reports that founders and analysts
+                    share with you, right here. We&apos;re putting the finishing touches on it.
+                  </p>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

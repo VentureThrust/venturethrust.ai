@@ -647,7 +647,7 @@ export function ShareSpaceDialog({
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Droplets className="h-5 w-5 text-blue-500" />
@@ -658,7 +658,7 @@ export function ShareSpaceDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-5">
+          <div className="-mx-1 flex-1 space-y-5 overflow-y-auto px-1 py-2">
             {/* Text input */}
             <div className="space-y-2">
               <Label htmlFor="watermark-text">Watermark text</Label>
@@ -823,7 +823,7 @@ export function ShareSpaceDialog({
           the space. Defaults to a sensible confidentiality undertaking.
       ════════════════════════════════════════════════════════════════════ */}
       <Dialog open={isNdaOpen} onOpenChange={setIsNdaOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldQuestion className="h-5 w-5 text-blue-500" />
@@ -834,7 +834,7 @@ export function ShareSpaceDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-2 space-y-2">
+          <div className="-mx-1 flex-1 space-y-2 overflow-y-auto px-1 py-2">
             <Label htmlFor="nda-text">NDA text</Label>
             <Textarea
               id="nda-text"
