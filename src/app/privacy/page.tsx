@@ -27,12 +27,6 @@ export default function PrivacyPolicyPage() {
           <p className="mt-3 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
         </header>
 
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          This document is a general template provided for convenience and is not legal advice. Replace the
-          bracketed details with your registered legal entity name, address, and jurisdiction, and have it
-          reviewed by a qualified lawyer before relying on it.
-        </div>
-
         <article className="mt-10 space-y-8 text-[15px] leading-relaxed text-gray-700">
           <section>
             <p>

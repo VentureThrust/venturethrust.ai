@@ -27,12 +27,6 @@ export default function TermsPage() {
           <p className="mt-3 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
         </header>
 
-        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          This document is a general template provided for convenience and is not legal advice. Replace the
-          bracketed details with your registered legal entity name, address, and governing-law city, and have it
-          reviewed by a qualified lawyer before relying on it.
-        </div>
-
         <article className="mt-10 space-y-8 text-[15px] leading-relaxed text-gray-700">
           <section>
             <p>
@@ -187,7 +181,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-gray-900">15. Governing law</h2>
             <p className="mt-3">
               These Terms are governed by the laws of India, without regard to conflict-of-laws principles. You agree
-              to the exclusive jurisdiction of the competent courts located in [your city], India.
+              to the exclusive jurisdiction of the competent courts in India.
             </p>
           </section>
 
