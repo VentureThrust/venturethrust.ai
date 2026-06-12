@@ -118,9 +118,10 @@ function Frame({ url, active, children }: { url: string; active: 'spaces' | 'ana
 function TemplateScreen() {
   const templates = [
     { name: 'Fundraise data room', d: 'Deck, financials, cap table and legal in one room.' },
-    { name: 'General due diligence', d: 'Simplify diligence across any sector.', hot: true },
+    { name: 'General due diligence', d: 'Simplify diligence across any sector.' },
     { name: 'Sell side M&A data room', d: 'Secure content sharing for acquisitions.' },
   ];
+  const [sel, setSel] = useState(1);
   return (
     <div className="p-5">
       <div className="flex items-center justify-between">
@@ -129,29 +130,35 @@ function TemplateScreen() {
       </div>
       <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Start from a template</p>
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {templates.map((t) => (
-          <div
-            key={t.name}
-            className={cn(
-              'rounded-lg border bg-white p-3.5',
-              t.hot ? 'border-transparent shadow-md ring-2' : 'border-gray-200',
-            )}
-            style={t.hot ? ({ ['--tw-ring-color' as string]: BLUE } as React.CSSProperties) : undefined}
-          >
-            <Boxes className="h-4 w-4 text-gray-400" />
-            <p className="mt-2 text-[12px] font-semibold text-gray-900">{t.name}</p>
-            <p className="mt-1 text-[10px] leading-relaxed text-gray-400">{t.d}</p>
-            <span
+        {templates.map((t, i) => {
+          const active = sel === i;
+          return (
+            <button
+              key={t.name}
+              onClick={() => setSel(i)}
               className={cn(
-                'mt-3 inline-block rounded-md px-2 py-1 text-[10px] font-medium',
-                t.hot ? 'text-white' : 'bg-gray-100 text-gray-600',
+                'rounded-lg border bg-white p-3.5 text-left transition-all duration-200',
+                active
+                  ? 'border-transparent shadow-md ring-2'
+                  : 'border-gray-200 hover:-translate-y-0.5 hover:border-[#4285F4] hover:shadow-md',
               )}
-              style={t.hot ? { background: BLUE } : undefined}
+              style={active ? ({ ['--tw-ring-color' as string]: BLUE } as React.CSSProperties) : undefined}
             >
-              Use template
-            </span>
-          </div>
-        ))}
+              <Boxes className="h-4 w-4 text-gray-400" />
+              <p className="mt-2 text-[12px] font-semibold text-gray-900">{t.name}</p>
+              <p className="mt-1 text-[10px] leading-relaxed text-gray-400">{t.d}</p>
+              <span
+                className={cn(
+                  'mt-3 inline-block rounded-md px-2 py-1 text-[10px] font-medium transition-colors',
+                  active ? 'text-white' : 'bg-gray-100 text-gray-600',
+                )}
+                style={active ? { background: BLUE } : undefined}
+              >
+                {active ? 'Selected' : 'Use template'}
+              </span>
+            </button>
+          );
+        })}
       </div>
       <p className="mt-5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">My Spaces</p>
       <div className="mt-2 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2.5">
@@ -253,6 +260,7 @@ function PermissionsScreen() {
     { label: 'Require NDA', on: false },
     { label: 'Watermark', on: true },
   ];
+  const [state, setState] = useState(() => rows.map((r) => r.on));
   return (
     <div className="relative h-full">
       <div className="p-5 opacity-40">
@@ -262,20 +270,26 @@ function PermissionsScreen() {
       <div className="absolute left-1/2 top-8 w-[88%] max-w-sm -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-4 shadow-2xl">
         <p className="text-[13px] font-semibold text-gray-900">Link settings</p>
         <div className="mt-3 space-y-2.5">
-          {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between">
-              <span className="text-[12px] text-gray-700">{r.label}</span>
-              <span className="flex items-center gap-2">
-                {r.value && <span className="text-[10px] text-gray-400">{r.value}</span>}
-                <span
-                  className={cn('flex h-4 w-7 items-center rounded-full px-0.5', !r.on && 'bg-gray-200')}
-                  style={r.on ? { background: BLUE } : undefined}
-                >
-                  <span className={cn('h-3 w-3 rounded-full bg-white shadow', r.on && 'ml-auto')} />
+          {rows.map((r, i) => {
+            const on = state[i];
+            return (
+              <div key={r.label} className="flex items-center justify-between">
+                <span className="text-[12px] text-gray-700">{r.label}</span>
+                <span className="flex items-center gap-2">
+                  {r.value && on && <span className="text-[10px] text-gray-400">{r.value}</span>}
+                  <button
+                    type="button"
+                    aria-label={r.label}
+                    onClick={() => setState((s) => s.map((v, j) => (j === i ? !v : v)))}
+                    className={cn('flex h-4 w-7 items-center rounded-full px-0.5 transition-colors', !on && 'bg-gray-200')}
+                    style={on ? { background: BLUE } : undefined}
+                  >
+                    <span className={cn('h-3 w-3 rounded-full bg-white shadow transition-transform', on && 'ml-auto')} />
+                  </button>
                 </span>
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
         <span className="mt-4 block rounded-md py-1.5 text-center text-[11px] font-semibold text-white" style={{ background: BLUE }}>
           Save and copy link
