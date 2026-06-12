@@ -56,19 +56,20 @@ export default function RefundPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">3. When you can request a refund</h2>
+            <h2 className="text-xl font-semibold text-gray-900">3. No refunds (all sales are final)</h2>
             <p className="mt-3">
-              We want you to be happy with the Service. You may request a refund of a plan payment within{' '}
-              <strong>7 days</strong> of that charge if you have not substantially used the Service during that period
-              (for example, you have not shared data rooms or generated meaningful viewer activity). Approved refunds
-              are issued to your original payment method via Cashfree.
+              All plan payments are final and non-refundable. Because access to paid features is delivered to you
+              immediately once a payment succeeds, we do not provide refunds for unused time, partial billing periods,
+              or a change of mind. You can <strong>cancel at any time</strong> to stop future charges (see Cancellations
+              below). The only exceptions are verified billing errors and cases where a refund is required by applicable
+              law.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-gray-900">4. What is not refundable</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
-              <li>Charges older than 7 days, or plans that have been substantially used.</li>
+              <li>Plan fees once a payment has succeeded and access has been granted.</li>
               <li>The unused remainder of a billing period after you cancel (cancellation stops future renewals; it does not refund the current period).</li>
               <li>Government taxes (such as GST) and third-party payment fees, where non-recoverable.</li>
             </ul>
@@ -95,15 +96,16 @@ export default function RefundPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">7. How to request a refund</h2>
+            <h2 className="text-xl font-semibold text-gray-900">7. How to cancel</h2>
             <p className="mt-3">
-              Email{' '}
+              You can stop your plan from renewing at any time from <strong>Billing</strong> in your dashboard, or by
+              emailing{' '}
               <a href={`mailto:${CONTACT}`} className="font-medium text-[#4285F4] underline underline-offset-4">
                 {CONTACT}
               </a>{' '}
-              from the email address on your account, including your order ID and the reason for the request. We aim to
-              respond within 3 business days. Approved refunds are typically processed within 5-10 business days,
-              depending on your bank or card issuer.
+              from the address on your account. Your plan stays active until the end of the period you have already paid
+              for, and you will not be charged again. For a verified billing error, include your order ID and we will
+              investigate; approved error refunds are processed within 5-10 business days.
             </p>
           </section>
 

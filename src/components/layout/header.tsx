@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -11,6 +11,7 @@ const navLinks = [
   { href: '#features', label: 'Features' },
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#security', label: 'Security' },
+  { href: '#pricing', label: 'Pricing' },
 ];
 
 export function Header() {
@@ -34,12 +35,20 @@ export function Header() {
           </nav>
         </div>
         
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-1">
+          <a
+            href="mailto:omprakash@venturethrust.com"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Contact sales
+          </a>
           <Button variant="ghost" asChild>
             <Link href="/login">Log in</Link>
           </Button>
-          <Button asChild>
-            <Link href="/signup">Get Started</Link>
+          <Button asChild className="gap-1.5 bg-[#4285F4] text-white hover:bg-[#3367d6]">
+            <Link href="/signup">
+              Get started <ArrowRight className="h-4 w-4" />
+            </Link>
           </Button>
         </div>
 
@@ -78,8 +87,8 @@ export function Header() {
                   <Button variant="outline" asChild>
                     <Link href="/login" onClick={() => setIsMenuOpen(false)}>Log in</Link>
                   </Button>
-                  <Button asChild>
-                    <Link href="/signup" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+                  <Button asChild className="bg-[#4285F4] text-white hover:bg-[#3367d6]">
+                    <Link href="/signup" onClick={() => setIsMenuOpen(false)}>Get started</Link>
                   </Button>
                 </div>
               </div>

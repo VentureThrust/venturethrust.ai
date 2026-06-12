@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
 import { HeroWalkthrough } from '@/components/landing/hero-walkthrough';
 import { LinkSettingsDemo } from '@/components/landing/link-settings-demo';
+import { LandingPricing } from '@/components/landing/landing-pricing';
 import {
   ArrowRight,
   Check,
@@ -258,6 +259,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Pricing */}
+      <LandingPricing />
 
       {/* Closing CTA */}
       <section className="border-t border-gray-200">
