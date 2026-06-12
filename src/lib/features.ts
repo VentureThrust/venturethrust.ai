@@ -13,10 +13,16 @@ import {
   History,
   Boxes,
   FolderOpen,
+  LayoutTemplate,
   FileSignature,
   PenLine,
   Inbox,
   MessageSquare,
+  UserPlus,
+  Palette,
+  Globe2,
+  ShieldCheck,
+  Fingerprint,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -48,14 +54,25 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     ],
   },
   {
-    heading: 'Documents & deals',
+    heading: 'Documents & rooms',
     items: [
       { icon: Boxes, title: 'Data rooms', desc: 'Organize and share a room.', href: '/#features' },
       { icon: FolderOpen, title: 'Content library', desc: 'A reusable file library.', href: '/#features' },
+      { icon: LayoutTemplate, title: 'Data room templates', desc: 'Start from a proven layout.', href: '/#features' },
       { icon: FileSignature, title: 'NDA gates', desc: 'Require an NDA to enter.', href: '/#security' },
       { icon: PenLine, title: 'E-signatures', desc: 'Sign before viewing.', href: '/#security' },
       { icon: Inbox, title: 'File requests', desc: 'Collect docs via a link.', href: '/#how-it-works' },
+    ],
+  },
+  {
+    heading: 'Collaborate & scale',
+    items: [
       { icon: MessageSquare, title: 'Q&A', desc: 'Answer questions in-room.', href: '/#how-it-works' },
+      { icon: UserPlus, title: 'Team collaboration', desc: 'Invite teammates to a workspace.', href: '/#features' },
+      { icon: Palette, title: 'Custom branding', desc: 'Your logo and cover image.', href: '/#features' },
+      { icon: Globe2, title: 'Custom domain', desc: 'Share on your own domain.', href: '/#features' },
+      { icon: ShieldCheck, title: 'Granular permissions', desc: 'Control access per file.', href: '/#security' },
+      { icon: Fingerprint, title: 'Single sign-on', desc: 'SSO for your whole team.', href: '/#security' },
     ],
   },
 ];

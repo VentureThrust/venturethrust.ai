@@ -48,8 +48,8 @@ export function FeaturesMenu() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-3 w-[760px] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
-          <div className="grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-3">
+        <div className="absolute left-0 top-full z-50 mt-3 w-[960px] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
+          <div className="grid grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-4">
             {FEATURE_GROUPS.map((group) => (
               <div key={group.heading}>
                 <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
