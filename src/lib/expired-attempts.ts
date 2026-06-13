@@ -15,34 +15,44 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { consumeRateLimit } from './rate-limit';
 
+/**
+ * Deduped insert of one attempt row (per owner+email+space, 30 min window).
+ * No-op without an owner or visitor email, or if the table doesn't exist yet.
+ */
+export async function storeExpiredAttempt(
+  admin: SupabaseClient,
+  opts: { ownerId: string | null; spaceId?: string | null; visitorEmail?: string | null },
+): Promise<void> {
+  const ownerId = opts.ownerId;
+  const visitorEmail = (opts.visitorEmail ?? '').trim().toLowerCase() || null;
+  if (!ownerId || !visitorEmail) return;
+  const spaceId = opts.spaceId ?? null;
+  const recGate = consumeRateLimit(
+    `exp-attempt-rec:${ownerId}:${visitorEmail}:${spaceId ?? 'none'}`,
+    1,
+    30 * 60_000,
+  );
+  if (!recGate.ok) return;
+  try {
+    await admin.from('expired_link_attempts').insert({
+      owner_id: ownerId,
+      space_id: spaceId,
+      visitor_email: visitorEmail,
+    });
+  } catch {
+    /* table may not exist yet - ignore */
+  }
+}
+
 export async function recordExpiredAttempt(
   admin: SupabaseClient,
   opts: { ownerId: string | null; spaceId?: string | null; visitorEmail?: string | null },
 ): Promise<void> {
   const ownerId = opts.ownerId;
   if (!ownerId) return;
-  const visitorEmail = (opts.visitorEmail ?? '').trim().toLowerCase() || null;
-  const spaceId = opts.spaceId ?? null;
 
-  // 1) Store the attempt (only if we know who it was). Dedupe refreshes.
-  if (visitorEmail) {
-    const recGate = consumeRateLimit(
-      `exp-attempt-rec:${ownerId}:${visitorEmail}:${spaceId ?? 'none'}`,
-      1,
-      30 * 60_000,
-    );
-    if (recGate.ok) {
-      try {
-        await admin.from('expired_link_attempts').insert({
-          owner_id: ownerId,
-          space_id: spaceId,
-          visitor_email: visitorEmail,
-        });
-      } catch {
-        /* table may not exist yet - ignore */
-      }
-    }
-  }
+  // 1) Store the attempt (when we know who it was).
+  await storeExpiredAttempt(admin, opts);
 
   // 2) Throttled owner notification: at most once per 6h per owner.
   const mailGate = consumeRateLimit(`exp-attempt-mail:${ownerId}`, 1, 6 * 60 * 60_000);

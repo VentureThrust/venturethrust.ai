@@ -31,6 +31,8 @@ import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GatesFlow } from './gates-flow';
+import { InactiveLink } from './inactive-link';
+import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
 
 // Mark the route as dynamic - every request must hit the server to fetch
 // the latest share_link state (active/expired/etc.). Without this Next.js
@@ -84,20 +86,18 @@ export default async function SharedTokenPage({ params }: PageProps) {
       />
     );
   }
-  if (!link.is_active) {
+  // Inactive = disabled, past its expiry date, or the owner's plan has lapsed.
+  // We do NOT tell the visitor which one. Instead of a dead-end error, we show
+  // an interactive screen that first captures their email (so the owner can see
+  // who tried), then lets them message the owner or request reactivation.
+  const dateExpired = !!link.expires_at && new Date(link.expires_at as string) < new Date();
+  const ownerActive = await isOwnerPlanActive(
+    supabase,
+    await getSpaceOwner(supabase, link.space_id as string),
+  );
+  if (!link.is_active || dateExpired || !ownerActive) {
     return (
-      <ErrorShell
-        title="Link disabled"
-        description="This share link has been disabled by its owner. Please contact them for a new link."
-      />
-    );
-  }
-  if (link.expires_at && new Date(link.expires_at as string) < new Date()) {
-    return (
-      <ErrorShell
-        title="Link expired"
-        description="This share link has expired. Please contact the sender for a new link."
-      />
+      <InactiveLink token={token} linkId={link.id as string} spaceId={link.space_id as string} />
     );
   }
 
