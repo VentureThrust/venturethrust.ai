@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription, DialogClose,
@@ -130,6 +130,8 @@ export function ShareSpaceDialog({
   const [isFetchingLink, setIsFetchingLink] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const savedRef = useRef<string | null>(null);
 
   // Settings state
   const [settings, setSettings] = useState<ShareSettings>({
@@ -167,10 +169,31 @@ export function ShareSpaceDialog({
       ? 'Pick an expiration date to continue.'
       : '';
 
+  // ── Dirty tracking: dim "Copy link" until the settings are saved ───────
+  // Any change to the savable settings marks the link "unsaved", so the copied
+  // URL always reflects what is actually enforced. Cleared on load and on save.
+  const stateKey = JSON.stringify({
+    settings,
+    passwordValue,
+    expirationDate: expirationDate ? expirationDate.toISOString() : null,
+    emailsInput,
+  });
+  useEffect(() => {
+    if (isFetchingLink) return; // wait until the link has loaded
+    if (savedRef.current === null) {
+      savedRef.current = stateKey; // establish the saved baseline after load
+      setDirty(false);
+      return;
+    }
+    setDirty(stateKey !== savedRef.current);
+  }, [stateKey, isFetchingLink]);
+
   // ── On open: load or prepare link ─────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     setIsSaved(false);
+    savedRef.current = null;
+    setDirty(false);
 
     const loadExisting = async () => {
       setIsFetchingLink(true);
@@ -345,6 +368,8 @@ export function ShareSpaceDialog({
       if (onShareSettingsUpdate) onShareSettingsUpdate(settings);
 
       setIsSaved(true);
+      savedRef.current = stateKey; // current settings are now the saved baseline
+      setDirty(false);
       toast({ title: 'Link saved!', description: 'Your secure share link is now active.' });
     } catch (err: any) {
       console.error(err);
@@ -387,7 +412,7 @@ export function ShareSpaceDialog({
               ) : (
                 <Input id="link" value={fullLink} readOnly className="bg-muted flex-1 font-mono text-sm" />
               )}
-              <Button size="sm" className="shrink-0" onClick={copyLink} disabled={!fullLink || isFetchingLink}>
+              <Button size="sm" className="shrink-0" onClick={copyLink} disabled={!fullLink || isFetchingLink || dirty}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy link
               </Button>
@@ -407,10 +432,15 @@ export function ShareSpaceDialog({
             </div>
 
             {/* Saved indicator */}
-            {isSaved && (
+            {isSaved && !dirty && (
               <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md px-3 py-2">
                 <CheckCircle2 className="h-4 w-4" />
-                Link is live - anyone with the link can now access the space (subject to your security settings below).
+                Link is live. Anyone with the link can now access the space (subject to your security settings below).
+              </div>
+            )}
+            {dirty && (
+              <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                You have unsaved changes. Click “Save Settings” below, then copy your link.
               </div>
             )}
           </div>
