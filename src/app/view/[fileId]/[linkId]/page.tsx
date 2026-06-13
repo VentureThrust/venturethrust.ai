@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { InactiveLink } from '@/components/inactive-link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import {
   Loader2, Type, ChevronLeft, ChevronRight, FileWarning,
@@ -73,6 +74,7 @@ export default function ViewFilePage() {
   const [file, setFile] = useState<ViewFile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInvalid, setIsInvalid] = useState(false);
+  const [invalidReason, setInvalidReason] = useState<string | null>(null);
   const [session, setSession] = useState<{ name?: string; email?: string; startTime?: number }>({});
   const [step, setStep] = useState<'info' | 'view'>('info');
 
@@ -180,6 +182,7 @@ export default function ViewFilePage() {
         if (cancelled) return;
 
         if (!res.ok || !json.ok) {
+          setInvalidReason(typeof json.error === 'string' ? json.error : 'error');
           setIsInvalid(true);
           setIsLoading(false);
           return;
@@ -218,6 +221,7 @@ export default function ViewFilePage() {
       } catch (err) {
         if (cancelled) return;
         console.error('[agreement-view] load failed:', err);
+        setInvalidReason('error');
         setIsInvalid(true);
         setIsLoading(false);
       }
@@ -520,6 +524,12 @@ export default function ViewFilePage() {
   }
 
   if (isInvalid || !file) {
+    // Inactive (disabled / expired / owner plan lapsed): show the email-capture
+    // + reactivate/message flow, same as space links. The reason is never shown.
+    // A genuinely missing file falls through to a neutral not-available card.
+    if (invalidReason === 'disabled' || invalidReason === 'expired') {
+      return <InactiveLink fileId={fileId} />;
+    }
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted p-4 sm:p-8">
         <Card className="w-full max-w-2xl">
@@ -527,9 +537,9 @@ export default function ViewFilePage() {
             <div className="rounded-full border border-destructive/20 bg-destructive/10 p-3">
               <Link2Off className="h-8 w-8 text-destructive" />
             </div>
-            <CardTitle className="text-2xl">Link Expired or Disabled</CardTitle>
+            <CardTitle className="text-2xl">This link is not available</CardTitle>
             <CardDescription className="pt-2">
-              This document link is no longer active. Please contact the sender for a new link.
+              This document link could not be found. Please check the URL or contact the sender.
             </CardDescription>
           </CardHeader>
         </Card>

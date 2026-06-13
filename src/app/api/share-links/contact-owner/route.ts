@@ -35,7 +35,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  let body: { token?: string; action?: string; email?: string; name?: string; message?: string };
+  let body: {
+    token?: string;
+    fileId?: string;
+    action?: string;
+    email?: string;
+    name?: string;
+    message?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -43,12 +50,13 @@ export async function POST(req: NextRequest) {
   }
 
   const token = String(body.token ?? '').trim();
+  const fileId = String(body.fileId ?? '').trim();
   const action = String(body.action ?? '').trim();
   const email = String(body.email ?? '').trim().toLowerCase();
   const name = String(body.name ?? '').trim();
   const message = String(body.message ?? '').trim();
 
-  if (!token || !ACTIONS.has(action)) {
+  if ((!token && !fileId) || !ACTIONS.has(action)) {
     return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > MAX.email) {
@@ -61,14 +69,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'bad_message' }, { status: 400 });
   }
 
-  const { data: link } = await admin
-    .from('share_links')
-    .select('id, space_id')
-    .eq('token', token)
-    .maybeSingle();
-  if (!link) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
-  const spaceId = (link as { space_id?: string | null }).space_id ?? null;
-  const ownerId = await getSpaceOwner(admin, spaceId);
+  // Resolve the owner: space links via token; single-file agreement links via
+  // the file (its space, then a safe created_by fallback).
+  let spaceId: string | null = null;
+  let ownerId: string | null = null;
+  if (token) {
+    const { data: link } = await admin
+      .from('share_links')
+      .select('id, space_id')
+      .eq('token', token)
+      .maybeSingle();
+    if (!link) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
+    spaceId = (link as { space_id?: string | null }).space_id ?? null;
+    ownerId = await getSpaceOwner(admin, spaceId);
+  } else {
+    const { data: f } = await admin.from('files').select('space_id').eq('id', fileId).maybeSingle();
+    spaceId = (f as { space_id?: string | null } | null)?.space_id ?? null;
+    if (spaceId) ownerId = await getSpaceOwner(admin, spaceId);
+    if (!ownerId) {
+      const { data: f2, error: e2 } = await admin
+        .from('files')
+        .select('created_by')
+        .eq('id', fileId)
+        .maybeSingle();
+      if (!e2) ownerId = (f2 as { created_by?: string | null } | null)?.created_by ?? null;
+    }
+  }
 
   // 'visit': just track (store + throttled generic nudge).
   if (action === 'visit') {
