@@ -168,6 +168,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const touchStartX = React.useRef<number | null>(null)
 
     if (collapsible === "none") {
       return (
@@ -208,7 +209,7 @@ const Sidebar = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "fixed inset-y-0 z-50 flex h-full flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out",
+              "fixed inset-y-0 z-50 flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 ease-in-out",
               side === "left"
                 ? "left-0 w-[--sidebar-width]"
                 : "right-0 w-[--sidebar-width]",
@@ -217,6 +218,20 @@ const Sidebar = React.forwardRef<
                 : openMobile ? "translate-x-0" : "translate-x-full",
               className
             )}
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0]?.clientX ?? null
+            }}
+            onTouchMove={(e) => {
+              if (touchStartX.current === null) return
+              const dx = (e.touches[0]?.clientX ?? 0) - touchStartX.current
+              if (side === "left" ? dx < -50 : dx > 50) {
+                setOpenMobile(false)
+                touchStartX.current = null
+              }
+            }}
+            onTouchEnd={() => {
+              touchStartX.current = null
+            }}
             {...props}
           >
             {children}
