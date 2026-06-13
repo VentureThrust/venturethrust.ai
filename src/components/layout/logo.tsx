@@ -49,7 +49,7 @@ export function Logo({
       )}
     >
       <LogoMark className="h-6 w-auto shrink-0" />
-      <span className="text-xl font-semibold tracking-tight">VentureThrust</span>
+      <span className="text-xl font-medium tracking-tight">VentureThrust</span>
     </Link>
   );
 }
