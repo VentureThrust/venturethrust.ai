@@ -9,7 +9,7 @@ import { setActiveWorkspace } from '@/lib/workspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo, LogoMark } from '@/components/layout/logo';
+import { Logo } from '@/components/layout/logo';
 import { MailCheck, Users } from 'lucide-react';
 
 export default function SignupPage() {
@@ -209,10 +209,7 @@ function SignupPageInner() {
       {/* ── Left: brand panel ── */}
       <div className="relative hidden lg:flex flex-col justify-between bg-gray-900 px-14 py-12 text-white overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950" />
-        <div className="flex items-center gap-2.5 text-xl font-medium text-white">
-          <LogoMark className="h-6 w-auto shrink-0" />
-          VentureThrust
-        </div>
+        <Logo className="text-white" />
         <div className="max-w-md">
           <h2 className="text-5xl font-bold leading-[1.05] tracking-tight">
             Share documents securely.

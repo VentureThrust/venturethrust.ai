@@ -44,7 +44,7 @@ export function Logo({
     <Link
       href="/"
       className={cn(
-        'flex items-center gap-2 rounded-md p-1 -m-1 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex items-center gap-2 rounded-md p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         className,
       )}
     >
