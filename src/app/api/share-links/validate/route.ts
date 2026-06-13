@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { isSpaceOwnerPlanActive } from '@/lib/owner-plan';
 
 // Service-role client - we deliberately bypass RLS here because the visitor
 // is anonymous and needs to read a single share_links row by id. RLS would
@@ -76,6 +77,11 @@ export async function POST(req: NextRequest) {
 
   if (link.expires_at && new Date(link.expires_at) < new Date()) {
     return NextResponse.json({ error: 'EXPIRED' }, { status: 403 });
+  }
+
+  // Owner-plan gate: a lapsed workspace owner's links stop working entirely.
+  if (!(await isSpaceOwnerPlanActive(supabase, link.space_id))) {
+    return NextResponse.json({ error: 'OWNER_INACTIVE' }, { status: 403 });
   }
 
   // ── Email gate ────────────────────────────────────────────────────────

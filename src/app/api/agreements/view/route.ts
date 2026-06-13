@@ -27,6 +27,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { isSpaceOwnerPlanActive } from '@/lib/owner-plan';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
   const { data: file, error } = await supabase
     .from('files')
-    .select('id, name, storage_path, agreement_fields, links, signatures')
+    .select('id, name, storage_path, agreement_fields, links, signatures, space_id')
     .eq('id', fileId)
     .maybeSingle();
 
@@ -104,6 +105,12 @@ export async function GET(req: NextRequest) {
       }
     }
     account = link.account ?? null;
+  }
+
+  // Owner-plan gate: if the file's workspace owner has lapsed, block the link.
+  const ownerSpaceId = (file as { space_id?: string | null }).space_id ?? null;
+  if (!(await isSpaceOwnerPlanActive(supabase, ownerSpaceId))) {
+    return NextResponse.json({ ok: false, error: 'expired' }, { status: 403 });
   }
 
   // Short-lived signed URL for the PDF (1 hour). The recipient never sees

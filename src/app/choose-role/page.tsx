@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/layout/logo';
 import { supabase } from '@/lib/supabaseClient';
 import { getDeviceFingerprint } from '@/lib/device-id';
+import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
@@ -79,6 +80,7 @@ export default function ChoosePlanPage() {
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState<{ planName: string; expiresAt: string | null } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -90,6 +92,29 @@ export default function ChoosePlanPage() {
       }
       setUserId(user.id);
       setEmail(user.email ?? null);
+
+      // If they HAD a plan that has now lapsed, show the "expired" banner and
+      // email them once that their shared links are paused.
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('plan, plan_expires_at')
+          .eq('id', user.id)
+          .maybeSingle();
+        const pr = prof as { plan?: string | null; plan_expires_at?: string | null } | null;
+        if (pr?.plan && !isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
+          setExpired(true);
+          const token = data.session?.access_token;
+          if (token) {
+            fetch('/api/plan/notify-expiry', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        /* best-effort: the banner/email are non-critical */
+      }
     })();
   }, [router]);
 
@@ -238,6 +263,16 @@ export default function ChoosePlanPage() {
             free, upgrade when you grow.
           </p>
         </header>
+
+        {expired && (
+          <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm text-red-800">
+            <p className="font-semibold">Your plan has expired.</p>
+            <p className="mt-1">
+              While it is expired, any links you have shared are paused and recipients cannot open your
+              documents. Renew below to restore access for you and everyone you shared with.
+            </p>
+          </div>
+        )}
 
         {notice && (
           <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">

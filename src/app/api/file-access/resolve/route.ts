@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { isSpaceOwnerPlanActive } from '@/lib/owner-plan';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,14 @@ export async function POST(req: NextRequest) {
   if (!fileId) return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
 
   try {
+    // Owner-plan gate: if the workspace owner's plan has lapsed, the link is
+    // dead for everyone, regardless of per-file permissions.
+    const { data: fRow } = await admin.from('files').select('space_id').eq('id', fileId).maybeSingle();
+    const spaceId = (fRow as { space_id?: string | null } | null)?.space_id ?? null;
+    if (!(await isSpaceOwnerPlanActive(admin, spaceId))) {
+      return NextResponse.json({ ...OPEN, expired: true });
+    }
+
     const { data: perm, error } = await admin
       .from('file_permissions')
       .select('*')

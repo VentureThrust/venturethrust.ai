@@ -193,6 +193,10 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
         setStep('password');
         return;
       }
+      if (data.error === 'OWNER_INACTIVE') {
+        toast({ variant: 'destructive', title: 'Link unavailable', description: 'This link is no longer active. Please contact the sender.' });
+        return;
+      }
       toast({ variant: 'destructive', title: 'Could not verify', description: data.error ?? 'Try again.' });
     } catch (err) {
       console.error(err);
@@ -231,6 +235,10 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
       }
       if (data.error === 'BLOCKED') {
         setStep('blocked');
+        return;
+      }
+      if (data.error === 'OWNER_INACTIVE') {
+        toast({ variant: 'destructive', title: 'Link unavailable', description: 'This link is no longer active. Please contact the sender.' });
         return;
       }
       toast({ variant: 'destructive', title: 'Could not verify', description: data.error ?? 'Try again.' });
