@@ -96,9 +96,7 @@ export default async function SharedTokenPage({ params }: PageProps) {
     await getSpaceOwner(supabase, link.space_id as string),
   );
   if (!link.is_active || dateExpired || !ownerActive) {
-    return (
-      <InactiveLink token={token} linkId={link.id as string} spaceId={link.space_id as string} />
-    );
+    return <InactiveLink token={token} />;
   }
 
   // ── 3. Render the interactive client component ─────────────────────────
