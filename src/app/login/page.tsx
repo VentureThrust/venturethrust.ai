@@ -59,9 +59,9 @@ function LoginPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const { status, hasOwnAccount, isInvitee } = res.ok
+      const { status, hasOwnAccount, isInvitee, hasPassword, providers } = res.ok
         ? await res.json()
-        : { status: 'ERROR', hasOwnAccount: false, isInvitee: false };
+        : { status: 'ERROR', hasOwnAccount: false, isInvitee: false, hasPassword: true, providers: [] };
 
       // An invitee with no password of their own → treat what they typed as the
       // WORKSPACE OWNER's password (the shared key to the workspace).
@@ -97,6 +97,9 @@ function LoginPageInner() {
 
       if (status === 'NOT_EXISTS') {
         setError('No account found with this email. Please create an account first.');
+      } else if (hasPassword === false) {
+        const via = Array.isArray(providers) && providers.includes('google') ? 'Google' : 'a social login';
+        setError(`This account uses ${via} sign-in, so it has no password. Use the “Continue with Google” button above.`);
       } else {
         setError('Incorrect email or password.');
       }

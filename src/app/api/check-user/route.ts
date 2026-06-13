@@ -43,9 +43,16 @@ export async function POST(req: Request) {
     .maybeSingle();
   const isInvitee = !!memberRow;
 
+  // Which sign-in methods this account has. A Google-created account has no
+  // 'email' (password) identity, so email/password login can never work for it.
+  const providers =
+    ((user.app_metadata as Record<string, unknown> | undefined)?.providers as string[] | undefined) ??
+    (user.identities?.map((i) => i.provider) ?? []);
+  const hasPassword = providers.includes('email');
+
   if (user.email_confirmed_at) {
-    return NextResponse.json({ status: 'CONFIRMED', hasOwnAccount, isInvitee });
+    return NextResponse.json({ status: 'CONFIRMED', hasOwnAccount, isInvitee, hasPassword, providers });
   }
 
-  return NextResponse.json({ status: 'UNCONFIRMED', hasOwnAccount, isInvitee });
+  return NextResponse.json({ status: 'UNCONFIRMED', hasOwnAccount, isInvitee, hasPassword, providers });
 }
