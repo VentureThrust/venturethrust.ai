@@ -8,7 +8,7 @@ import { setActiveWorkspace } from '@/lib/workspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/layout/logo';
+import { Logo, LogoMark } from '@/components/layout/logo';
 import { MailCheck, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
@@ -187,8 +187,8 @@ function LoginPageInner() {
       {/* ── Left: brand panel ── */}
       <div className="relative hidden lg:flex flex-col justify-between bg-gray-900 px-14 py-12 text-white overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950" />
-        <div className="flex items-center gap-2.5 text-xl font-semibold">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-900">V</span>
+        <div className="flex items-center gap-2.5 text-xl font-medium text-white">
+          <LogoMark className="h-6 w-auto shrink-0" />
           VentureThrust
         </div>
         <div className="max-w-md">
