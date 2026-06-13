@@ -234,7 +234,15 @@ function LoginPageInner() {
                   <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-12 text-base" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-base">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-base">Password</Label>
+                    <Link
+                      href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}
+                      className="text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-12 text-base" />
                 </div>
                 <Button type="submit" className="h-12 w-full text-base" disabled={loading}>
