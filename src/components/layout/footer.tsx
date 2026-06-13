@@ -12,7 +12,7 @@ const footerLinks = {
   Company: [
     { href: '/about', label: 'About Us' },
     { href: '/#pricing', label: 'Pricing' },
-    { href: 'mailto:omprakash@venturethrust.com', label: 'Contact' },
+    { href: '/contact', label: 'Contact' },
   ],
   Legal: [
     { href: '/privacy', label: 'Privacy Policy' },

@@ -155,12 +155,12 @@ export default function AboutPage() {
             >
               Start free <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="mailto:omprakash@venturethrust.com"
+            <Link
+              href="/contact"
               className="inline-flex h-12 items-center rounded-lg border border-gray-300 px-7 text-base font-semibold text-gray-900 transition-colors hover:bg-gray-50"
             >
               Contact us
-            </a>
+            </Link>
           </div>
         </div>
       </section>
