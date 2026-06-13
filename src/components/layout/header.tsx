@@ -7,6 +7,7 @@ import { Logo } from './logo';
 import { FeaturesMenu } from './features-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { ContactSalesDialog } from '@/components/contact-sales-dialog';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
@@ -17,6 +18,7 @@ const navLinks = [
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [salesOpen, setSalesOpen] = useState(false);
 
   return (
     <header className="bg-card/80 backdrop-blur-lg sticky top-0 z-40 w-full border-b">
@@ -40,12 +42,13 @@ export function Header() {
         </div>
         
         <div className="hidden md:flex items-center gap-1">
-          <Link
-            href="/contact"
+          <button
+            type="button"
+            onClick={() => setSalesOpen(true)}
             className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Contact sales
-          </Link>
+          </button>
           <Button variant="ghost" asChild>
             <Link href="/login">Log in</Link>
           </Button>
@@ -86,13 +89,16 @@ export function Header() {
                       {link.label}
                     </Link>
                   ))}
-                  <Link
-                    href="/contact"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="text-base font-medium text-foreground rounded-md p-2 hover:bg-muted"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setSalesOpen(true);
+                    }}
+                    className="rounded-md p-2 text-left text-base font-medium text-foreground hover:bg-muted"
                   >
                     Contact sales
-                  </Link>
+                  </button>
                 </nav>
                 <div className="mt-auto flex flex-col gap-2 p-4 border-t">
                   <Button variant="outline" asChild>
@@ -107,6 +113,8 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+
+      <ContactSalesDialog open={salesOpen} onOpenChange={setSalesOpen} />
     </header>
   );
 }
