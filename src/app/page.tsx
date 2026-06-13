@@ -158,7 +158,7 @@ export default function LandingPage() {
             Send one link, control who gets in, and see who is engaged so you can follow up and close.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-12 px-7 text-base text-white hover:opacity-90" style={{ background: BLUE }}>
+            <Button asChild size="lg" className="cta-glow h-12 px-7 text-base text-white hover:opacity-90" style={{ background: BLUE }}>
               <Link href="/signup">
                 Start for free
                 <ArrowRight className="ml-2 h-4 w-4" />

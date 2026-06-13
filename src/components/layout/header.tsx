@@ -52,7 +52,7 @@ export function Header() {
           <Button variant="ghost" asChild>
             <Link href="/login">Log in</Link>
           </Button>
-          <Button asChild className="gap-1.5 bg-[#4285F4] text-white hover:bg-[#3367d6]">
+          <Button asChild className="cta-glow gap-1.5 bg-[#4285F4] text-white hover:bg-[#3367d6]">
             <Link href="/signup">
               Get started <ArrowRight className="h-4 w-4" />
             </Link>
@@ -104,7 +104,7 @@ export function Header() {
                   <Button variant="outline" asChild>
                     <Link href="/login" onClick={() => setIsMenuOpen(false)}>Log in</Link>
                   </Button>
-                  <Button asChild className="bg-[#4285F4] text-white hover:bg-[#3367d6]">
+                  <Button asChild className="cta-glow bg-[#4285F4] text-white hover:bg-[#3367d6]">
                     <Link href="/signup" onClick={() => setIsMenuOpen(false)}>Get started</Link>
                   </Button>
                 </div>

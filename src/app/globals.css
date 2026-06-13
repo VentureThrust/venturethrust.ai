@@ -229,3 +229,20 @@ body.vt-protected img, body.vt-protected a { -webkit-user-drag: none; }
 .animate-red-dot-blink {
   animation: red-dot-blink 1.2s ease-in-out infinite;
 }
+
+/* Glowing primary CTAs ("Get started" / "Start for free") - a soft brand-blue
+   halo that gently breathes to draw the eye. Honors reduced-motion. */
+@keyframes cta-glow {
+  0%, 100% { box-shadow: 0 0 16px 2px rgba(66, 133, 244, 0.45), 0 6px 16px rgba(66, 133, 244, 0.25); }
+  50%      { box-shadow: 0 0 30px 6px rgba(66, 133, 244, 0.65), 0 6px 16px rgba(66, 133, 244, 0.35); }
+}
+.cta-glow {
+  animation: cta-glow 2.6s ease-in-out infinite;
+}
+.cta-glow:hover {
+  animation-play-state: paused;
+  box-shadow: 0 0 34px 7px rgba(66, 133, 244, 0.7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-glow { animation: none; box-shadow: 0 0 16px 2px rgba(66, 133, 244, 0.45); }
+}
