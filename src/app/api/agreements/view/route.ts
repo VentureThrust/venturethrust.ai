@@ -27,7 +27,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
-import { isSpaceOwnerPlanActive } from '@/lib/owner-plan';
+import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
+import { recordExpiredAttempt } from '@/lib/expired-attempts';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,7 +110,9 @@ export async function GET(req: NextRequest) {
 
   // Owner-plan gate: if the file's workspace owner has lapsed, block the link.
   const ownerSpaceId = (file as { space_id?: string | null }).space_id ?? null;
-  if (!(await isSpaceOwnerPlanActive(supabase, ownerSpaceId))) {
+  const ownerId = await getSpaceOwner(supabase, ownerSpaceId);
+  if (!(await isOwnerPlanActive(supabase, ownerId))) {
+    await recordExpiredAttempt(supabase, { ownerId, spaceId: ownerSpaceId, visitorEmail: null });
     return NextResponse.json({ ok: false, error: 'expired' }, { status: 403 });
   }
 

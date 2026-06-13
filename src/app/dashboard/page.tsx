@@ -12,6 +12,7 @@ import { getEffectiveOwnerId } from '@/lib/workspace';
 import { formatDistanceToNow } from 'date-fns';
 import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
 import { ProductTour, type TourStep } from '@/components/product-tour';
+import { MissedVisitors } from '@/components/missed-visitors';
 
 // Guided first-run tour: spotlights the real nav items so a new user learns
 // what each part of the workspace does. Shows once, then never again.
@@ -260,6 +261,9 @@ export default function Dashboard() {
             Here's a summary of your workspace activity.
           </p>
         </div>
+
+        {/* Re-engagement: who tried to open links while the plan was paused. */}
+        <MissedVisitors />
 
         {/* ── Panels Grid ── */}
         <div

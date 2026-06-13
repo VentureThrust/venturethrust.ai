@@ -23,7 +23,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
-import { isSpaceOwnerPlanActive } from '@/lib/owner-plan';
+import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
+import { recordExpiredAttempt } from '@/lib/expired-attempts';
 
 // Service-role client - we deliberately bypass RLS here because the visitor
 // is anonymous and needs to read a single share_links row by id. RLS would
@@ -80,7 +81,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Owner-plan gate: a lapsed workspace owner's links stop working entirely.
-  if (!(await isSpaceOwnerPlanActive(supabase, link.space_id))) {
+  // Record the attempt and (throttled) nudge the owner to renew.
+  const ownerId = await getSpaceOwner(supabase, link.space_id);
+  if (!(await isOwnerPlanActive(supabase, ownerId))) {
+    await recordExpiredAttempt(supabase, { ownerId, spaceId: link.space_id, visitorEmail: email ?? null });
     return NextResponse.json({ error: 'OWNER_INACTIVE' }, { status: 403 });
   }
 
