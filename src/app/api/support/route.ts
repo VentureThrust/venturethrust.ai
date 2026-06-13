@@ -108,7 +108,7 @@ async function sendSupportEmail(opts: {
     auth: { user: smtpUser, pass: smtpPass },
   });
   const fromAddr = process.env.SMTP_FROM ?? `VentureThrust <${smtpUser}>`;
-  const notifyTo = process.env.SUPPORT_NOTIFY_EMAIL || smtpUser;
+  const notifyTo = process.env.SUPPORT_NOTIFY_EMAIL || 'support@venturethrust.com';
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   await transporter.sendMail({
