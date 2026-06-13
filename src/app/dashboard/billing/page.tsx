@@ -34,6 +34,19 @@ import { ContactSalesDialog } from '@/components/contact-sales-dialog';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
+/** Human-friendly time remaining until an ISO expiry. Null if past/invalid. */
+function timeLeft(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  const days = Math.floor(ms / 86_400_000);
+  if (days >= 1) return `${days} day${days === 1 ? '' : 's'} left`;
+  const hours = Math.floor(ms / 3_600_000);
+  if (hours >= 1) return `${hours} hour${hours === 1 ? '' : 's'} left`;
+  const mins = Math.max(1, Math.floor(ms / 60_000));
+  return `${mins} minute${mins === 1 ? '' : 's'} left`;
+}
+
 function fmtDate(iso: string | null): string {
   if (!iso) return '';
   try {
@@ -59,6 +72,12 @@ export default function BillingPage() {
 
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [salesOpen, setSalesOpen] = useState(false);
+  // Re-render every 30s so the "time left" countdown stays current.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
   const [phone, setPhone] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -205,6 +224,11 @@ export default function BillingPage() {
                 >
                   {active ? 'Active' : 'Expired'}
                 </span>
+                {active && timeLeft(user?.planExpiresAt) && (
+                  <span className="rounded-full bg-[#F0F5FF] px-2 py-0.5 text-[11px] font-semibold text-[#4285F4]">
+                    {timeLeft(user?.planExpiresAt)}
+                  </span>
+                )}
               </div>
               <div className="mt-1 text-2xl font-bold">{currentTier.name}</div>
               <p className="mt-1 text-sm text-muted-foreground">
