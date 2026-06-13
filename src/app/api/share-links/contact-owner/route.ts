@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
   let body: {
     token?: string;
     fileId?: string;
+    spaceId?: string;
     action?: string;
     email?: string;
     name?: string;
@@ -51,12 +52,13 @@ export async function POST(req: NextRequest) {
 
   const token = String(body.token ?? '').trim();
   const fileId = String(body.fileId ?? '').trim();
+  const reqSpaceId = String(body.spaceId ?? '').trim();
   const action = String(body.action ?? '').trim();
   const email = String(body.email ?? '').trim().toLowerCase();
   const name = String(body.name ?? '').trim();
   const message = String(body.message ?? '').trim();
 
-  if ((!token && !fileId) || !ACTIONS.has(action)) {
+  if ((!token && !fileId && !reqSpaceId) || !ACTIONS.has(action)) {
     return NextResponse.json({ ok: false, error: 'bad_request' }, { status: 400 });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > MAX.email) {
@@ -81,6 +83,9 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     if (!link) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
     spaceId = (link as { space_id?: string | null }).space_id ?? null;
+    ownerId = await getSpaceOwner(admin, spaceId);
+  } else if (reqSpaceId) {
+    spaceId = reqSpaceId;
     ownerId = await getSpaceOwner(admin, spaceId);
   } else {
     const { data: f } = await admin.from('files').select('space_id').eq('id', fileId).maybeSingle();

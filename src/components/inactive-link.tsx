@@ -27,7 +27,15 @@ import { Label } from '@/components/ui/label';
 
 type Step = 'email' | 'options' | 'message' | 'sent';
 
-export function InactiveLink({ token, fileId }: { token?: string; fileId?: string }) {
+export function InactiveLink({
+  token,
+  fileId,
+  spaceId,
+}: {
+  token?: string;
+  fileId?: string;
+  spaceId?: string;
+}) {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -42,7 +50,7 @@ export function InactiveLink({ token, fileId }: { token?: string; fileId?: strin
     const res = await fetch('/api/share-links/contact-owner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, fileId, action, email: email.trim(), ...extra }),
+      body: JSON.stringify({ token, fileId, spaceId, action, email: email.trim(), ...extra }),
     });
     return res.ok;
   }

@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { InactiveLink } from '@/components/inactive-link';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -517,6 +518,7 @@ export default function SpaceViewPage() {
   // ("Anonymous visitor entered"), or visitor-count metrics.
   const isPreview = searchParams?.get('preview') === 'true';
   const { toast } = useToast();
+  const [inactive, setInactive] = useState(false);
 
   const [space, setSpace] = useState<SpaceRow | null>(null);
   const [folderTree, setFolderTree] = useState<FolderNode[]>([]);
@@ -835,12 +837,31 @@ export default function SpaceViewPage() {
       if (spaceData?.expires_at) {
         const expiresAt = new Date(spaceData.expires_at as string);
         if (!isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
-          setError('This link has expired and is no longer accessible.');
+          setInactive(true); // show the reactivate/message popup, not the room
           setIsLoading(false);
           return;
         }
       }
       if (spaceError || !spaceData) { setError('Space not found.'); setIsLoading(false); return; }
+
+      // Owner-plan gate: if the workspace owner's plan has lapsed, the whole
+      // space is inactive. Show the reactivate/message popup, not the room.
+      try {
+        const st = await fetch('/api/share-links/space-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spaceId }),
+        });
+        const sj = st.ok ? await st.json() : { active: true };
+        if (sj.active === false) {
+          setInactive(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        /* fail open - never block a paying owner's room on a hiccup */
+      }
+
       setSpace(spaceData as SpaceRow);
 
       // Resolve cover image - handles three storage scenarios that visitors hit:
@@ -1059,7 +1080,7 @@ export default function SpaceViewPage() {
           }
           if (perm.expired) {
             setViewerLoading(false);
-            toast({ variant: 'destructive', title: 'File expired', description: 'Access to this file has expired.' });
+            setInactive(true); // the link is inactive: show the reactivate/message popup
             return;
           }
           if (perm.requireAgreement && !perm.signed && perm.agreementFileId) {
@@ -1244,6 +1265,11 @@ export default function SpaceViewPage() {
       <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
     </div>
   );
+
+  // Inactive (owner plan lapsed, or the link/space expired): replace the entire
+  // room with the email-capture + reactivate/message popup. Nothing behind it
+  // renders, so no interaction leaks through.
+  if (inactive) return <InactiveLink spaceId={spaceId} />;
 
   if (error || !space) return (
     <div className="flex items-center justify-center min-h-screen bg-muted p-4">
