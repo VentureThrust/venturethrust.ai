@@ -4,16 +4,15 @@ import Link from 'next/link';
 
 const footerLinks = {
   Product: [
-    { href: '#features', label: 'Features' },
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#security', label: 'Security' },
-    { href: '/choose-role', label: 'Pricing' },
+    { href: '/features', label: 'Features' },
+    { href: '/#how-it-works', label: 'How It Works' },
+    { href: '/#security', label: 'Security' },
+    { href: '/#pricing', label: 'Pricing' },
   ],
   Company: [
-    { href: '#', label: 'About Us' },
-    { href: '#', label: 'Careers' },
-    { href: '#', label: 'Blog' },
-    { href: '#', label: 'Contact' },
+    { href: '/about', label: 'About Us' },
+    { href: '/#pricing', label: 'Pricing' },
+    { href: 'mailto:omprakash@venturethrust.com', label: 'Contact' },
   ],
   Legal: [
     { href: '/privacy', label: 'Privacy Policy' },
