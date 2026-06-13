@@ -48,11 +48,11 @@ export function ContactForm({ defaultTopic = 'sales' }: { defaultTopic?: string 
         body: JSON.stringify(form),
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok && json.sent) {
+      if (res.ok && json.ok) {
         setStatus('sent');
         return;
       }
-      // SMTP not configured, validation error, or send failure.
+      // Nothing captured (no DB + no SMTP), validation error, or send failure.
       setStatus('error');
       setError(typeof json.error === 'string' ? json.error : '');
     } catch {
