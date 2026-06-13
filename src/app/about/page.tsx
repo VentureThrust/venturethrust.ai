@@ -1,35 +1,57 @@
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
-import { ArrowRight, ShieldCheck, Eye, Zap, Heart } from 'lucide-react';
+import {
+  ArrowRight,
+  ShieldCheck,
+  Eye,
+  Zap,
+  Target,
+  Rocket,
+  Handshake,
+  GitMerge,
+  Scale,
+  Users,
+  Briefcase,
+} from 'lucide-react';
 
 export const metadata = {
-  title: 'About us - VentureThrust',
-  description: 'Why we built VentureThrust: a secure, modern data room that helps founders raise with confidence.',
+  title: 'About us · VentureThrust',
+  description:
+    'Why we built VentureThrust: a secure data room that helps teams share documents, see who is engaged, and close deals.',
 };
 
 const BLUE = '#4285F4';
+
+const USE_CASES = [
+  { icon: Rocket, title: 'Fundraising', desc: 'Founders share decks and data rooms, and see which investors are leaning in.' },
+  { icon: Handshake, title: 'B2B sales', desc: 'Send proposals and collateral, then follow up with the buyers who actually read them.' },
+  { icon: GitMerge, title: 'Mergers & acquisitions', desc: 'Run secure deal rooms for buyers and sellers, with a full audit trail.' },
+  { icon: Scale, title: 'Legal & law firms', desc: 'Share confidential documents with clients and counterparties under NDA.' },
+  { icon: Users, title: 'Recruiting & HR', desc: 'Send offers, profiles, and references securely, and know they were seen.' },
+  { icon: Briefcase, title: 'Consulting & agencies', desc: 'Deliver reports and pitches with tracking, so you know what landed.' },
+];
 
 const VALUES = [
   {
     icon: ShieldCheck,
     title: 'Confidentiality first',
-    desc: 'Your deck, financials, and cap table are sensitive. Every layer of the product assumes they must stay private.',
+    desc: 'Your documents are sensitive. Every layer of the product assumes they must stay private.',
+  },
+  {
+    icon: Target,
+    title: 'Built to close',
+    desc: 'We surface who is engaged so you can follow up at the right moment and win the deal.',
   },
   {
     icon: Eye,
     title: 'Clarity, not noise',
-    desc: 'We turn raw activity into a clear picture of who is engaged, so you spend time on the right conversations.',
+    desc: 'We turn raw activity into a clear picture, so you spend time on the right conversations.',
   },
   {
     icon: Zap,
     title: 'Fast and simple',
-    desc: 'Set up a room and share a link in minutes. Powerful controls that never get in your way.',
-  },
-  {
-    icon: Heart,
-    title: 'Built for founders',
-    desc: 'We obsess over the fundraising experience, because that is the moment that decides a company.',
+    desc: 'Set up a room and share a link in minutes, with powerful controls that stay out of your way.',
   },
 ];
 
@@ -44,11 +66,11 @@ export default function AboutPage() {
           About us
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          We help founders raise with confidence
+          Helping teams share documents and close deals
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600">
-          VentureThrust is a secure virtual data room for fundraises and deals - share your documents with a single
-          link, control exactly who gets in, and see who is truly engaged.
+          VentureThrust is a secure data room for any high-stakes document you send. Share with a single link, control
+          who gets in, and see who is engaged so you can follow up and close.
         </p>
       </section>
 
@@ -58,26 +80,48 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Why we built it</h2>
           <div className="mt-6 space-y-5 text-[16px] leading-relaxed text-gray-600">
             <p>
-              Raising capital means sending your most sensitive documents to people you are still getting to know. Yet
-              most founders still do it with email attachments and shared drives - no control once it is sent, and no
-              idea whether anyone actually read it.
+              Whether you are raising a round, closing a sale, or running a deal, you end up sending sensitive documents
+              to people you are still getting to know. Most teams still do it with email attachments: no control once it
+              is sent, and no idea whether anyone read it.
             </p>
             <p>
-              We thought that was backwards. The moment your future depends on a document, you should know exactly where
-              it went, who opened it, and what held their attention - and you should be able to pull access back the
-              instant a conversation ends.
+              We thought that was backwards. When a document can win or lose a deal, you should know exactly where it
+              went, who opened it, and what held their attention. You should be able to follow up while interest is
+              high, and pull access back the moment a conversation ends.
             </p>
             <p>
-              So we built VentureThrust: a data room that is as easy as sharing a link, as secure as the documents
-              deserve, and honest about what is happening after you hit send. It is the tool we wish we had on the other
-              side of the table.
+              So we built VentureThrust: as easy as sharing a link, as secure as the documents deserve, and honest about
+              what happens after you hit send.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Values */}
+      {/* Who uses it */}
       <section className="border-t border-gray-200 bg-gray-50">
+        <div className="container mx-auto max-w-6xl px-6 py-16 sm:py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Who uses VentureThrust</h2>
+            <p className="mt-3 text-base text-gray-600">
+              Anyone who shares important documents to move a deal forward.
+            </p>
+          </div>
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {USE_CASES.map((u) => (
+              <div key={u.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#F0F5FF]" style={{ color: BLUE }}>
+                  <u.icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 text-base font-semibold text-gray-900">{u.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{u.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <h2 className="text-center text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">What we believe</h2>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -98,7 +142,7 @@ export default function AboutPage() {
       <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-2xl px-6 py-20 text-center sm:py-24">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Run your next raise on VentureThrust
+            Close your next deal on VentureThrust
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base text-gray-600">
             Start free for 7 days. Questions? We would love to hear from you.

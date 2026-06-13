@@ -3,7 +3,7 @@ import { Logo } from '@/components/layout/logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Refund Policy - VentureThrust',
+  title: 'Refund Policy · VentureThrust',
   description: 'How refunds, cancellations, and the free trial work on VentureThrust.',
 };
 
@@ -41,7 +41,7 @@ export default function RefundPolicyPage() {
             <h2 className="text-xl font-semibold text-gray-900">1. Free trial</h2>
             <p className="mt-3">
               New accounts can start a <strong>7-day free trial</strong>. The trial is free of charge and requires no
-              card. If you do not upgrade to a paid plan, access simply ends when the trial expires - there is nothing
+              card. If you do not upgrade to a paid plan, access simply ends when the trial expires. There is nothing
               to cancel and nothing is charged.
             </p>
           </section>

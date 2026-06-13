@@ -445,7 +445,7 @@ function TrackScreen() {
           More
         </div>
         <div className="mt-2 rounded-lg bg-blue-50 px-2.5 py-1.5">
-          <p className="text-[10px] font-medium text-[#1e3a8a]">Page 3 held attention longest — 1:12 avg.</p>
+          <p className="text-[10px] font-medium text-[#1e3a8a]">Page 3 held attention longest, at 1:12 avg.</p>
         </div>
       </div>
     </div>

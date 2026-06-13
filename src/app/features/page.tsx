@@ -7,9 +7,9 @@ import { FEATURES } from '@/lib/features';
 import { ArrowRight, Check, Clock } from 'lucide-react';
 
 export const metadata = {
-  title: 'Features - VentureThrust',
+  title: 'Features · VentureThrust',
   description:
-    'Secure links, page-level analytics, NDAs and e-signatures, dynamic watermarks, file requests, and a full audit trail - everything you need to share documents and win the room.',
+    'Secure links, page-level analytics, NDAs and e-signatures, dynamic watermarks, file requests, and a full audit trail. Everything you need to share documents and close the deal.',
 };
 
 const BLUE = '#4285F4';
@@ -101,7 +101,7 @@ export default function FeaturesPage() {
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600">
           Secure links, page-by-page tracking, NDAs and e-signatures, dynamic watermarks, file requests, and a complete
-          audit trail - all in one data room.
+          audit trail, all in one data room.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
@@ -125,7 +125,7 @@ export default function FeaturesPage() {
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">See it in action</h2>
           <p className="mt-1 text-sm text-gray-500">
-            From template to tracked views - click through every step.
+            From template to tracked views. Click through every step.
           </p>
         </div>
         <HeroWalkthrough />
@@ -168,7 +168,7 @@ export default function FeaturesPage() {
       <Feature
         eyebrow="Track"
         title="Know exactly who read what"
-        body="Every visit is tracked page by page, so you know which investor read the whole deck and who stopped at slide three - and you can follow up with the people who are actually engaged."
+        body="Every visit is tracked page by page, so you know who read the whole document and who stopped on page three. Follow up with the people who are actually engaged, while their interest is high."
         points={[
           'Who opened what, when, and from where',
           'Time spent on every page of every document',

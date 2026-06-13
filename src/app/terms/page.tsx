@@ -3,7 +3,7 @@ import { Logo } from '@/components/layout/logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Terms of Service - VentureThrust',
+  title: 'Terms of Service · VentureThrust',
   description: 'The terms that govern your use of VentureThrust.',
 };
 

@@ -3,7 +3,7 @@ import { Logo } from '@/components/layout/logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Privacy Policy - VentureThrust',
+  title: 'Privacy Policy · VentureThrust',
   description: 'How VentureThrust collects, uses, and protects your information.',
 };
 
@@ -41,29 +41,29 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-xl font-semibold text-gray-900">1. Information we collect</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
-                <strong>Account information</strong> - your name, email address, password (stored only in hashed
+                <strong>Account information</strong>: your name, email address, password (stored only in hashed
                 form), and profile details.
               </li>
               <li>
-                <strong>Content you upload</strong> - the documents, files, folders, and data rooms
+                <strong>Content you upload</strong>: the documents, files, folders, and data rooms
                 (&ldquo;Spaces&rdquo;) you add, along with their titles and metadata.
               </li>
               <li>
-                <strong>Sharing &amp; visitor data</strong> - when you share a Space, we collect visitor email
+                <strong>Sharing &amp; visitor data</strong>: when you share a Space, we collect visitor email
                 addresses (when you require them), acceptances of NDAs or agreements, and viewing analytics such as
                 which documents were viewed, time spent per page, device type, approximate location derived from IP
                 address, and timestamps.
               </li>
               <li>
-                <strong>Payment information</strong> - payments are processed by our payment provider (Cashfree). We
+                <strong>Payment information</strong>: payments are processed by our payment provider (Cashfree). We
                 receive the transaction status and the plan purchased; we do not store your full card details.
               </li>
               <li>
-                <strong>Support communications</strong> - messages you send to support, including conversations with
+                <strong>Support communications</strong>: messages you send to support, including conversations with
                 our AI support assistant.
               </li>
               <li>
-                <strong>Technical data</strong> - IP address, browser and device information, and cookies or local
+                <strong>Technical data</strong>: IP address, browser and device information, and cookies or local
                 storage used to keep you signed in and remember preferences.
               </li>
             </ul>
@@ -90,14 +90,14 @@ export default function PrivacyPolicyPage() {
               that help us run the Service:
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5">
-              <li><strong>Supabase</strong> - database, file storage, and authentication (where your data is hosted);</li>
-              <li><strong>Cashfree</strong> - payment processing;</li>
-              <li><strong>Zoho</strong> - delivery of transactional emails;</li>
+              <li><strong>Supabase</strong>: database, file storage, and authentication (where your data is hosted);</li>
+              <li><strong>Cashfree</strong>: payment processing;</li>
+              <li><strong>Zoho</strong>: delivery of transactional emails;</li>
               <li>
-                <strong>Anthropic</strong> - powers our AI support assistant; the support messages you send may be
+                <strong>Anthropic</strong>: powers our AI support assistant; the support messages you send may be
                 processed by Anthropic to generate replies;
               </li>
-              <li><strong>Vercel</strong> - application hosting and content delivery.</li>
+              <li><strong>Vercel</strong>: application hosting and content delivery.</li>
             </ul>
             <p className="mt-3">
               We may also disclose information if required by law, or to protect the rights, safety, and property of

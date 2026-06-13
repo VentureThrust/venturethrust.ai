@@ -61,7 +61,7 @@ export function LinkSettingsDemo() {
           <Copy className="h-3 w-3" /> Copy
         </span>
       </div>
-      <p className="mt-2 text-center text-[11px] text-gray-400">Try the toggles - this is the real control panel.</p>
+      <p className="mt-2 text-center text-[11px] text-gray-400">Try the toggles. This is the real control panel.</p>
     </div>
   );
 }

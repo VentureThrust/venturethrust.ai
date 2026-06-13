@@ -154,8 +154,8 @@ export default function LandingPage() {
             Know exactly who read them.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600">
-            VentureThrust is a secure data room for fundraises and deals. Send one link,
-            control who gets in, and see time spent on every page.
+            VentureThrust is a secure data room for sales, fundraising, and every kind of deal.
+            Send one link, control who gets in, and see who is engaged so you can follow up and close.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="h-12 px-7 text-base text-white hover:opacity-90" style={{ background: BLUE }}>
@@ -168,7 +168,10 @@ export default function LandingPage() {
               <Link href="/login">Sign in</Link>
             </Button>
           </div>
-          <p className="mt-3 text-sm text-gray-400">Free plan available. No card required.</p>
+          <p className="mt-3 text-sm text-gray-400">7-day free trial. No card required.</p>
+          <p className="mt-6 text-xs font-medium uppercase tracking-wider text-gray-400">
+            For fundraising · B2B sales · M&amp;A · legal · recruiting
+          </p>
         </div>
 
         <div className="mx-auto mt-12 max-w-5xl sm:mt-14">
@@ -206,7 +209,7 @@ export default function LandingPage() {
         id="how-it-works"
         eyebrow="Track"
         title="See what happens after you hit send"
-        body="Every visit is tracked page by page, so you know which investor read the whole deck and who stopped at slide three. Follow up with the people who are actually engaged."
+        body="Every visit is tracked page by page, so you know who read the whole document and who stopped on page three. Follow up with the people who are actually engaged, while their interest is high."
         points={[
           'Who opened what, when, and from where',
           'Time spent on every page of every document',
@@ -239,7 +242,7 @@ export default function LandingPage() {
               Built like the documents matter
             </h2>
             <p className="mt-4 text-base leading-relaxed text-gray-600">
-              Term sheets, financials, and cap tables deserve more than an email attachment.
+              Contracts, proposals, and financials deserve more than an email attachment.
               Every layer of VentureThrust assumes the contents are confidential.
             </p>
           </div>
@@ -267,7 +270,7 @@ export default function LandingPage() {
       <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-6xl px-6 py-20 text-center sm:py-24">
           <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Your next raise deserves a better data room
+            Your next deal deserves a better data room
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base text-gray-600">
             Set up your room and share the first link in minutes.
