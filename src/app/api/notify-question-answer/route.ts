@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           For your security, the answer is only visible after you sign in with this email address (<span style="font-family: monospace; color: #555;">${escapeHtml(toEmail)}</span>). If you have any trouble, reply to this email.
         </div>
 
-        <p style="margin: 24px 0 0 0; color: #aaa; font-size: 11px;">© ${new Date().getFullYear()} VentureThrust - secure data rooms for founders and investors.</p>
+        <p style="margin: 24px 0 0 0; color: #aaa; font-size: 11px;">© ${new Date().getFullYear()} VentureThrust. Secure data rooms for closing deals.</p>
       </div>
     `;
 
