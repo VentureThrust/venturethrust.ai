@@ -30,9 +30,9 @@ import {
 import { Check, Loader2, BadgeCheck, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StorageMeter } from '@/components/storage-meter';
+import { ContactSalesDialog } from '@/components/contact-sales-dialog';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
-const SALES = 'mailto:omprakash@venturethrust.com?subject=VentureThrust%20plan%20enquiry';
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '';
@@ -58,6 +58,7 @@ export default function BillingPage() {
   const [loadingTier, setLoadingTier] = useState(true);
 
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
+  const [salesOpen, setSalesOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -295,11 +296,9 @@ export default function BillingPage() {
                     Upgrade to {t.name}
                   </Button>
                 ) : (
-                  <a href={SALES} className="block">
-                    <Button variant="outline" className="w-full">
-                      Contact sales
-                    </Button>
-                  </a>
+                  <Button variant="outline" className="w-full" onClick={() => setSalesOpen(true)}>
+                    Contact sales
+                  </Button>
                 )}
               </div>
             </div>
@@ -312,13 +311,16 @@ export default function BillingPage() {
         <p className="text-sm text-muted-foreground">
           Need more storage, more seats, SSO, or a custom plan?
         </p>
-        <a
-          href={SALES}
+        <button
+          type="button"
+          onClick={() => setSalesOpen(true)}
           className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900 underline underline-offset-4"
         >
           Contact sales <ArrowUpRight className="h-4 w-4" />
-        </a>
+        </button>
       </div>
+
+      <ContactSalesDialog open={salesOpen} onOpenChange={setSalesOpen} />
 
       {/* Phone dialog before checkout */}
       <Dialog

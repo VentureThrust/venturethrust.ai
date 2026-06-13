@@ -19,7 +19,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
 
-const CONTACT_TO = 'omprakash@venturethrust.com';
+// Where each topic's enquiries are delivered. These are just "To" addresses
+// (real Zoho mailboxes/aliases), not credentials, so they need no secrets.
+// Override via env if you ever want to, but the defaults are correct.
+const TOPIC_TO: Record<string, string> = {
+  sales: process.env.CONTACT_SALES_EMAIL || 'sales@venturethrust.com',
+  support: process.env.CONTACT_SUPPORT_EMAIL || 'info@venturethrust.com',
+  general: process.env.CONTACT_GENERAL_EMAIL || 'info@venturethrust.com',
+};
 const MAX = { name: 120, email: 320, company: 160, phone: 40, message: 5000 };
 const TOPICS = new Set(['sales', 'support', 'general']);
 const TOPIC_LABEL: Record<string, string> = {
@@ -199,7 +206,7 @@ export async function POST(request: NextRequest) {
 
       await transporter.sendMail({
         from: fromAddr,
-        to: CONTACT_TO,
+        to: TOPIC_TO[topic] ?? 'info@venturethrust.com',
         replyTo: email,
         subject: `[${label}] New enquiry from ${name}`,
         text,

@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ContactSalesButton } from '@/components/contact-sales-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -357,12 +358,11 @@ export default function ChoosePlanPage() {
               </p>
             </div>
           </div>
-          <a
-            href="mailto:omprakash@venturethrust.com"
+          <ContactSalesButton
             className="mt-4 inline-flex items-center justify-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800 sm:mt-0"
           >
             Talk to sales
-          </a>
+          </ContactSalesButton>
         </div>
 
         <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">

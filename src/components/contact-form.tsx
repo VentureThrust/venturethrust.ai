@@ -11,7 +11,8 @@ import { useState } from 'react';
 import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 const BLUE = '#4285F4';
-const EMAIL = 'omprakash@venturethrust.com';
+const GENERAL_EMAIL = 'info@venturethrust.com';
+const SALES_EMAIL = 'sales@venturethrust.com';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
 
@@ -21,7 +22,13 @@ const TOPICS = [
   { value: 'general', label: 'General' },
 ];
 
-export function ContactForm({ defaultTopic = 'sales' }: { defaultTopic?: string }) {
+export function ContactForm({
+  defaultTopic = 'sales',
+  hideTopic = false,
+}: {
+  defaultTopic?: string;
+  hideTopic?: boolean;
+}) {
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -75,6 +82,8 @@ export function ContactForm({ defaultTopic = 'sales' }: { defaultTopic?: string 
     );
   }
 
+  const fallbackEmail = form.topic === 'sales' ? SALES_EMAIL : GENERAL_EMAIL;
+
   const inputClass =
     'w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#4285F4] focus:ring-2 focus:ring-[#4285F4]/20';
 
@@ -106,16 +115,18 @@ export function ContactForm({ defaultTopic = 'sales' }: { defaultTopic?: string 
         </div>
       </div>
 
-      <div className="mt-4">
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">How can we help?</label>
-        <select value={form.topic} onChange={set('topic')} className={inputClass}>
-          {TOPICS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!hideTopic && (
+        <div className="mt-4">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">How can we help?</label>
+          <select value={form.topic} onChange={set('topic')} className={inputClass}>
+            {TOPICS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="mt-4">
         <label className="mb-1.5 block text-sm font-medium text-gray-700">Message</label>
@@ -133,8 +144,8 @@ export function ContactForm({ defaultTopic = 'sales' }: { defaultTopic?: string 
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {error ? `${error} ` : 'We could not submit the form right now. '}
           Please email us directly at{' '}
-          <a href={`mailto:${EMAIL}`} className="font-semibold underline">
-            {EMAIL}
+          <a href={`mailto:${fallbackEmail}`} className="font-semibold underline">
+            {fallbackEmail}
           </a>
           .
         </div>

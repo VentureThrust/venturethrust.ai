@@ -5,11 +5,11 @@ import { Mail, Phone, Clock, MessageSquare } from 'lucide-react';
 
 export const metadata = {
   title: 'Contact us · VentureThrust',
-  description: 'Talk to the VentureThrust team about sales, support, or anything else. Email omprakash@venturethrust.com or call +91 8530329552.',
+  description: 'Talk to the VentureThrust team about sales, support, or anything else. Email info@venturethrust.com or call +91 8530329552.',
 };
 
 const BLUE = '#4285F4';
-const EMAIL = 'omprakash@venturethrust.com';
+const EMAIL = 'info@venturethrust.com';
 const PHONE_DISPLAY = '+91 8530329552';
 const PHONE_TEL = '+918530329552';
 

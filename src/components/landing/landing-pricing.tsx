@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { PLAN_TIERS } from '@/lib/plan-catalogue';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ContactSalesButton } from '@/components/contact-sales-dialog';
 
 const BLUE = '#4285F4';
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
@@ -79,13 +80,12 @@ export function LandingPricing() {
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
           Need more seats, SSO, or a custom plan?{' '}
-          <a
-            href="mailto:omprakash@venturethrust.com"
+          <ContactSalesButton
             className="font-medium underline underline-offset-4"
             style={{ color: BLUE }}
           >
             Talk to sales
-          </a>
+          </ContactSalesButton>
         </p>
       </div>
     </section>
