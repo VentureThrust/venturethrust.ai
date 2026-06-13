@@ -116,6 +116,26 @@ export const PLAN_TIERS: PlanTier[] = [
     ],
     showInGrid: true,
   },
+  // TEST ONLY: ₹1, expires 5 minutes after payment. Remove before real launch.
+  {
+    id: 'vdr-test',
+    name: 'Test (5 min)',
+    price: 1,
+    rank: 1,
+    seats: 1,
+    spaces: 2,
+    visitorsPerSpace: 5,
+    storageGb: 2,
+    tagline: 'Testing only: charges ₹1 and expires in 5 minutes.',
+    note: 'For testing the expiry flow. Remove before launch.',
+    features: [
+      '1 member',
+      '2 spaces',
+      'Expires 5 minutes after payment',
+      'Use only to test plan expiry',
+    ],
+    showInGrid: true,
+  },
 ];
 
 export const tierById = (id: string | null | undefined): PlanTier | null =>

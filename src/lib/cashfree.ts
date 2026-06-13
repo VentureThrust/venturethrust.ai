@@ -33,6 +33,8 @@ export const PAID_PLANS: Record<
   'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter', cycleMs: BILLING_CYCLE_MS },
   'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth', cycleMs: BILLING_CYCLE_MS },
   'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business', cycleMs: BILLING_CYCLE_MS },
+  // TEST ONLY: ₹1, expires 5 minutes after payment. Remove before real launch.
+  'vdr-test': { amount: 1, planKey: 'vdr_only', name: 'Test (5 min)', cycleMs: 5 * 60 * 1000 },
 };
 
 /** How long a paid plan stays active before renewal. Falls back to the default. */
