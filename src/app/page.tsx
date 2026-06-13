@@ -174,7 +174,7 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-12 max-w-5xl sm:mt-14">
+        <div id="how-it-works" className="mx-auto mt-12 max-w-5xl scroll-mt-24 sm:mt-14">
           <HeroWalkthrough />
         </div>
       </section>
@@ -206,7 +206,7 @@ export default function LandingPage() {
       />
 
       <Feature
-        id="how-it-works"
+        id="tracking"
         eyebrow="Track"
         title="See what happens after you hit send"
         body="Every visit is tracked page by page, so you know who read the whole document and who stopped on page three. Follow up with the people who are actually engaged, while their interest is high."

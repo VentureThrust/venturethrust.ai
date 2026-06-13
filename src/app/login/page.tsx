@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -37,6 +37,17 @@ function LoginPageInner() {
   const [inviteeFallback, setInviteeFallback] = useState(false);
   // Owner of the shared workspace, so we can scope into it after a code login.
   const [codeOwnerId, setCodeOwnerId] = useState<string | null>(null);
+
+  // If the page is restored from the browser's back/forward cache (e.g. the
+  // user logs in, then taps Back), React state is preserved - which would leave
+  // the button stuck on "Logging in…". Reset it whenever the page is shown.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setLoading(false);
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

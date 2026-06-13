@@ -40,10 +40,10 @@ export function FeaturesMenu() {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {/* The label itself navigates to the full features page; hovering reveals
-          the quick mega menu. */}
-      <Link
-        href="/features"
+      {/* Click toggles the mega menu; hovering also opens it. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className={cn(
           'flex items-center gap-1 text-sm font-medium transition-colors',
@@ -52,7 +52,7 @@ export function FeaturesMenu() {
       >
         Features
         <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
-      </Link>
+      </button>
 
       {open && (
         // Outer wrapper sits flush under the label with transparent top padding,

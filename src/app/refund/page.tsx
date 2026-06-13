@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 const LAST_UPDATED = '12 June 2026';
-const CONTACT = 'omprakash@venturethrust.com';
+const CONTACT = 'info@venturethrust.com';
 
 export default function RefundPolicyPage() {
   return (
