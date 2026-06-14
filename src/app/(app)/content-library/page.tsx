@@ -345,7 +345,7 @@ function UploadProgressPanel({
   }, [items]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] rounded-xl shadow-2xl bg-gray-900 text-white flex flex-col overflow-hidden">
+    <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl bg-gray-900 text-white flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
         <span className="font-semibold text-base">Uploads</span>
         <div className="flex items-center gap-1">

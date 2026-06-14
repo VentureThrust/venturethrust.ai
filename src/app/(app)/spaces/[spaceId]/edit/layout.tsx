@@ -435,7 +435,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                           <PopoverTrigger asChild>
                             <h1 className="text-2xl font-bold cursor-pointer" style={{ color: editingTitleColor }}>{title}</h1>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[360px]">
+                          <PopoverContent className="w-[360px] max-w-[calc(100vw-2rem)]">
                             <div className="space-y-4">
                               <Input value={editingTitleValue} onChange={(e) => setEditingTitleValue(e.target.value)} autoFocus />
                               <p className="text-sm font-medium">Customize title</p>
@@ -479,7 +479,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                             <PopoverTrigger asChild>
                               <p className="cursor-pointer" style={{ color: editingSubtitleColor }}>{subtitle || 'Subtitle'}</p>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[360px]">
+                            <PopoverContent className="w-[360px] max-w-[calc(100vw-2rem)]">
                               <div className="space-y-4">
                                 <Input value={editingSubtitleValue} onChange={(e) => setEditingSubtitleValue(e.target.value)} autoFocus />
                                 <div className="flex justify-end gap-2">
@@ -545,7 +545,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                             <span className="sr-only">Space Options</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[450px] p-4">
+                        <DropdownMenuContent align="end" className="w-[450px] max-w-[calc(100vw-2rem)] p-4">
                           <div className="flex gap-4">
                             <div className="flex-1 space-y-1">
                               <DropdownMenuGroup>
