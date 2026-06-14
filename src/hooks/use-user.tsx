@@ -64,15 +64,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         isAdmin = (full.data as { is_admin?: boolean }).is_admin === true;
       }
 
+      const meta = (session.user.user_metadata ?? {}) as { full_name?: string; avatar_url?: string };
+      const fullName = typeof meta.full_name === 'string' ? meta.full_name.trim() : '';
+
       setUser({
         email: session.user.email ?? '',
-        firstName: session.user.email?.split('@')[0] ?? '',
+        firstName: fullName ? fullName.split(/\s+/)[0] : (session.user.email?.split('@')[0] ?? ''),
         plan,
         planStatus,
         planExpiresAt,
         isAdmin,
-        avatarUrl:
-          'https://images.unsplash.com/photo-1639149888905-fb39731f2e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+        avatarUrl: typeof meta.avatar_url === 'string' ? meta.avatar_url : '',
       });
 
       setLoading(false);
