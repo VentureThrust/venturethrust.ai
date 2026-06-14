@@ -1,10 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 
 export interface User {
   email: string;
+  /** Full display name (or email prefix when no name is set). */
+  name: string;
+  /** First word of the name - used for the compact header pill. */
   firstName: string;
   plan: 'vdr_only' | 'ai_only' | 'vdr_ai' | null;
   planStatus: string | null;
@@ -25,14 +29,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    let active = true;
+
+    const loadUser = async (sessionArg?: Session | null) => {
+      const session = sessionArg ?? (await supabase.auth.getSession()).data.session;
 
       if (!session?.user) {
-        setUser(null);
-        setLoading(false);
+        if (active) {
+          setUser(null);
+          setLoading(false);
+        }
         return;
       }
 
@@ -66,21 +72,41 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       const meta = (session.user.user_metadata ?? {}) as { full_name?: string; avatar_url?: string };
       const fullName = typeof meta.full_name === 'string' ? meta.full_name.trim() : '';
+      const emailPrefix = session.user.email?.split('@')[0] ?? '';
+      const displayName = fullName || emailPrefix;
 
+      if (!active) return;
       setUser({
         email: session.user.email ?? '',
-        firstName: fullName ? fullName.split(/\s+/)[0] : (session.user.email?.split('@')[0] ?? ''),
+        name: displayName,
+        firstName: displayName ? displayName.split(/\s+/)[0] : '',
         plan,
         planStatus,
         planExpiresAt,
         isAdmin,
         avatarUrl: typeof meta.avatar_url === 'string' ? meta.avatar_url : '',
       });
-
       setLoading(false);
     };
 
     loadUser();
+
+    // Keep the cached user fresh: when the profile name/avatar is updated in
+    // Settings, Supabase emits USER_UPDATED; sign-in and token refresh also fire
+    // here. Refreshing on these means the header name/avatar update live without
+    // a page reload.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        if (active) setUser(null);
+        return;
+      }
+      loadUser(session);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
