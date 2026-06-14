@@ -198,6 +198,7 @@ export function ShareSpaceDialog({
         const msg = json.error === 'cannot_invite_self' ? 'You cannot invite yourself.'
           : json.error === 'forbidden' ? 'You can only invite people to your own space.'
           : json.error === 'invalid_email' ? 'That email looks invalid.'
+          : json.detail ? `Could not save: ${json.detail}`
           : 'Could not send the invite. Please try again.';
         toast({ variant: 'destructive', title: 'Invite failed', description: msg });
         return;

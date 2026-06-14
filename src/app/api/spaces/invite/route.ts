@@ -103,20 +103,24 @@ export async function POST(req: NextRequest) {
   const metaName = (owner.user_metadata as Record<string, unknown> | undefined)?.full_name;
   if (typeof metaName === 'string' && metaName.trim()) ownerName = metaName.trim();
 
-  const payload = {
+  // Safe columns first; metadata is added on top but is OPTIONAL - some installs
+  // have no `metadata` column on alerts. shared-with-me resolves the open token
+  // and owner email on its own, so a missing metadata column must not break the
+  // share. (The previous version never checked the insert error, so a failed
+  // write silently reported success - that is fixed below.)
+  const baseAlert = {
     user_id: invitee.id,
     space_id: spaceId,
     type: 'space_shared',
     message: `${ownerName} shared the data room "${spaceName}" with you.`,
-    metadata: {
-      token: openToken,
-      space_name: spaceName,
-      owner_email: owner.email ?? null,
-      owner_name: ownerName,
-    },
+  };
+  const withMeta = {
+    ...baseAlert,
+    metadata: { token: openToken, space_name: spaceName, owner_email: owner.email ?? null, owner_name: ownerName },
   };
 
-  // Dedupe: refresh an existing unopened invite for the same space, else insert.
+  // Refresh an existing unopened invite for this space, else insert a new one.
+  let targetId: string | null = null;
   try {
     const { data: existing } = await admin
       .from('alerts')
@@ -127,15 +131,26 @@ export async function POST(req: NextRequest) {
       .is('read_at', null)
       .limit(1)
       .maybeSingle();
+    targetId = (existing?.id as string) ?? null;
+  } catch { /* non-fatal - fall through to insert */ }
 
-    if (existing?.id) {
-      await admin.from('alerts').update({ ...payload, created_at: new Date().toISOString() }).eq('id', existing.id);
-    } else {
-      await admin.from('alerts').insert(payload);
-    }
-  } catch (err) {
-    console.error('[spaces/invite] alert write failed:', err);
-    return NextResponse.json({ ok: false, error: 'server' }, { status: 500 });
+  const isMissingColumn = (e: { message?: string; code?: string } | null) =>
+    !!e && (e.code === 'PGRST204' || e.code === '42703' ||
+      (e.message ?? '').toLowerCase().includes('metadata') ||
+      (e.message ?? '').toLowerCase().includes('column'));
+
+  const write = (payload: Record<string, unknown>) =>
+    targetId
+      ? admin.from('alerts').update(payload).eq('id', targetId)
+      : admin.from('alerts').insert(payload);
+
+  let { error: writeErr } = await write(withMeta);
+  if (isMissingColumn(writeErr)) {
+    ({ error: writeErr } = await write(baseAlert)); // retry without metadata
+  }
+  if (writeErr) {
+    console.error('[spaces/invite] alert write failed:', writeErr);
+    return NextResponse.json({ ok: false, error: 'save_failed', detail: writeErr.message }, { status: 500 });
   }
 
   // Email the invitee (best-effort, never blocks the in-app share).
