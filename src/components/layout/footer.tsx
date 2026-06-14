@@ -8,6 +8,8 @@ const footerLinks = {
     { href: '/#how-it-works', label: 'How It Works' },
     { href: '/#security', label: 'Security' },
     { href: '/#pricing', label: 'Pricing' },
+    { href: '/docsend-alternative', label: 'DocSend alternative' },
+    { href: '/track-who-viewed-your-pitch-deck', label: 'Track pitch deck views' },
   ],
   Company: [
     { href: '/about', label: 'About Us' },
