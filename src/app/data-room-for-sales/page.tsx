@@ -26,7 +26,7 @@ const POINTS = [
   { icon: BarChart3, title: 'See which buyers are engaged', desc: 'Track who opened your proposal, how long they spent, and which pages they actually read.' },
   { icon: TrendingUp, title: 'Follow up at the right moment', desc: 'Reach out while your document is still on their screen, to the buyers who are warmest.' },
   { icon: Users, title: 'A link per prospect', desc: 'Give each buyer their own link, see them separately, and revoke access any time.' },
-  { icon: Ban, title: 'Keep pricing in your control', desc: 'Block downloads so sensitive quotes and terms stay view-only.' },
+  { icon: Ban, title: 'Keep quotes view-only', desc: 'Block downloads so your sensitive pricing and terms stay view-only.' },
   { icon: Sparkles, title: 'Look professional', desc: 'A branded room signals a serious vendor and helps you stand out in the deal.' },
 ];
 
