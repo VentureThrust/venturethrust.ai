@@ -330,7 +330,7 @@ export default function ChoosePlanPage() {
                 </div>
                 {plan.price > 0 && (
                   <p className={cn('mt-1 text-xs', featured ? 'text-blue-200' : 'text-muted-foreground')}>
-                    + 18% GST, billed monthly
+                    Billed monthly
                   </p>
                 )}
                 {plan.note && (

@@ -53,7 +53,6 @@ export function LandingPricing() {
                     </>
                   )}
                 </div>
-                {t.price > 0 && <p className="mt-1 text-xs text-muted-foreground">+ 18% GST</p>}
                 <ul className="mt-5 flex-1 space-y-2.5">
                   {t.features.map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">

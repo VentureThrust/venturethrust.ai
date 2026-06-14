@@ -297,7 +297,7 @@ export default function BillingPage() {
                 <span className="text-3xl font-bold">{inr(t.price)}</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">+ 18% GST, billed monthly</p>
+              <p className="mt-1 text-xs text-muted-foreground">Billed monthly</p>
               <ul className="mt-5 flex-1 space-y-2.5">
                 {t.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
