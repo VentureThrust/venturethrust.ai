@@ -15,8 +15,59 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'VentureThrust | Secure Virtual Data Room',
-  description: 'Share your documents in a secure virtual data room. Send one secure link, gate access with an NDA or expiry, and see exactly who read what, page by page.',
+  metadataBase: new URL('https://www.venturethrust.com'),
+  title: 'VentureThrust · Secure Data Room to Share & Track Documents',
+  description:
+    'A secure virtual data room to share your pitch deck, financials, and contracts with one link, and see exactly who opened them and which pages they read. The affordable DocSend alternative for fundraising, sales, and M&A.',
+  keywords: [
+    'data room',
+    'virtual data room',
+    'secure data room',
+    'VDR',
+    'DocSend alternative',
+    'affordable data room',
+    'share documents securely',
+    'document tracking',
+    'track who views your documents',
+    'see who opened my pitch deck',
+    'pitch deck tracking',
+    'know who read your document',
+    'fundraising data room',
+    'M&A data room',
+    'deal room',
+    'sales document sharing',
+  ],
+  applicationName: 'VentureThrust',
+  creator: 'VentureThrust',
+  publisher: 'VentureThrust',
+  openGraph: {
+    type: 'website',
+    url: 'https://www.venturethrust.com',
+    siteName: 'VentureThrust',
+    title: 'VentureThrust · Secure Data Room to Share & Track Documents',
+    description:
+      'Share documents with one secure link and see exactly who opened them and what they read. The affordable DocSend alternative for fundraising, sales, and M&A.',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'VentureThrust · Secure Data Room to Share & Track Documents',
+    description:
+      'Share documents with one secure link and see exactly who opened them and what they read. The affordable DocSend alternative.',
+  },
+  robots: { index: true, follow: true },
+};
+
+// Structured data so Google can render a richer result for the product.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'VentureThrust',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: 'https://www.venturethrust.com',
+  description:
+    'A secure virtual data room to share documents and see exactly who opened them and which pages they read.',
+  offers: { '@type': 'Offer', price: '999', priceCurrency: 'INR' },
 };
 
 export default function RootLayout({
@@ -32,6 +83,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`scroll-smooth ${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="font-body antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Top-of-page progress bar - shows instant feedback for every
             navigation event. Massive perceived-perf win because the user
             sees motion before the new route's content hydrates. */}
