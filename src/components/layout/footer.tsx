@@ -8,8 +8,13 @@ const footerLinks = {
     { href: '/#how-it-works', label: 'How It Works' },
     { href: '/#security', label: 'Security' },
     { href: '/#pricing', label: 'Pricing' },
+  ],
+  Solutions: [
     { href: '/docsend-alternative', label: 'DocSend alternative' },
-    { href: '/track-who-viewed-your-pitch-deck', label: 'Track pitch deck views' },
+    { href: '/track-who-viewed-your-pitch-deck', label: 'Pitch deck tracking' },
+    { href: '/secure-data-room', label: 'Secure data room' },
+    { href: '/data-room-for-fundraising', label: 'Fundraising data room' },
+    { href: '/data-room-for-m-and-a', label: 'M&A data room' },
   ],
   Company: [
     { href: '/about', label: 'About Us' },
@@ -33,7 +38,7 @@ export function Footer() {
   return (
     <footer className="bg-card border-t">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
           <div className="col-span-2 lg:col-span-2 pr-8">
             <Logo />
             <p className="mt-4 text-sm text-muted-foreground">
