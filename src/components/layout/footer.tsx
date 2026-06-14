@@ -12,9 +12,12 @@ const footerLinks = {
   Solutions: [
     { href: '/docsend-alternative', label: 'DocSend alternative' },
     { href: '/track-who-viewed-your-pitch-deck', label: 'Pitch deck tracking' },
+    { href: '/send-documents-and-track-opens', label: 'Track document opens' },
     { href: '/secure-data-room', label: 'Secure data room' },
     { href: '/data-room-for-fundraising', label: 'Fundraising data room' },
     { href: '/data-room-for-m-and-a', label: 'M&A data room' },
+    { href: '/data-room-for-legal', label: 'Legal data room' },
+    { href: '/data-room-for-startups', label: 'Startup data room' },
   ],
   Company: [
     { href: '/about', label: 'About Us' },
