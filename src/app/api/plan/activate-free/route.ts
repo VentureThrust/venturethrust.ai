@@ -1,9 +1,9 @@
 /**
  * POST /api/plan/activate-free
  *
- * Activates the free early-access VDR plan for the signed-in user. No payment.
- * Stamps the profile with a non-expiring (far-future) window so the plan gate
- * treats it as active. Uses the service role so the write does not depend on
+ * Activates the free VDR trial for the signed-in user. No payment. Stamps the
+ * profile with a 7-day expiry (see TRIAL_MS) so the plan gate treats it as
+ * active until it lapses. Uses the service role so the write does not depend on
  * profile RLS policies.
  *
  * Auth: Authorization: Bearer <supabase access token>

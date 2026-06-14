@@ -227,7 +227,7 @@ export default function Dashboard() {
         style={{
           backgroundColor: '#ffffff',
           minHeight: '100%',
-          padding: '40px 32px 60px',
+          padding: 'clamp(24px, 5vw, 40px) clamp(16px, 4vw, 32px) 60px',
         }}
       >
         {/* ── Header ── */}
@@ -238,16 +238,18 @@ export default function Dashboard() {
           <h1
             className="dash-heading"
             style={{
-              fontSize: '42px',
+              fontSize: 'clamp(26px, 6vw, 42px)',
               fontWeight: 600,
               color: '#0d0d1a',
               letterSpacing: '-0.5px',
               lineHeight: 1.2,
               margin: 0,
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}
           >
             Welcome back,{' '}
-            <span style={{ color: '#3b3b8f' }}>{user.firstName}</span>
+            <span style={{ color: '#3b3b8f', overflowWrap: 'anywhere' }}>{user.firstName}</span>
           </h1>
           <p
             style={{
