@@ -22,6 +22,7 @@ import { NavigationLoader } from '@/components/NavigationLoader';
 import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
 import { WelcomeBackPopup } from '@/components/welcome-back-popup';
+import { SharedWithYouPopup } from '@/components/shared-with-you-popup';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { GlobalSearch } from '@/components/global-search';
 
@@ -130,6 +131,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <NavigationLoader />
       <ModalLockWatchdog />
       <WelcomeBackPopup />
+      <SharedWithYouPopup />
       {isAgreementEdit ? (
         <AgreementEditLayout>{children}</AgreementEditLayout>
       ) : isSpaceEdit ? (

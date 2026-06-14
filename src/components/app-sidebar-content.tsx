@@ -38,6 +38,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { SupportDialog } from '@/components/support-dialog';
 import { supabase } from '@/lib/supabaseClient';
+import { useAlerts } from '@/lib/alerts-provider';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSpaces } from '@/lib/spaces-provider';
@@ -252,6 +253,13 @@ export function AppSidebarContent({
 
   const { setBreadcrumbs, setPendingAction } = useLayout();
   const { toast } = useToast();
+
+  // Unopened "shared with me" invites - drives the red badge on the nav item.
+  const { alerts } = useAlerts();
+  const sharedUnopened = useMemo(
+    () => alerts.filter((a) => (a.type as string) === 'space_shared' && !a.read_at).length,
+    [alerts],
+  );
   const [viewingFile, setViewingFile] = useState<TFile | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
@@ -652,6 +660,11 @@ export function AppSidebarContent({
                 <div className="flex items-center gap-4">
                   <Users className="h-6 w-6 shrink-0" />
                   <span className="text-base">Shared with me</span>
+                  {sharedUnopened > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white animate-red-dot-blink">
+                      {sharedUnopened}
+                    </span>
+                  )}
                 </div>
               </SidebarMenuButton>
             </Link>

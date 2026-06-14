@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InactiveLink } from '@/components/inactive-link';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Logo } from '@/components/layout/logo';
 import dynamic from 'next/dynamic';
 
 const PdfViewer = dynamic(() => import('@/components/PdfViewer'), {
@@ -1314,12 +1315,7 @@ export default function SpaceViewPage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         {/* ─── Top bar - VentureThrust branding + Create login button ─── */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-6 bg-white">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">V</span>
-            </div>
-            <span className="text-lg font-semibold">VentureThrust</span>
-          </Link>
+          <Logo />
           <div className="flex items-center gap-3">
             <Button
               variant="default"

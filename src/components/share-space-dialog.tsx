@@ -26,7 +26,7 @@ import { Calendar as CalendarComponent } from './ui/calendar';
 import {
   FileLock, Link as LinkIcon, Copy, Lock, Mail,
   Calendar, Key, ShieldQuestion, Droplets, PenSquare,
-  Clock, Loader2, CheckCircle2, ExternalLink,
+  Clock, Loader2, CheckCircle2, ExternalLink, UserPlus, XCircle, Send,
 } from 'lucide-react';
 import { type Space } from '@/lib/spaces-provider';
 import { useToast } from '@/hooks/use-toast';
@@ -151,6 +151,75 @@ export function ShareSpaceDialog({
   const [passwordValue, setPasswordValue] = useState('');
   const [expirationDate, setExpirationDate] = useState<Date | undefined>();
   const [emailsInput, setEmailsInput] = useState('');
+
+  // ── Invite a VentureThrust user to this space ──────────────────────────────
+  // Lighter than adding a workspace collaborator: it notifies an existing
+  // VentureThrust user and drops the space into their "Shared with me". The
+  // live check tells the owner whether the email has an account before sending.
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteExists, setInviteExists] = useState<'idle' | 'checking' | 'yes' | 'no' | 'self'>('idle');
+  const [inviteSending, setInviteSending] = useState(false);
+
+  useEffect(() => {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setInviteExists('idle'); return; }
+    let cancelled = false;
+    setInviteExists('checking');
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/users/exists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ email }),
+        });
+        const json = await res.json().catch(() => ({ ok: false }));
+        if (cancelled) return;
+        if (!json.ok) { setInviteExists('idle'); return; }
+        setInviteExists(json.isSelf ? 'self' : json.exists ? 'yes' : 'no');
+      } catch { if (!cancelled) setInviteExists('idle'); }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [inviteEmail]);
+
+  const handleSendInvite = async () => {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    setInviteSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/spaces/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ spaceId: space.id, email, token }),
+      });
+      const json = await res.json().catch(() => ({ ok: false }));
+      if (!json.ok) {
+        const msg = json.error === 'cannot_invite_self' ? 'You cannot invite yourself.'
+          : json.error === 'forbidden' ? 'You can only invite people to your own space.'
+          : json.error === 'invalid_email' ? 'That email looks invalid.'
+          : 'Could not send the invite. Please try again.';
+        toast({ variant: 'destructive', title: 'Invite failed', description: msg });
+        return;
+      }
+      if (!json.hasAccount) {
+        setInviteExists('no');
+        toast({
+          variant: 'destructive',
+          title: 'No VentureThrust account',
+          description: 'This invite is only for VentureThrust users. Use Copy link to share by email instead.',
+        });
+        return;
+      }
+      toast({ title: 'Invite sent', description: `${email} was notified. The data room is now in their Shared with me.` });
+      setInviteEmail('');
+      setInviteExists('idle');
+    } catch {
+      toast({ variant: 'destructive', title: 'Something went wrong', description: 'Please try again.' });
+    } finally {
+      setInviteSending(false);
+    }
+  };
 
   // ── Validation ────────────────────────────────────────────────────────
   // Save stays dimmed until every toggled-on setting that needs a value has
@@ -441,6 +510,65 @@ export function ShareSpaceDialog({
             {dirty && (
               <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                 You have unsaved changes. Click “Save Settings” below, then copy your link.
+              </div>
+            )}
+          </div>
+
+          {/* ─── Invite a VentureThrust user ───────────────────────────────
+              Only for existing VentureThrust users: they get an in-app
+              notification and the space shows up in their Shared with me. For
+              non-users, the owner shares the link by email instead. */}
+          <div className="rounded-lg border p-4 space-y-3 bg-blue-50/30 mb-2">
+            <div className="flex items-start gap-3">
+              <UserPlus className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm">Invite a VentureThrust user</h3>
+                <p className="text-xs text-muted-foreground">
+                  Notify an existing VentureThrust user in-app. The space appears in their Shared with me.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="name@company.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendInvite}
+                disabled={inviteSending || inviteExists !== 'yes' || !existingLinkId || dirty}
+                className="shrink-0"
+              >
+                {inviteSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Invite</>}
+              </Button>
+            </div>
+            {(!existingLinkId || dirty) && (
+              <p className="text-xs text-amber-600">Save your link first, then invite.</p>
+            )}
+            {inviteExists === 'checking' && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking VentureThrust…
+              </p>
+            )}
+            {inviteExists === 'yes' && (
+              <p className="flex items-center gap-1.5 text-xs text-green-600">
+                <CheckCircle2 className="h-3 w-3" /> VentureThrust user found. They will be notified.
+              </p>
+            )}
+            {inviteExists === 'self' && (
+              <p className="flex items-center gap-1.5 text-xs text-amber-600">
+                <XCircle className="h-3 w-3" /> That is your own email.
+              </p>
+            )}
+            {inviteExists === 'no' && (
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />
+                <span>
+                  This email does not have a VentureThrust account. This invite is only for VentureThrust
+                  users. Use Copy link above to share it by email instead.
+                </span>
               </div>
             )}
           </div>

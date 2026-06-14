@@ -25,6 +25,7 @@ import { NavigationLoader } from '@/components/NavigationLoader';
 import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
 import { WelcomeBackPopup } from '@/components/welcome-back-popup';
+import { SharedWithYouPopup } from '@/components/shared-with-you-popup';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { GlobalSearch } from '@/components/global-search';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,7 @@ export default function DashboardLayout({
                   <NavigationLoader />
                   <ModalLockWatchdog />
                   <WelcomeBackPopup />
+                  <SharedWithYouPopup />
                   <DashboardInner>{children}</DashboardInner>
                 </SidebarProvider>
               </FileRequestProvider>

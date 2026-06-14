@@ -3,18 +3,16 @@
 /**
  * Shared With Me - modern two-section page.
  *
- *  • "Spaces"  : data rooms the user has accessed via a share link (joined via
- *                share_link_access_logs or viewer_sessions matching their email).
- *  • "Reports" : due diligence reports shared with this user (queries the
- *                diligence_reports table for rows that reference the user's
- *                email in a future `shared_with` column - gracefully empty for now).
+ *  • "Spaces"  : data rooms shared with this user. Loaded from the service-role
+ *                route /api/shared-with-me (the client cannot read other owners'
+ *                spaces directly because of RLS, which is why this used to be
+ *                empty). Covers links I opened with my email AND explicit invites.
+ *  • "Reports" : due diligence reports shared with this user (coming soon).
  *
- * Modern design: hero header, search, tabbed sections with counts, gradient
- * cover thumbnails, owner info, last-accessed timestamps, friendly empty
- * states, loading skeletons, and a real "Invite Founders" CTA at the bottom.
+ * Invited-but-unopened spaces show a "New" badge and clear on open.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +38,9 @@ import {
   ArrowRight,
   Sparkles,
   ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Loader2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +57,9 @@ type SharedSpace = {
   shareToken: string | null;
   lastAccessedAt: string;
   visitCount: number;
+  invited: boolean;
+  unopened: boolean;
+  alertId: string | null;
 };
 
 type SharedReport = {
@@ -66,6 +70,8 @@ type SharedReport = {
   status: string | null;
 };
 
+type ExistsState = 'idle' | 'checking' | 'yes' | 'no' | 'self';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function initialsFromEmail(email: string | null | undefined): string {
@@ -73,6 +79,8 @@ function initialsFromEmail(email: string | null | undefined): string {
   const local = email.split('@')[0] ?? '';
   return (local[0] ?? '?').toUpperCase();
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─── Empty-state component ────────────────────────────────────────────────────
 
@@ -138,7 +146,12 @@ function SharedSpaceCard({ space, onOpen }: { space: SharedSpace; onOpen: () => 
             />
           </div>
         )}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex gap-1.5">
+          {space.unopened && (
+            <Badge className="bg-red-500 text-white text-xs gap-1 border-0 hover:bg-red-500">
+              New
+            </Badge>
+          )}
           <Badge variant="secondary" className="bg-white/90 backdrop-blur text-xs gap-1">
             <ShieldCheck className="h-3 w-3" />
             Secure
@@ -168,6 +181,11 @@ function SharedSpaceCard({ space, onOpen }: { space: SharedSpace; onOpen: () => 
           <span className="text-xs text-muted-foreground truncate flex-1">
             {space.ownerEmail ?? 'Anonymous owner'}
           </span>
+          {space.invited && (
+            <Badge variant="outline" className="text-[10px] py-0 h-4 border-blue-200 text-blue-600">
+              Invited
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -242,6 +260,32 @@ export default function SharedWithMePage() {
   const [founderEmail, setFounderEmail] = useState('');
   const [founderMsg, setFounderMsg] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
+  const [founderExists, setFounderExists] = useState<ExistsState>('idle');
+
+  // Live "does this email belong to a VentureThrust user?" check (debounced).
+  useEffect(() => {
+    const email = founderEmail.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) { setFounderExists('idle'); return; }
+    let cancelled = false;
+    setFounderExists('checking');
+    const t = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/users/exists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ email }),
+        });
+        const json = await res.json().catch(() => ({ ok: false }));
+        if (cancelled) return;
+        if (!json.ok) { setFounderExists('idle'); return; }
+        setFounderExists(json.isSelf ? 'self' : json.exists ? 'yes' : 'no');
+      } catch {
+        if (!cancelled) setFounderExists('idle');
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [founderEmail]);
 
   const handleInviteFounder = async () => {
     const email = founderEmail.trim();
@@ -272,6 +316,7 @@ export default function SharedWithMePage() {
       setInviteOpen(false);
       setFounderEmail('');
       setFounderMsg('');
+      setFounderExists('idle');
     } catch {
       toast({ variant: 'destructive', title: 'Something went wrong. Please try again.' });
     } finally {
@@ -279,201 +324,56 @@ export default function SharedWithMePage() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setIsLoading(true);
+  const loadShared = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const email = authData?.user?.email ?? null;
+      const authUserId = authData?.user?.id ?? null;
+      if (!email || !authUserId) { setIsLoading(false); return; }
+      setMyEmail(email);
+
+      // Spaces: load from the service-role route (RLS blocks reading other
+      // owners' rows directly from the browser).
       try {
-        // 1. Resolve current user's email + auth ID
-        const { data: authData } = await supabase.auth.getUser();
-        const email = authData?.user?.email ?? null;
-        const authUserId = authData?.user?.id ?? null;
-        if (!email || !authUserId) {
-          if (!cancelled) setIsLoading(false);
-          return;
-        }
-        if (!cancelled) setMyEmail(email);
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/shared-with-me', {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+        });
+        const json = await res.json().catch(() => ({ ok: false }));
+        if (json.ok && Array.isArray(json.spaces)) setSpaces(json.spaces as SharedSpace[]);
+      } catch { /* leave spaces empty on failure */ }
 
-        // 2. Build the set of space IDs this user has visited as a VISITOR.
-        //    Critically, we'll later exclude any space they OWN - the user
-        //    visiting their own space (to preview/test) is NOT "shared with me".
-        const shareLinkSpaceMap = new Map<string, { last: string; count: number }>();
-        try {
-          const { data: logs } = await supabase
-            .from('share_link_access_logs')
-            .select('share_link_id, created_at')
-            .eq('email', email)
-            .order('created_at', { ascending: false });
-          if (logs && logs.length > 0) {
-            const linkIds = [...new Set(logs.map((l) => l.share_link_id as string).filter(Boolean))];
-            const { data: links } = await supabase
-              .from('share_links')
-              .select('id, space_id, token')
-              .in('id', linkIds);
-            const linkToSpace = new Map<string, { space_id: string; token: string }>();
-            (links ?? []).forEach((lnk) =>
-              linkToSpace.set(lnk.id as string, { space_id: lnk.space_id as string, token: lnk.token as string })
-            );
-            for (const log of logs) {
-              const spaceInfo = linkToSpace.get(log.share_link_id as string);
-              if (!spaceInfo) continue;
-              const existing = shareLinkSpaceMap.get(spaceInfo.space_id);
-              if (existing) {
-                existing.count += 1;
-              } else {
-                shareLinkSpaceMap.set(spaceInfo.space_id, {
-                  last: log.created_at as string,
-                  count: 1,
-                });
-              }
-            }
-          }
-        } catch {
-          /* table missing - skip */
-        }
-
-        // Build space-id list from BOTH sources
-        const spaceIds = new Set<string>();
-        try {
-          const { data: vs } = await supabase
-            .from('viewer_sessions')
-            .select('space_id')
-            .eq('visitor_email', email);
-          (vs ?? []).forEach((r) => r.space_id && spaceIds.add(r.space_id as string));
-        } catch {}
-        shareLinkSpaceMap.forEach((_, k) => spaceIds.add(k));
-
-        // 3. Fetch the actual space rows - EXCLUDING any space the current user
-        //    owns. Visiting your own space (to preview/test) doesn't count as
-        //    "shared with you" - only spaces from OTHER users belong here.
-        if (spaceIds.size > 0) {
-          const { data: spaceRows } = await supabase
-            .from('spaces')
-            .select('id, name, title, description, cover_image, created_by')
-            .in('id', Array.from(spaceIds))
-            .neq('created_by', authUserId);
-
-          // Resolve owner emails via profiles (one-shot lookup)
-          const ownerIds = [...new Set((spaceRows ?? []).map((s) => s.created_by as string).filter(Boolean))];
+      // Reports: still gracefully empty until AI due diligence ships.
+      try {
+        const { data: reportRows } = await supabase
+          .from('diligence_reports')
+          .select('id, title, created_at, status, shared_with, created_by')
+          .contains('shared_with', [email])
+          .neq('created_by', authUserId)
+          .order('created_at', { ascending: false });
+        if (reportRows && reportRows.length > 0) {
+          const ownerIds = [...new Set(reportRows.map((r) => r.created_by as string).filter(Boolean))];
           const ownerEmailMap = new Map<string, string>();
           if (ownerIds.length > 0) {
-            try {
-              const { data: profs } = await supabase
-                .from('profiles')
-                .select('id, email')
-                .in('id', ownerIds);
-              (profs ?? []).forEach((p) => {
-                if (p.email) ownerEmailMap.set(p.id as string, p.email as string);
-              });
-            } catch {}
+            const { data: profs } = await supabase.from('profiles').select('id, email').in('id', ownerIds);
+            (profs ?? []).forEach((p) => { if (p.email) ownerEmailMap.set(p.id as string, p.email as string); });
           }
-
-          // Resolve a token for opening (most recent active link per space)
-          const { data: activeLinks } = await supabase
-            .from('share_links')
-            .select('space_id, token, created_at')
-            .in('space_id', Array.from(spaceIds))
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
-          const tokenMap = new Map<string, string>();
-          (activeLinks ?? []).forEach((lnk) => {
-            if (!tokenMap.has(lnk.space_id as string)) {
-              tokenMap.set(lnk.space_id as string, lnk.token as string);
-            }
-          });
-
-          // Aggregate visit counts + last-accessed
-          const visitInfo = new Map<string, { last: string; count: number }>();
-          // From viewer_sessions
-          try {
-            const { data: vs } = await supabase
-              .from('viewer_sessions')
-              .select('space_id, started_at, last_heartbeat')
-              .eq('visitor_email', email);
-            (vs ?? []).forEach((row) => {
-              const sid = row.space_id as string;
-              const ts = (row.last_heartbeat as string) || (row.started_at as string);
-              const existing = visitInfo.get(sid);
-              if (existing) {
-                existing.count += 1;
-                if (new Date(ts) > new Date(existing.last)) existing.last = ts;
-              } else {
-                visitInfo.set(sid, { last: ts, count: 1 });
-              }
-            });
-          } catch {}
-          // Merge in share_link counts
-          shareLinkSpaceMap.forEach((v, sid) => {
-            const existing = visitInfo.get(sid);
-            if (existing) {
-              existing.count += v.count;
-              if (new Date(v.last) > new Date(existing.last)) existing.last = v.last;
-            } else {
-              visitInfo.set(sid, v);
-            }
-          });
-
-          const sharedSpaces: SharedSpace[] = (spaceRows ?? []).map((s) => {
-            const info = visitInfo.get(s.id as string) ?? { last: new Date().toISOString(), count: 1 };
-            return {
-              spaceId: s.id as string,
-              spaceName: (s.name as string) || (s.title as string) || 'Untitled Space',
-              description: (s.description as string) ?? null,
-              coverImage: (s.cover_image as string) ?? null,
-              ownerEmail: ownerEmailMap.get(s.created_by as string) ?? null,
-              shareToken: tokenMap.get(s.id as string) ?? null,
-              lastAccessedAt: info.last,
-              visitCount: info.count,
-            };
-          });
-          sharedSpaces.sort((a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime());
-          if (!cancelled) setSpaces(sharedSpaces);
+          setReports(reportRows.map((r) => ({
+            reportId: r.id as string,
+            title: (r.title as string) || 'Due Diligence Report',
+            ownerEmail: ownerEmailMap.get(r.created_by as string) ?? null,
+            sharedAt: r.created_at as string,
+            status: (r.status as string) ?? null,
+          })));
         }
-
-        // 4. Reports - query diligence_reports rows shared via shared_with array,
-        //    excluding reports the current user created themselves.
-        //    Falls back silently if the column/table doesn't exist or no rows match.
-        try {
-          const { data: reportRows } = await supabase
-            .from('diligence_reports')
-            .select('id, title, created_at, status, shared_with, created_by')
-            .contains('shared_with', [email])
-            .neq('created_by', authUserId)
-            .order('created_at', { ascending: false });
-
-          if (reportRows && reportRows.length > 0) {
-            const ownerIds = [...new Set(reportRows.map((r) => r.created_by as string).filter(Boolean))];
-            const ownerEmailMap = new Map<string, string>();
-            if (ownerIds.length > 0) {
-              const { data: profs } = await supabase
-                .from('profiles')
-                .select('id, email')
-                .in('id', ownerIds);
-              (profs ?? []).forEach((p) => {
-                if (p.email) ownerEmailMap.set(p.id as string, p.email as string);
-              });
-            }
-            const sharedReports: SharedReport[] = reportRows.map((r) => ({
-              reportId: r.id as string,
-              title: (r.title as string) || 'Due Diligence Report',
-              ownerEmail: ownerEmailMap.get(r.created_by as string) ?? null,
-              sharedAt: r.created_at as string,
-              status: (r.status as string) ?? null,
-            }));
-            if (!cancelled) setReports(sharedReports);
-          }
-        } catch {
-          /* table missing or column missing - silently use empty */
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
+      } catch { /* table/column missing - silently empty */ }
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => { loadShared(); }, [loadShared]);
 
   // ── Filtered lists by search query ──────────────────────────────────────
   const filteredSpaces = useMemo(() => {
@@ -495,12 +395,16 @@ export default function SharedWithMePage() {
     );
   }, [reports, search]);
 
-  const handleOpenSpace = (space: SharedSpace) => {
+  const handleOpenSpace = async (space: SharedSpace) => {
+    // Opening an invited space clears its "unopened" state (marks the alert read).
+    if (space.alertId && space.unopened) {
+      try { await supabase.from('alerts').update({ read_at: new Date().toISOString() }).eq('id', space.alertId); } catch {}
+      setSpaces((prev) => prev.map((s) => (s.spaceId === space.spaceId ? { ...s, unopened: false } : s)));
+    }
     if (space.shareToken) {
-      // Use the share link so they go through the gates (NDA, signature, etc.)
+      // Go through the gates (NDA, signature, password, etc.).
       window.open(`/shared/${space.shareToken}`, '_blank');
     } else {
-      // Fallback: direct view URL
       window.open(`/spaces/${space.spaceId}/view`, '_blank');
     }
   };
@@ -529,7 +433,7 @@ export default function SharedWithMePage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Shared With Me</h1>
               <p className="text-muted-foreground mt-1 text-sm md:text-base">
-                Everything founders and partners have shared with you - data rooms, due diligence reports, and more.
+                Everything founders and partners have shared with you: data rooms, due diligence reports, and more.
               </p>
               {myEmail && (
                 <button
@@ -649,18 +553,30 @@ export default function SharedWithMePage() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-gray-200 py-14 text-center">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-purple-50">
-                  <Sparkles className="h-7 w-7 text-purple-500" />
+              {filteredReports.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredReports.map((report) => (
+                    <SharedReportCard
+                      key={report.reportId}
+                      report={report}
+                      onOpen={() => router.push(`/dashboard/due-diligence/${report.reportId}`)}
+                    />
+                  ))}
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">AI Due Diligence is coming soon</h3>
-                  <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
-                    Soon you&apos;ll be able to receive AI-generated diligence reports that founders and analysts
-                    share with you, right here. We&apos;re putting the finishing touches on it.
-                  </p>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-gray-200 py-14 text-center">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-purple-50">
+                    <Sparkles className="h-7 w-7 text-purple-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">AI Due Diligence is coming soon</h3>
+                    <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
+                      Soon you&apos;ll be able to receive AI-generated diligence reports that founders and analysts
+                      share with you, right here. We&apos;re putting the finishing touches on it.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -685,7 +601,7 @@ export default function SharedWithMePage() {
               View demo data room
             </Button>
             <Button
-              onClick={() => { setFounderEmail(''); setFounderMsg(''); setInviteOpen(true); }}
+              onClick={() => { setFounderEmail(''); setFounderMsg(''); setFounderExists('idle'); setInviteOpen(true); }}
             >
               <Mail className="h-4 w-4 mr-2" />
               Invite founders
@@ -715,6 +631,27 @@ export default function SharedWithMePage() {
                 onChange={(e) => setFounderEmail(e.target.value)}
                 autoFocus
               />
+              {/* Live VentureThrust-account hint */}
+              {founderExists === 'checking' && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Checking VentureThrust…
+                </p>
+              )}
+              {founderExists === 'yes' && (
+                <p className="flex items-center gap-1.5 text-xs text-green-600">
+                  <CheckCircle2 className="h-3 w-3" /> This email has a VentureThrust account. They&apos;ll be notified in-app.
+                </p>
+              )}
+              {founderExists === 'self' && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-600">
+                  <XCircle className="h-3 w-3" /> That&apos;s your own email.
+                </p>
+              )}
+              {founderExists === 'no' && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Mail className="h-3 w-3" /> No VentureThrust account yet. We&apos;ll email them an invite to join.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="founder-msg">
@@ -722,7 +659,7 @@ export default function SharedWithMePage() {
               </Label>
               <Textarea
                 id="founder-msg"
-                placeholder="Hi - I'd love to review your data room and learn more about your company."
+                placeholder="Hi, I'd love to review your data room and learn more about your company."
                 value={founderMsg}
                 onChange={(e) => setFounderMsg(e.target.value)}
                 maxLength={1000}
@@ -732,7 +669,7 @@ export default function SharedWithMePage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setInviteOpen(false)} disabled={inviteSending}>Cancel</Button>
-            <Button onClick={handleInviteFounder} disabled={inviteSending || !founderEmail.trim()}>
+            <Button onClick={handleInviteFounder} disabled={inviteSending || !founderEmail.trim() || founderExists === 'self'}>
               {inviteSending ? 'Sending…' : 'Send request'}
             </Button>
           </DialogFooter>
