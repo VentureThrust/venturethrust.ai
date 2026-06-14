@@ -16,6 +16,7 @@
  */
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, Eye, FileSignature, ShieldOff, CheckCheck, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,6 +62,7 @@ function colorForType(type: string) {
 export function NotificationBell() {
   const { alerts, unreadCount, markAsRead, markAllAsRead } = useAlerts();
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -142,7 +144,18 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y">
               {alerts.map((alert) => (
-                <NotificationItem key={alert.id} alert={alert} onClick={() => !alert.read_at && markAsRead(alert.id)} />
+                <NotificationItem
+                  key={alert.id}
+                  alert={alert}
+                  onClick={() => {
+                    if (!alert.read_at) markAsRead(alert.id);
+                    // A "shared a data room" notification jumps to Shared with me.
+                    if ((alert.type as string) === 'space_shared') {
+                      setOpen(false);
+                      router.push('/dashboard/shared-with-me');
+                    }
+                  }}
+                />
               ))}
             </div>
           )}

@@ -43,24 +43,26 @@ export async function GET(req: NextRequest) {
   const userId = user.id;
 
   // The ONLY source of "shared with me": explicit invites (alerts space_shared).
-  type Inv = { unopened: boolean; alertId: string; token?: string; ownerEmail?: string | null; at: string };
+  type Inv = { unopened: boolean; alertId: string; at: string };
   const invited = new Map<string, Inv>();
   try {
+    // Select ONLY columns that definitely exist. Selecting a `metadata` column
+    // that some installs do not have makes the whole query error and return
+    // nothing - which made Shared with me look empty even though the invite
+    // alert existed and showed in the bell. The token + owner email are
+    // resolved below from share_links / profiles, so metadata is not needed.
     const { data: al } = await admin
       .from('alerts')
-      .select('id, space_id, read_at, created_at, metadata')
+      .select('id, space_id, read_at, created_at')
       .eq('user_id', userId)
       .eq('type', 'space_shared')
       .order('created_at', { ascending: false });
     for (const a of al ?? []) {
       const sid = a.space_id as string;
       if (!sid || invited.has(sid)) continue; // newest row per space wins
-      const md = (a.metadata as Record<string, unknown> | null) ?? {};
       invited.set(sid, {
         unopened: !a.read_at,
         alertId: a.id as string,
-        token: typeof md.token === 'string' && md.token ? (md.token as string) : undefined,
-        ownerEmail: typeof md.owner_email === 'string' ? (md.owner_email as string) : null,
         at: a.created_at as string,
       });
     }
@@ -126,8 +128,8 @@ export async function GET(req: NextRequest) {
       spaceName: (s.name as string) || (s.title as string) || 'Untitled Space',
       description: (s.description as string) ?? null,
       coverImage: (s.cover_image as string) ?? null,
-      ownerEmail: ownerEmail.get(s.created_by as string) ?? inv.ownerEmail ?? null,
-      shareToken: tokenMap.get(sid) ?? inv.token ?? null,
+      ownerEmail: ownerEmail.get(s.created_by as string) ?? null,
+      shareToken: tokenMap.get(sid) ?? null,
       lastAccessedAt: v?.last ?? inv.at,
       visitCount: v?.count ?? 0,
       invited: true,
