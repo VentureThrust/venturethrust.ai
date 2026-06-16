@@ -872,13 +872,28 @@ export default function SpacesPage() {
     }
   };
 
-  // Generate an upload (collect) link for an EXISTING space the owner built.
+  // Generate a per-client collection from a space the owner built: duplicate its
+  // folder structure into a fresh space, then create the upload link for that
+  // copy. Each client gets their own space; the original stays as the template.
   const handleCollectExisting = async (space: Space) => {
     setIsCollecting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
-      await supabase.from('spaces').update({ is_collection: true }).eq('id', space.id);
+      // Read the template space's folders and rebuild them as a nested tree.
+      const { data: srcFolders } = await supabase
+        .from('folders')
+        .select('id, name, parent_id')
+        .eq('space_id', space.id);
+      const buildTree = (parentId: string | null): any[] =>
+        (srcFolders ?? [])
+          .filter((f: any) => (f.parent_id ?? null) === parentId)
+          .map((f: any) => ({ name: f.name, children: buildTree(f.id) }));
+      const tree = buildTree(null);
+      // Create the per-client collection space from that structure.
+      const newSpaceId = await addSpace({ name: `${space.name} (collection)`, folders: [] });
+      if (tree.length > 0) await insertFoldersToSupabase(tree, newSpaceId, null, user.id);
+      await supabase.from('spaces').update({ is_collection: true }).eq('id', newSpaceId);
       const token = generateReqToken();
       const { error: insErr } = await supabase.from('file_requests').insert({
         token,
@@ -889,7 +904,7 @@ export default function SpacesPage() {
         target_folder_id: null,
         target_folder_name: null,
         target_type: 'space',
-        target_space_id: space.id,
+        target_space_id: newSpaceId,
         expires_at: null,
         require_email: true,
         is_active: true,
