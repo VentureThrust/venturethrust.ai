@@ -499,6 +499,96 @@ const spaceTemplates = [
       ),
     },
     {
+      title: 'ITR-2 document checklist',
+      description: 'Collect everything needed to file ITR-2: salary, house property, and capital gains.',
+      folders: [
+        { name: 'Identity and PAN', children: [ { name: 'PAN Card', children: [] }, { name: 'Aadhaar Card', children: [] } ] },
+        { name: 'Salary Income', children: [ { name: 'Form 16', children: [] }, { name: 'Salary Slips', children: [] }, { name: 'Form 16A', children: [] } ] },
+        { name: 'House Property', children: [ { name: 'Home Loan Interest Certificate', children: [] }, { name: 'Rent Receipts', children: [] }, { name: 'Property Details', children: [] } ] },
+        { name: 'Capital Gains', children: [ { name: 'Capital Gains Statement', children: [] }, { name: 'Broker and Demat Statement', children: [] }, { name: 'Mutual Fund Statement', children: [] }, { name: 'Property Sale Deed', children: [] } ] },
+        { name: 'Other Income', children: [ { name: 'Bank Interest Certificate', children: [] }, { name: 'FD Interest Certificate', children: [] }, { name: 'Dividend Statement', children: [] } ] },
+        { name: 'Deductions (Chapter VI A)', children: [ { name: '80C Proofs (LIC, PPF, ELSS)', children: [] }, { name: '80D Health Insurance', children: [] }, { name: '80G Donations', children: [] } ] },
+        { name: 'Bank Details', children: [ { name: 'Bank Statements', children: [] }, { name: 'Cancelled Cheque', children: [] } ] },
+        { name: 'Taxes Paid', children: [ { name: 'Form 26AS and AIS', children: [] }, { name: 'Advance Tax Challans', children: [] } ] },
+      ],
+      background: (
+        <div className="absolute inset-0 overflow-hidden rounded-t-lg">
+          <svg width="100%" height="100%" viewBox="0 0 280 96" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <rect width="280" height="96" fill="#E3F0E8"/>
+            <circle cx="213.5" cy="15.5" r="80.5" fill="#D5E8DA" fillOpacity="0.5"/>
+            <circle cx="60" cy="80" r="60" fill="#D5E8DA" fillOpacity="0.3"/>
+          </svg>
+        </div>
+      ),
+    },
+    {
+      title: 'ITR-3 document checklist',
+      description: 'For business and professional income: financials, GST, and tax documents.',
+      folders: [
+        { name: 'Identity and PAN', children: [ { name: 'PAN Card', children: [] }, { name: 'Aadhaar Card', children: [] } ] },
+        { name: 'Business and Profession', children: [ { name: 'Profit and Loss Statement', children: [] }, { name: 'Balance Sheet', children: [] }, { name: 'Books of Accounts', children: [] } ] },
+        { name: 'GST', children: [ { name: 'GST Registration', children: [] }, { name: 'GST Returns', children: [] } ] },
+        { name: 'Salary and Other Income', children: [ { name: 'Form 16 and 16A', children: [] }, { name: 'Other Income Details', children: [] } ] },
+        { name: 'Capital Gains', children: [ { name: 'Capital Gains Statement', children: [] }, { name: 'Broker and Demat Statement', children: [] } ] },
+        { name: 'Deductions (Chapter VI A)', children: [ { name: '80C Proofs', children: [] }, { name: '80D Health Insurance', children: [] }, { name: '80G Donations', children: [] } ] },
+        { name: 'Bank Details', children: [ { name: 'Business Bank Statements', children: [] }, { name: 'Personal Bank Statements', children: [] } ] },
+        { name: 'Taxes Paid', children: [ { name: 'Form 26AS and AIS', children: [] }, { name: 'Advance Tax Challans', children: [] }, { name: 'TDS Certificates', children: [] } ] },
+      ],
+      background: (
+        <div className="absolute inset-0 overflow-hidden rounded-t-lg">
+          <svg width="100%" height="100%" viewBox="0 0 280 96" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <rect width="280" height="96" fill="#E2F0F1"/>
+            <circle cx="213.5" cy="15.5" r="80.5" fill="#D4E8EB" fillOpacity="0.5"/>
+            <circle cx="60" cy="80" r="60" fill="#D4E8EB" fillOpacity="0.3"/>
+          </svg>
+        </div>
+      ),
+    },
+    {
+      title: 'GST filing checklist',
+      description: 'Collect sales, purchase, and return documents for GST filing.',
+      folders: [
+        { name: 'Registration', children: [ { name: 'GST Registration Certificate', children: [] } ] },
+        { name: 'Sales (Outward Supplies)', children: [ { name: 'Sales Invoices', children: [] }, { name: 'Export Invoices', children: [] }, { name: 'Credit and Debit Notes', children: [] } ] },
+        { name: 'Purchases (Inward Supplies)', children: [ { name: 'Purchase Invoices', children: [] }, { name: 'Import Documents', children: [] } ] },
+        { name: 'Previous Returns', children: [ { name: 'GSTR-1', children: [] }, { name: 'GSTR-3B', children: [] } ] },
+        { name: 'Bank and Reconciliation', children: [ { name: 'Bank Statements', children: [] } ] },
+        { name: 'Other', children: [ { name: 'E-way Bills', children: [] } ] },
+      ],
+      background: (
+        <div className="absolute inset-0 overflow-hidden rounded-t-lg">
+          <svg width="100%" height="100%" viewBox="0 0 280 96" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <rect width="280" height="96" fill="#F5ECE2"/>
+            <circle cx="213.5" cy="15.5" r="80.5" fill="#E8DED1" fillOpacity="0.5"/>
+            <circle cx="60" cy="80" r="60" fill="#E8DED1" fillOpacity="0.3"/>
+          </svg>
+        </div>
+      ),
+    },
+    {
+      title: 'Statutory audit checklist',
+      description: 'Collect books, bank, and statutory documents for a statutory audit.',
+      folders: [
+        { name: 'Financial Statements', children: [ { name: 'Trial Balance', children: [] }, { name: 'Profit and Loss', children: [] }, { name: 'Balance Sheet', children: [] } ] },
+        { name: 'Books and Ledgers', children: [ { name: 'General Ledger', children: [] }, { name: 'Cash Book', children: [] }, { name: 'Bank Book', children: [] } ] },
+        { name: 'Bank', children: [ { name: 'Bank Statements', children: [] }, { name: 'Bank Reconciliation', children: [] }, { name: 'Bank Confirmations', children: [] } ] },
+        { name: 'Vouchers', children: [ { name: 'Purchase Vouchers', children: [] }, { name: 'Sales Vouchers', children: [] }, { name: 'Expense Vouchers', children: [] } ] },
+        { name: 'Statutory Dues', children: [ { name: 'GST Returns', children: [] }, { name: 'TDS Returns', children: [] }, { name: 'PF and ESI Challans', children: [] }, { name: 'Income Tax Challans', children: [] } ] },
+        { name: 'Fixed Assets', children: [ { name: 'Fixed Asset Register', children: [] }, { name: 'Depreciation Schedule', children: [] } ] },
+        { name: 'Agreements', children: [ { name: 'Loan Agreements', children: [] }, { name: 'Lease Agreements', children: [] } ] },
+        { name: 'Prior Year', children: [ { name: 'Previous Audited Financials', children: [] } ] },
+      ],
+      background: (
+        <div className="absolute inset-0 overflow-hidden rounded-t-lg">
+          <svg width="100%" height="100%" viewBox="0 0 280 96" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <rect width="280" height="96" fill="#E2EAF0"/>
+            <circle cx="213.5" cy="15.5" r="80.5" fill="#D4DFE8" fillOpacity="0.5"/>
+            <circle cx="60" cy="80" r="60" fill="#D4DFE8" fillOpacity="0.3"/>
+          </svg>
+        </div>
+      ),
+    },
+    {
       title: 'Simple Data Room',
       description: 'A basic, secure data room for general-purpose file sharing.',
       folders: [],
