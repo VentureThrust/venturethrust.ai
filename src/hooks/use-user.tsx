@@ -57,12 +57,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (full.error) {
+        // The full select can fail when an optional column (e.g. plan_status) is
+        // absent. Still read plan AND is_admin here, so admins are recognized and
+        // the plan gate lets them in instead of bouncing them to choose-plan.
         const basic = await supabase
           .from('profiles')
-          .select('plan')
+          .select('plan, is_admin')
           .eq('id', session.user.id)
           .maybeSingle();
         plan = (basic.data?.plan as User['plan']) ?? null;
+        isAdmin = (basic.data as { is_admin?: boolean } | null)?.is_admin === true;
       } else if (full.data) {
         plan = (full.data.plan as User['plan']) ?? null;
         planStatus = (full.data.plan_status as string | null) ?? null;
