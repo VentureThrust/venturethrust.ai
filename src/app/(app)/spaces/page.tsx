@@ -11,6 +11,10 @@ import {
   BarChart2,
   LayoutGrid,
   Search,
+  Plus,
+  FolderPlus,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/empty-state';
@@ -45,7 +49,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UpgradeDialog } from '@/components/upgrade-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ShareSpaceDialog } from '@/components/share-space-dialog';
 import {
   Dialog,
@@ -604,6 +608,8 @@ const spaceTemplates = [
     },
 ];
 
+type CustomTemplate = { id: string; name: string; description: string | null; structure: any[] };
+
 export default function SpacesPage() {
   const { spaces, updateSpace, deleteSpace, addSpace } = useSpaces();
   const { toast } = useToast();
@@ -615,6 +621,14 @@ export default function SpacesPage() {
   const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+
+  // ── Create your own template (custom, reusable) ──
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [tplName, setTplName] = useState('');
+  const [tplDesc, setTplDesc] = useState('');
+  const [tplFolders, setTplFolders] = useState<{ name: string; children: { name: string }[] }[]>([]);
+  const [savingTpl, setSavingTpl] = useState(false);
 
   // "Name your space" dialog state
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
@@ -735,6 +749,78 @@ export default function SpacesPage() {
     }
   };
 
+  // ── Load this user's saved templates (best-effort; empty if table absent) ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('space_templates')
+          .select('id, name, description, structure')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
+        if (!cancelled && data) setCustomTemplates(data as CustomTemplate[]);
+      } catch { /* table not set up yet - ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const addFolder = () => setTplFolders((f) => [...f, { name: '', children: [] }]);
+  const removeFolder = (i: number) => setTplFolders((f) => f.filter((_, idx) => idx !== i));
+  const setFolderName = (i: number, name: string) =>
+    setTplFolders((f) => f.map((x, idx) => (idx === i ? { ...x, name } : x)));
+  const addSub = (i: number) =>
+    setTplFolders((f) => f.map((x, idx) => (idx === i ? { ...x, children: [...x.children, { name: '' }] } : x)));
+  const removeSub = (i: number, j: number) =>
+    setTplFolders((f) => f.map((x, idx) => (idx === i ? { ...x, children: x.children.filter((_, jj) => jj !== j) } : x)));
+  const setSubName = (i: number, j: number, name: string) =>
+    setTplFolders((f) => f.map((x, idx) => (idx === i ? { ...x, children: x.children.map((c, jj) => (jj === j ? { name } : c)) } : x)));
+
+  const handleSaveTemplate = async () => {
+    const name = tplName.trim();
+    if (!name) { toast({ variant: 'destructive', title: 'Name your template' }); return; }
+    const structure = tplFolders
+      .filter((f) => f.name.trim())
+      .map((f) => ({
+        name: f.name.trim(),
+        children: f.children.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), children: [] })),
+      }));
+    setSavingTpl(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in');
+      const { data, error } = await supabase
+        .from('space_templates')
+        .insert({ owner_id: user.id, name, description: tplDesc.trim() || null, structure })
+        .select('id, name, description, structure')
+        .single();
+      if (error) throw error;
+      setCustomTemplates((prev) => [data as CustomTemplate, ...prev]);
+      toast({ title: 'Template saved' });
+      setIsBuilderOpen(false);
+      setTplName(''); setTplDesc(''); setTplFolders([]);
+    } catch (e: any) {
+      const msg = (e?.message ?? '').toLowerCase();
+      if (e?.code === '42P01' || msg.includes('space_templates') || msg.includes('does not exist')) {
+        toast({ variant: 'destructive', title: 'Template storage not set up', description: 'Run the space_templates migration SQL, then try again.' });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not save template', description: e?.message ?? 'Please try again.' });
+      }
+    } finally {
+      setSavingTpl(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await supabase.from('space_templates').delete().eq('id', id);
+      setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
+      toast({ title: 'Template deleted' });
+    } catch { /* ignore */ }
+  };
+
   const getInitials = (name?: string | null): string => {
     if (!name || name.trim() === '') return '?';
     const names = name.trim().split(' ');
@@ -787,9 +873,52 @@ export default function SpacesPage() {
               </DialogTrigger>
               <DialogContent className="max-w-4xl bg-white p-0 rounded-lg shadow-2xl">
                 <DialogHeader className="p-8 pb-4">
-                    <DialogTitle className="text-xl font-semibold text-gray-800">Space template gallery</DialogTitle>
+                    <div className="flex items-center justify-between gap-4">
+                      <DialogTitle className="text-xl font-semibold text-gray-800">Space template gallery</DialogTitle>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setTplName(''); setTplDesc(''); setTplFolders([{ name: '', children: [] }]); setIsBuilderOpen(true); }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" /> Create your own template
+                      </Button>
+                    </div>
                 </DialogHeader>
                 <ScrollArea className="h-[70vh]">
+                    {customTemplates.length > 0 && (
+                      <div className="px-8 pt-2">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3">My templates</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {customTemplates.map((t) => (
+                            <div key={t.id} className="bg-white rounded-lg shadow-md border border-gray-200/80 flex flex-col overflow-hidden">
+                              <div className="p-4 flex-1 flex flex-col">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="font-bold text-base text-gray-900">{t.name}</h3>
+                                  <button onClick={() => handleDeleteTemplate(t.id)} className="text-gray-400 hover:text-red-500 shrink-0" aria-label="Delete template">
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1 leading-snug flex-1" style={{ color: '#7a7a7a', fontWeight: 300 }}>
+                                  {t.description || `${(t.structure?.length ?? 0)} folder${(t.structure?.length ?? 0) === 1 ? '' : 's'}`}
+                                </p>
+                                <div className="mt-4">
+                                  <Button
+                                    size="sm"
+                                    className="bg-black text-white hover:bg-gray-800 px-3 py-1 h-auto text-xs rounded-md"
+                                    onClick={() => handleUseTemplate(t.name, t.structure || [])}
+                                    disabled={isCreatingTemplate}
+                                  >
+                                    {isCreatingTemplate ? 'Creating...' : 'Use template'}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-gray-200 mt-6 mb-2" />
+                        <h3 className="text-sm font-semibold text-gray-700 mt-4">Templates</h3>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-8 pb-8">
                         {spaceTemplates.map((template, index) => (
                            <div key={index} className="bg-white rounded-lg shadow-md border border-gray-200/80 flex flex-col overflow-hidden group">
@@ -1025,6 +1154,61 @@ export default function SpacesPage() {
           space={selectedSpace}
         />
     )}
+
+    {/* Create-your-own-template builder */}
+    <Dialog open={isBuilderOpen} onOpenChange={(o) => { if (!savingTpl) setIsBuilderOpen(o); }}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Create your own template</DialogTitle>
+          <DialogDescription>
+            Build a reusable folder structure. Add folders and the documents you want inside each.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 overflow-y-auto py-1 -mx-1 px-1">
+          <div className="space-y-2">
+            <Label htmlFor="tpl-name">Template name</Label>
+            <Input id="tpl-name" placeholder="e.g. ITR-2 documents" value={tplName} onChange={(e) => setTplName(e.target.value)} autoFocus />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tpl-desc">Description <span className="font-normal text-muted-foreground">(optional)</span></Label>
+            <Input id="tpl-desc" placeholder="What is this template for?" value={tplDesc} onChange={(e) => setTplDesc(e.target.value)} />
+          </div>
+          <div className="space-y-3">
+            <Label>Folders</Label>
+            {tplFolders.map((folder, i) => (
+              <div key={i} className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <FolderPlus className="h-4 w-4 text-amber-500 shrink-0" />
+                  <Input placeholder="Folder name (e.g. Salary Income)" value={folder.name} onChange={(e) => setFolderName(i, e.target.value)} className="h-8" />
+                  <button onClick={() => removeFolder(i)} className="text-gray-400 hover:text-red-500 shrink-0" aria-label="Remove folder"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="pl-6 space-y-2">
+                  {folder.children.map((sub, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-gray-300 shrink-0" />
+                      <Input placeholder="Document name (e.g. Form 16)" value={sub.name} onChange={(e) => setSubName(i, j, e.target.value)} className="h-8" />
+                      <button onClick={() => removeSub(i, j)} className="text-gray-400 hover:text-red-500 shrink-0" aria-label="Remove item"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-blue-600" onClick={() => addSub(i)}>
+                    <Plus className="mr-1 h-3 w-3" /> Add document
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addFolder}>
+              <FolderPlus className="mr-2 h-4 w-4" /> Add folder
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsBuilderOpen(false)} disabled={savingTpl}>Cancel</Button>
+          <Button onClick={handleSaveTemplate} disabled={savingTpl || !tplName.trim()}>
+            {savingTpl ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save template'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <UpgradeDialog
       open={!!upgradeMsg}
