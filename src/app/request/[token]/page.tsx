@@ -38,6 +38,8 @@ import {
   File as FileIcon,
   CheckCircle2,
   Shield,
+  Folder,
+  ChevronRight,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -125,7 +127,7 @@ export default function FileRequestUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Collection links (space target) return a folder list; the uploader picks one.
   const [folders, setFolders] = useState<{ id: string; name: string; parent_id: string | null }[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState('');
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -293,11 +295,11 @@ export default function FileRequestUploadPage() {
       });
       return;
     }
-    if (folders.length > 0 && !selectedFolderId) {
+    if (folders.length > 0 && !currentFolderId) {
       toast({
         variant: 'destructive',
-        title: 'Choose a folder',
-        description: 'Please pick which folder these documents are for.',
+        title: 'Open a folder',
+        description: 'Please open the folder you want to upload these documents into.',
       });
       return;
     }
@@ -349,7 +351,7 @@ export default function FileRequestUploadPage() {
             uploaderName: uploaderName.trim(),
             uploaderEmail: uploaderEmail.trim(),
             files: recorded,
-            folderId: selectedFolderId || undefined,
+            folderId: currentFolderId || undefined,
           }),
         });
         if (!res.ok) anyFailed = true;
@@ -371,16 +373,21 @@ export default function FileRequestUploadPage() {
     setStep('done');
   };
 
-  // Build readable folder labels (Parent / Child) for the collection picker.
-  const folderOptions = (() => {
-    const byId = new Map(folders.map((f) => [f.id, f] as const));
-    return folders
-      .map((f) => {
-        const parent = f.parent_id ? byId.get(f.parent_id) : null;
-        return { id: f.id, label: parent ? `${parent.name} / ${f.name}` : f.name };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
+  // Folder-browser helpers for the collection upload view.
+  const folderById = new Map(folders.map((f) => [f.id, f] as const));
+  const childFolders = folders
+    .filter((f) => (f.parent_id ?? null) === currentFolderId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const breadcrumb: { id: string; name: string }[] = (() => {
+    const path: { id: string; name: string }[] = [];
+    let cur = currentFolderId ? folderById.get(currentFolderId) : undefined;
+    while (cur) {
+      path.unshift({ id: cur.id, name: cur.name });
+      cur = cur.parent_id ? folderById.get(cur.parent_id) : undefined;
+    }
+    return path;
   })();
+  const currentFolderName = currentFolderId ? (folderById.get(currentFolderId)?.name ?? 'folder') : null;
 
   // ─── Render by step ──────────────────────────────────────────────────────
 
@@ -455,7 +462,6 @@ export default function FileRequestUploadPage() {
               setFiles([]);
               setStep('upload');
               setUploadProgress(0);
-              setSelectedFolderId('');
             }}
             className="mt-3"
           >
@@ -514,27 +520,46 @@ export default function FileRequestUploadPage() {
           </div>
         </div>
 
-        {/* ── Folder picker (collection links only) ──────────── */}
+        {/* ── Folder browser (collection links) ──────────────── */}
         {folders.length > 0 && (
-          <div className="px-6 pt-2 space-y-1.5">
-            <Label htmlFor="folder-pick" className="text-sm">Which folder are these documents for?</Label>
-            <select
-              id="folder-pick"
-              value={selectedFolderId}
-              onChange={(e) => setSelectedFolderId(e.target.value)}
-              disabled={step === 'uploading'}
-              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
-            >
-              <option value="">Select a folder</option>
-              {folderOptions.map((o) => (
-                <option key={o.id} value={o.id}>{o.label}</option>
+          <div className="px-6 pt-2">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
+              <button type="button" onClick={() => setCurrentFolderId(null)} disabled={step === 'uploading'} className="font-medium hover:text-foreground">
+                All folders
+              </button>
+              {breadcrumb.map((b) => (
+                <span key={b.id} className="flex items-center gap-1">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  <button type="button" onClick={() => setCurrentFolderId(b.id)} disabled={step === 'uploading'} className="hover:text-foreground">{b.name}</button>
+                </span>
               ))}
-            </select>
-            <p className="text-xs text-muted-foreground">Upload one set, then pick the next folder and upload again.</p>
+            </div>
+            {childFolders.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {childFolders.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setCurrentFolderId(f.id)}
+                    disabled={step === 'uploading'}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-left hover:border-blue-400 hover:bg-blue-50/50"
+                  >
+                    <Folder className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="text-sm truncate">{f.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {currentFolderId === null ? (
+              <p className="mt-3 text-sm text-muted-foreground">Open a folder to upload your documents into it.</p>
+            ) : (
+              <p className="mt-3 text-sm text-gray-700">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
+            )}
           </div>
         )}
 
         {/* ── Drop zone ──────────────────────────────────────── */}
+        {(folders.length === 0 || currentFolderId !== null) && (
         <div className="px-6 py-6">
           {files.length === 0 ? (
             <div
@@ -644,6 +669,7 @@ export default function FileRequestUploadPage() {
             }}
           />
         </div>
+        )}
 
         {/* ── Footer button ──────────────────────────────────── */}
         {files.length > 0 && (

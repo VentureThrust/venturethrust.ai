@@ -15,6 +15,7 @@ import {
   FolderPlus,
   X,
   Loader2,
+  FileUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/empty-state';
@@ -871,6 +872,38 @@ export default function SpacesPage() {
     }
   };
 
+  // Generate an upload (collect) link for an EXISTING space the owner built.
+  const handleCollectExisting = async (space: Space) => {
+    setIsCollecting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      await supabase.from('spaces').update({ is_collection: true }).eq('id', space.id);
+      const token = generateReqToken();
+      const { error: insErr } = await supabase.from('file_requests').insert({
+        token,
+        title: `Documents for ${space.name}`,
+        message: '',
+        account_name: null,
+        created_by: user.id,
+        target_folder_id: null,
+        target_folder_name: null,
+        target_type: 'space',
+        target_space_id: space.id,
+        expires_at: null,
+        require_email: true,
+        is_active: true,
+      });
+      if (insErr) throw insErr;
+      setCollectLink(`${window.location.origin}/request/${token}`);
+      toast({ title: 'Collection link ready' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Could not create collection link', description: e?.message ?? 'Please try again.' });
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   const getInitials = (name?: string | null): string => {
     if (!name || name.trim() === '') return '?';
     const names = name.trim().split(' ');
@@ -928,7 +961,15 @@ export default function SpacesPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => { setTplName(''); setTplDesc(''); setTplFolders([{ name: '', children: [] }]); setIsBuilderOpen(true); }}
+                        onClick={async () => {
+                          setIsTemplateGalleryOpen(false);
+                          try {
+                            const newId = await addSpace({ name: 'New template', folders: [] });
+                            router.push(`/spaces/${newId}/edit`);
+                          } catch (err: any) {
+                            toast({ variant: 'destructive', title: 'Could not create template', description: err?.message ?? 'Please try again.' });
+                          }
+                        }}
                       >
                         <Plus className="mr-2 h-4 w-4" /> Create your own template
                       </Button>
@@ -1141,6 +1182,9 @@ export default function SpacesPage() {
                                <Link href={`/spaces/${space.id}/edit`}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCollectExisting(space)} disabled={isCollecting}>
+                              <FileUp className="mr-2 h-4 w-4" /> Collect documents
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(space.id)}>
                               <Trash2 className="mr-2 h-4 w-4" /> Delete
