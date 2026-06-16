@@ -632,6 +632,9 @@ export default function SpacesPage() {
   const [savingTpl, setSavingTpl] = useState(false);
   const [collectLink, setCollectLink] = useState<string | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  // The user's TEMPLATE spaces (is_template = true): built in the editor, shown
+  // under My templates, and kept OUT of the main Spaces list below.
+  const [templateSpaces, setTemplateSpaces] = useState<{ id: string; name: string }[]>([]);
 
   // "Name your space" dialog state
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
@@ -770,6 +773,24 @@ export default function SpacesPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Load the user's template spaces (kept separate from real Spaces).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('spaces')
+          .select('id, name')
+          .eq('created_by', user.id)
+          .eq('is_template', true);
+        if (!cancelled && data) setTemplateSpaces(data as { id: string; name: string }[]);
+      } catch { /* is_template column not added yet - ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [spaces]);
+
   const addFolder = () => setTplFolders((f) => [...f, { name: '', children: [] }]);
   const removeFolder = (i: number) => setTplFolders((f) => f.filter((_, idx) => idx !== i));
   const setFolderName = (i: number, name: string) =>
@@ -875,7 +896,7 @@ export default function SpacesPage() {
   // Generate a per-client collection from a space the owner built: duplicate its
   // folder structure into a fresh space, then create the upload link for that
   // copy. Each client gets their own space; the original stays as the template.
-  const handleCollectExisting = async (space: Space) => {
+  const handleCollectExisting = async (space: { id: string; name: string }) => {
     setIsCollecting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -929,13 +950,13 @@ export default function SpacesPage() {
   };
   
   const filteredSpaces = useMemo(() => {
-    if (!searchQuery) {
-      return spaces;
-    }
-    return spaces.filter(space =>
+    const templateIds = new Set(templateSpaces.map((t) => t.id));
+    const base = spaces.filter((s) => !templateIds.has(s.id));
+    if (!searchQuery) return base;
+    return base.filter(space =>
       space.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [spaces, searchQuery]);
+  }, [spaces, searchQuery, templateSpaces]);
 
   return (
     <>
@@ -980,6 +1001,8 @@ export default function SpacesPage() {
                           setIsTemplateGalleryOpen(false);
                           try {
                             const newId = await addSpace({ name: 'New template', folders: [] });
+                            await supabase.from('spaces').update({ is_template: true }).eq('id', newId);
+                            setTemplateSpaces((prev) => [{ id: newId, name: 'New template' }, ...prev]);
                             router.push(`/spaces/${newId}/edit`);
                           } catch (err: any) {
                             toast({ variant: 'destructive', title: 'Could not create template', description: err?.message ?? 'Please try again.' });
@@ -991,37 +1014,31 @@ export default function SpacesPage() {
                     </div>
                 </DialogHeader>
                 <ScrollArea className="h-[70vh]">
-                    {customTemplates.length > 0 && (
+                    {templateSpaces.length > 0 && (
                       <div className="px-8 pt-2">
                         <h3 className="text-sm font-semibold text-gray-700 mb-3">My templates</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {customTemplates.map((t) => (
+                          {templateSpaces.map((t) => (
                             <div key={t.id} className="bg-white rounded-lg shadow-md border border-gray-200/80 flex flex-col overflow-hidden">
                               <div className="p-4 flex-1 flex flex-col">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h3 className="font-bold text-base text-gray-900">{t.name}</h3>
-                                  <button onClick={() => handleDeleteTemplate(t.id)} className="text-gray-400 hover:text-red-500 shrink-0" aria-label="Delete template">
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                </div>
+                                <h3 className="font-bold text-base text-gray-900">{t.name}</h3>
                                 <p className="text-sm text-gray-500 mt-1 leading-snug flex-1" style={{ color: '#7a7a7a', fontWeight: 300 }}>
-                                  {t.description || `${(t.structure?.length ?? 0)} folder${(t.structure?.length ?? 0) === 1 ? '' : 's'}`}
+                                  Your template. Edit its folders, or collect documents from a client.
                                 </p>
                                 <div className="mt-4 flex flex-wrap gap-2">
                                   <Button
                                     size="sm"
-                                    className="bg-black text-white hover:bg-gray-800 px-3 py-1 h-auto text-xs rounded-md"
-                                    onClick={() => handleUseTemplate(t.name, t.structure || [])}
-                                    disabled={isCreatingTemplate || isCollecting}
+                                    variant="outline"
+                                    className="px-3 py-1 h-auto text-xs rounded-md"
+                                    onClick={() => { setIsTemplateGalleryOpen(false); router.push(`/spaces/${t.id}/edit`); }}
                                   >
-                                    {isCreatingTemplate ? 'Creating...' : 'Use template'}
+                                    Edit
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="px-3 py-1 h-auto text-xs rounded-md"
-                                    onClick={() => handleCollect(t.name, t.structure || [])}
-                                    disabled={isCreatingTemplate || isCollecting}
+                                    className="bg-black text-white hover:bg-gray-800 px-3 py-1 h-auto text-xs rounded-md"
+                                    onClick={() => handleCollectExisting(t)}
+                                    disabled={isCollecting}
                                   >
                                     {isCollecting ? 'Creating...' : 'Collect documents'}
                                   </Button>
