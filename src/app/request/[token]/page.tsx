@@ -123,6 +123,9 @@ export default function FileRequestUploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Collection links (space target) return a folder list; the uploader picks one.
+  const [folders, setFolders] = useState<{ id: string; name: string; parent_id: string | null }[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState('');
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -157,6 +160,7 @@ export default function FileRequestUploadPage() {
           displayName: data.owner?.displayName ?? 'Owner',
           initial: data.owner?.initial ?? 'O',
         });
+        setFolders(Array.isArray(data.request.folders) ? data.request.folders : []);
         setStep('upload');
       } catch {
         setStep('not_found');
@@ -289,6 +293,14 @@ export default function FileRequestUploadPage() {
       });
       return;
     }
+    if (folders.length > 0 && !selectedFolderId) {
+      toast({
+        variant: 'destructive',
+        title: 'Choose a folder',
+        description: 'Please pick which folder these documents are for.',
+      });
+      return;
+    }
 
     setStep('uploading');
     setUploadProgress(0);
@@ -337,6 +349,7 @@ export default function FileRequestUploadPage() {
             uploaderName: uploaderName.trim(),
             uploaderEmail: uploaderEmail.trim(),
             files: recorded,
+            folderId: selectedFolderId || undefined,
           }),
         });
         if (!res.ok) anyFailed = true;
@@ -357,6 +370,17 @@ export default function FileRequestUploadPage() {
 
     setStep('done');
   };
+
+  // Build readable folder labels (Parent / Child) for the collection picker.
+  const folderOptions = (() => {
+    const byId = new Map(folders.map((f) => [f.id, f] as const));
+    return folders
+      .map((f) => {
+        const parent = f.parent_id ? byId.get(f.parent_id) : null;
+        return { id: f.id, label: parent ? `${parent.name} / ${f.name}` : f.name };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  })();
 
   // ─── Render by step ──────────────────────────────────────────────────────
 
@@ -431,6 +455,7 @@ export default function FileRequestUploadPage() {
               setFiles([]);
               setStep('upload');
               setUploadProgress(0);
+              setSelectedFolderId('');
             }}
             className="mt-3"
           >
@@ -488,6 +513,26 @@ export default function FileRequestUploadPage() {
             />
           </div>
         </div>
+
+        {/* ── Folder picker (collection links only) ──────────── */}
+        {folders.length > 0 && (
+          <div className="px-6 pt-2 space-y-1.5">
+            <Label htmlFor="folder-pick" className="text-sm">Which folder are these documents for?</Label>
+            <select
+              id="folder-pick"
+              value={selectedFolderId}
+              onChange={(e) => setSelectedFolderId(e.target.value)}
+              disabled={step === 'uploading'}
+              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+            >
+              <option value="">Select a folder</option>
+              {folderOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">Upload one set, then pick the next folder and upload again.</p>
+          </div>
+        )}
 
         {/* ── Drop zone ──────────────────────────────────────── */}
         <div className="px-6 py-6">

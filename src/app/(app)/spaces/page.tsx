@@ -629,6 +629,8 @@ export default function SpacesPage() {
   const [tplDesc, setTplDesc] = useState('');
   const [tplFolders, setTplFolders] = useState<{ name: string; children: { name: string }[] }[]>([]);
   const [savingTpl, setSavingTpl] = useState(false);
+  const [collectLink, setCollectLink] = useState<string | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
 
   // "Name your space" dialog state
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
@@ -821,6 +823,54 @@ export default function SpacesPage() {
     } catch { /* ignore */ }
   };
 
+  // ── Collect documents: spin up a collection space from a template + a file
+  //    request link the owner sends. The recipient uploads into the folders. ──
+  const generateReqToken = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const arr = new Uint8Array(20);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (b) => chars[b % chars.length]).join('');
+  };
+
+  const handleCollect = async (templateTitle: string, templateFolders: any[]) => {
+    setIsCollecting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      // 1. Create the collection space from the template structure.
+      const newSpaceId = await addSpace({ name: templateTitle, folders: [] });
+      if (templateFolders && templateFolders.length > 0) {
+        await insertFoldersToSupabase(templateFolders, newSpaceId, null, user.id);
+      }
+      // 2. Flag it as a collection space (best-effort; ignored if column absent).
+      await supabase.from('spaces').update({ is_collection: true }).eq('id', newSpaceId);
+      // 3. Create a file request targeting the whole space.
+      const token = generateReqToken();
+      const { error: insErr } = await supabase.from('file_requests').insert({
+        token,
+        title: `Documents for ${templateTitle}`,
+        message: '',
+        account_name: null,
+        created_by: user.id,
+        target_folder_id: null,
+        target_folder_name: null,
+        target_type: 'space',
+        target_space_id: newSpaceId,
+        expires_at: null,
+        require_email: true,
+        is_active: true,
+      });
+      if (insErr) throw insErr;
+      setIsTemplateGalleryOpen(false);
+      setCollectLink(`${window.location.origin}/request/${token}`);
+      toast({ title: 'Collection link ready' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Could not create collection link', description: e?.message ?? 'Please try again.' });
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   const getInitials = (name?: string | null): string => {
     if (!name || name.trim() === '') return '?';
     const names = name.trim().split(' ');
@@ -901,14 +951,23 @@ export default function SpacesPage() {
                                 <p className="text-sm text-gray-500 mt-1 leading-snug flex-1" style={{ color: '#7a7a7a', fontWeight: 300 }}>
                                   {t.description || `${(t.structure?.length ?? 0)} folder${(t.structure?.length ?? 0) === 1 ? '' : 's'}`}
                                 </p>
-                                <div className="mt-4">
+                                <div className="mt-4 flex flex-wrap gap-2">
                                   <Button
                                     size="sm"
                                     className="bg-black text-white hover:bg-gray-800 px-3 py-1 h-auto text-xs rounded-md"
                                     onClick={() => handleUseTemplate(t.name, t.structure || [])}
-                                    disabled={isCreatingTemplate}
+                                    disabled={isCreatingTemplate || isCollecting}
                                   >
                                     {isCreatingTemplate ? 'Creating...' : 'Use template'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="px-3 py-1 h-auto text-xs rounded-md"
+                                    onClick={() => handleCollect(t.name, t.structure || [])}
+                                    disabled={isCreatingTemplate || isCollecting}
+                                  >
+                                    {isCollecting ? 'Creating...' : 'Collect documents'}
                                   </Button>
                                 </div>
                               </div>
@@ -939,14 +998,23 @@ export default function SpacesPage() {
                                     <div className="w-3/4 flex flex-col pl-2">
                                         <h3 className="font-bold text-base text-gray-900">{template.title}</h3>
                                         <p className="text-sm text-gray-500 mt-2 leading-snug flex-1" style={{color: '#7a7a7a', fontWeight: 300}}>{template.description}</p>
-                                        <div className="mt-4">
+                                        <div className="mt-4 flex flex-wrap gap-2">
                                             <Button
                                                 size="sm"
                                                 className="bg-black text-white hover:bg-gray-800 px-3 py-1 h-auto text-xs rounded-md"
                                                 onClick={() => handleUseTemplate(template.title, template.folders)}
-                                                disabled={isCreatingTemplate}
+                                                disabled={isCreatingTemplate || isCollecting}
                                             >
                                                 {isCreatingTemplate ? 'Creating...' : 'Use template'}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="px-3 py-1 h-auto text-xs rounded-md"
+                                                onClick={() => handleCollect(template.title, template.folders)}
+                                                disabled={isCreatingTemplate || isCollecting}
+                                            >
+                                                {isCollecting ? 'Creating...' : 'Collect documents'}
                                             </Button>
                                         </div>
                                     </div>
@@ -1206,6 +1274,25 @@ export default function SpacesPage() {
           <Button onClick={handleSaveTemplate} disabled={savingTpl || !tplName.trim()}>
             {savingTpl ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save template'}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Collection link ready */}
+    <Dialog open={!!collectLink} onOpenChange={(o) => { if (!o) setCollectLink(null); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Collection link ready</DialogTitle>
+          <DialogDescription>
+            Send this to the person who should upload the documents. They upload into the folders you set up. You do not upload into a collection space yourself.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center gap-2">
+          <Input readOnly value={collectLink ?? ''} className="font-mono text-sm" />
+          <Button size="sm" onClick={() => { if (collectLink) { navigator.clipboard.writeText(collectLink); toast({ title: 'Link copied' }); } }}>Copy</Button>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setCollectLink(null)}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

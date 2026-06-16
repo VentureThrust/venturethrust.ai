@@ -67,6 +67,18 @@ export async function GET(req: NextRequest) {
   }
   const initial = displayName[0]?.toUpperCase() ?? 'O';
 
+  // For a collection link (space target), include the space's folders so the
+  // uploader can choose where each document goes. Additive: folder-target
+  // requests return an empty list and behave exactly as before.
+  let folders: { id: string; name: string; parent_id: string | null }[] = [];
+  if (data.target_type === 'space' && data.target_space_id) {
+    const { data: f } = await supabase
+      .from('folders')
+      .select('id, name, parent_id')
+      .eq('space_id', data.target_space_id as string);
+    folders = (f ?? []) as { id: string; name: string; parent_id: string | null }[];
+  }
+
   return NextResponse.json({
     status: 'ok',
     request: {
@@ -77,6 +89,7 @@ export async function GET(req: NextRequest) {
       target_folder_name: data.target_folder_name,
       target_type: data.target_type,
       target_space_id: data.target_space_id,
+      folders,
     },
     owner: { displayName, initial },
   });

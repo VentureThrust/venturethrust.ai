@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
     uploaderName?: unknown;
     uploaderEmail?: unknown;
     files?: unknown;
+    folderId?: unknown;
   };
   try {
     body = await req.json();
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
   const token = typeof body.token === 'string' ? body.token.trim() : '';
   const uploaderName = (typeof body.uploaderName === 'string' ? body.uploaderName : '').trim().slice(0, 200);
   const uploaderEmail = (typeof body.uploaderEmail === 'string' ? body.uploaderEmail : '').trim().slice(0, 200);
+  const requestedFolderId = typeof body.folderId === 'string' ? body.folderId.trim() : '';
 
   if (!token) return NextResponse.json({ ok: false, error: 'missing_token' }, { status: 400 });
   if (!uploaderName) return NextResponse.json({ ok: false, error: 'missing_name' }, { status: 400 });
@@ -114,6 +116,20 @@ export async function POST(req: NextRequest) {
   if (!reqRow.is_active) return NextResponse.json({ ok: false, error: 'inactive' }, { status: 403 });
   if (reqRow.expires_at && new Date(reqRow.expires_at as string) < new Date()) {
     return NextResponse.json({ ok: false, error: 'expired' }, { status: 403 });
+  }
+
+  // Resolve which folder to mirror uploads into. Default: the request's own
+  // target folder (unchanged behavior). For a collection link (space target),
+  // the uploader picks a folder, which we validate belongs to that space.
+  let mirrorFolderId: string | null = (reqRow.target_folder_id as string | null) ?? null;
+  if (requestedFolderId && reqRow.target_space_id) {
+    const { data: fol } = await supabase
+      .from('folders')
+      .select('id')
+      .eq('id', requestedFolderId)
+      .eq('space_id', reqRow.target_space_id as string)
+      .maybeSingle();
+    if (fol?.id) mirrorFolderId = requestedFolderId;
   }
 
   // Files may ONLY be recorded under this request's own storage prefix.
@@ -143,12 +159,12 @@ export async function POST(req: NextRequest) {
       storage_path: storagePath,
     });
 
-    // Mirror into the owner's content library at the request's target folder.
-    if (reqRow.target_folder_id) {
+    // Mirror into the owner's content library at the resolved folder.
+    if (mirrorFolderId) {
       const fileRow: Record<string, unknown> = {
         id: fileId,
         user_id: reqRow.created_by,
-        folder_id: reqRow.target_folder_id,
+        folder_id: mirrorFolderId,
         name: fileName,
         type: getFileType(fileName),
         created_at: nowIso,
