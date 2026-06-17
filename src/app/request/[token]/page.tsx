@@ -66,7 +66,7 @@ type OwnerInfo = {
   initial: string;
 };
 
-type Step = 'loading' | 'not_found' | 'inactive' | 'expired' | 'upload' | 'uploading' | 'done';
+type Step = 'loading' | 'not_found' | 'inactive' | 'expired' | 'email' | 'upload' | 'uploading' | 'done';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -168,7 +168,7 @@ export default function FileRequestUploadPage() {
         setFolders(Array.isArray(data.request.folders) ? data.request.folders : []);
         setSpaceName(data.request.space_name ?? null);
         setCoverImage(data.request.cover_image ?? null);
-        setStep('upload');
+        setStep('email');
       } catch {
         setStep('not_found');
       }
@@ -274,6 +274,19 @@ export default function FileRequestUploadPage() {
   };
 
   // ── Upload all files ───────────────────────────────────────────────────
+  // Email gate: just like opening a shared space, the visitor enters their email
+  // before they can upload. We use it to label their uploads (no more Anonymous).
+  const submitEmail = () => {
+    const em = uploaderEmail.trim().toLowerCase();
+    if (!em.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      toast({ variant: 'destructive', title: 'Enter a valid email', description: 'Please enter a valid email address to continue.' });
+      return;
+    }
+    setUploaderEmail(em);
+    setUploaderName(em.split('@')[0]);
+    setStep('upload');
+  };
+
   const handleUpload = async () => {
     if (!request) return;
     if (files.length === 0) {
@@ -456,6 +469,40 @@ export default function FileRequestUploadPage() {
           >
             Upload more files
           </Button>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ─── Email gate (entered before the upload interface) ────────────────────
+  if (step === 'email') {
+    return (
+      <Shell>
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-md mx-auto">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
+              {owner?.initial ?? 'O'}
+            </div>
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents.
+            </p>
+          </div>
+          <h1 className="text-xl font-bold leading-tight">Enter your email to continue</h1>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            We use this to label your uploads for {owner?.displayName ?? 'the owner'}.
+          </p>
+          <Label htmlFor="gate-email" className="text-sm">Your email</Label>
+          <Input
+            id="gate-email"
+            type="email"
+            placeholder="you@company.com"
+            value={uploaderEmail}
+            onChange={(e) => setUploaderEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitEmail(); }}
+            className="mt-1.5"
+            autoFocus
+          />
+          <Button className="mt-4 w-full" onClick={submitEmail}>Continue</Button>
         </div>
       </Shell>
     );
