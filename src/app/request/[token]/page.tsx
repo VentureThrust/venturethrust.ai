@@ -109,6 +109,81 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// Recursive folder row: real file count (including subfolders), an expand
+// dropdown when it has subfolders, and an Upload button to upload into it.
+function FolderTreeRow({
+  folder,
+  allFolders,
+  allFiles,
+  depth,
+  onOpen,
+}: {
+  folder: { id: string; name: string; parent_id: string | null };
+  allFolders: { id: string; name: string; parent_id: string | null }[];
+  allFiles: { id: string; name: string; folder_id: string | null; type: string | null }[];
+  depth: number;
+  onOpen: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const children = allFolders
+    .filter((f) => (f.parent_id ?? null) === folder.id)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const hasSubs = children.length > 0;
+  const countFiles = (fid: string): number => {
+    let n = allFiles.filter((f) => f.folder_id === fid).length;
+    for (const c of allFolders.filter((x) => (x.parent_id ?? null) === fid)) n += countFiles(c.id);
+    return n;
+  };
+  const fileCount = countFiles(folder.id);
+  return (
+    <div>
+      <div
+        className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-3.5 transition-colors hover:border-blue-400"
+        style={{ marginLeft: depth * 20 }}
+      >
+        {hasSubs ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            aria-label={expanded ? 'Collapse subfolders' : 'Expand subfolders'}
+          >
+            <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </button>
+        ) : (
+          <span className="w-6 shrink-0" />
+        )}
+        <button type="button" onClick={() => onOpen(folder.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50">
+            <Folder className="h-5 w-5 text-blue-500 fill-blue-200" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-gray-900 truncate">{folder.name}</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              {fileCount} file{fileCount === 1 ? '' : 's'}{hasSubs ? ` · ${children.length} folder${children.length === 1 ? '' : 's'}` : ''}
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpen(folder.id)}
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-800"
+          title="Upload to this folder"
+        >
+          <UploadIcon className="h-3.5 w-3.5" /> Upload
+        </button>
+      </div>
+      {expanded && hasSubs && (
+        <div className="mt-2 space-y-2">
+          {children.map((c) => (
+            <FolderTreeRow key={c.id} folder={c} allFolders={allFolders} allFiles={allFiles} depth={depth + 1} onOpen={onOpen} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FileRequestUploadPage() {
   const params = useParams();
   const { toast } = useToast();
@@ -376,6 +451,7 @@ export default function FileRequestUploadPage() {
     .filter((f) => (f.parent_id ?? null) === currentFolderId)
     .sort((a, b) => a.name.localeCompare(b.name));
   const filesHere = currentFolderId ? spaceFiles.filter((f) => f.folder_id === currentFolderId) : [];
+  const topFolders = folders.filter((f) => (f.parent_id ?? null) === null).sort((a, b) => a.name.localeCompare(b.name));
   const breadcrumb: { id: string; name: string }[] = (() => {
     const path: { id: string; name: string }[] = [];
     let cur = currentFolderId ? folderById.get(currentFolderId) : undefined;
@@ -571,37 +647,26 @@ export default function FileRequestUploadPage() {
           </div>
         )}
 
-        {/* Folder rows (data-room style) */}
-        {childFolders.length > 0 && (
-          <div className="space-y-3">
-            {childFolders
+        {/* Folder tree: real file counts, expand for subfolders, Upload per folder */}
+        {folders.length > 0 && (
+          <div className="space-y-2">
+            {topFolders
               .filter((f) => f.name.toLowerCase().includes(search.trim().toLowerCase()))
-              .map((f) => {
-                const subs = folders.filter((x) => (x.parent_id ?? null) === f.id).length;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setCurrentFolderId(f.id)}
-                    disabled={step === 'uploading'}
-                    className="flex w-full items-center gap-4 rounded-lg border border-gray-200 px-4 py-4 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/30"
-                  >
-                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-blue-50">
-                      <Folder className="h-6 w-6 text-blue-500 fill-blue-200" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-gray-900 truncate">{f.name}</span>
-                      <span className="block text-xs text-muted-foreground mt-0.5">0 files{subs > 0 ? ` · ${subs} folder${subs === 1 ? '' : 's'}` : ''}</span>
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
-                  </button>
-                );
-              })}
+              .map((f) => (
+                <FolderTreeRow
+                  key={f.id}
+                  folder={f}
+                  allFolders={folders}
+                  allFiles={spaceFiles}
+                  depth={0}
+                  onOpen={(id) => setCurrentFolderId(id)}
+                />
+              ))}
           </div>
         )}
 
         {folders.length > 0 && currentFolderId === null && (
-          <p className="mt-4 text-sm text-muted-foreground">Open a folder to upload your documents into it.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Use the Upload button on a folder to add your documents.</p>
         )}
 
         {/* Upload panel - inside a folder (or when there are no folders at all) */}
