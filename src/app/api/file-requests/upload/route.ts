@@ -90,13 +90,14 @@ export async function POST(req: NextRequest) {
   }
 
   const token = typeof body.token === 'string' ? body.token.trim() : '';
-  const uploaderName = (typeof body.uploaderName === 'string' ? body.uploaderName : '').trim().slice(0, 200);
+  const uploaderName = ((typeof body.uploaderName === 'string' ? body.uploaderName : '').trim().slice(0, 200)) || 'Anonymous';
   const uploaderEmail = (typeof body.uploaderEmail === 'string' ? body.uploaderEmail : '').trim().slice(0, 200);
   const requestedFolderId = typeof body.folderId === 'string' ? body.folderId.trim() : '';
 
   if (!token) return NextResponse.json({ ok: false, error: 'missing_token' }, { status: 400 });
-  if (!uploaderName) return NextResponse.json({ ok: false, error: 'missing_name' }, { status: 400 });
-  if (!EMAIL_RE.test(uploaderEmail)) {
+  // Name and email are optional - the upload page no longer asks for them. Only
+  // validate the email format if one was actually provided.
+  if (uploaderEmail && !EMAIL_RE.test(uploaderEmail)) {
     return NextResponse.json({ ok: false, error: 'invalid_email' }, { status: 400 });
   }
 
@@ -214,7 +215,7 @@ export async function POST(req: NextRequest) {
     user_id: reqRow.created_by,
     space_id: reqRow.target_space_id ?? null,
     type: 'file_request_upload',
-    message: `${uploaderName} (${uploaderEmail}) uploaded ${accepted} file${accepted !== 1 ? 's' : ''} for "${reqRow.title}".`,
+    message: `${uploaderName}${uploaderEmail ? ` (${uploaderEmail})` : ''} uploaded ${accepted} file${accepted !== 1 ? 's' : ''} for "${reqRow.title}".`,
   });
   if (alertErr) console.warn('alert insert failed:', alertErr.message);
 

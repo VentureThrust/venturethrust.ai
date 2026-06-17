@@ -276,22 +276,6 @@ export default function FileRequestUploadPage() {
   // ── Upload all files ───────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!request) return;
-    if (!uploaderEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid email',
-        description: 'Please enter a valid email address before uploading.',
-      });
-      return;
-    }
-    if (!uploaderName.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Name required',
-        description: 'Please enter your name so the owner knows who uploaded.',
-      });
-      return;
-    }
     if (files.length === 0) {
       toast({
         variant: 'destructive',
@@ -353,7 +337,7 @@ export default function FileRequestUploadPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token,
-            uploaderName: uploaderName.trim(),
+            uploaderName: uploaderName.trim() || 'Anonymous',
             uploaderEmail: uploaderEmail.trim(),
             files: recorded,
             folderId: currentFolderId || undefined,
@@ -562,21 +546,10 @@ export default function FileRequestUploadPage() {
 
         {/* Upload panel - inside a folder (or when there are no folders at all) */}
         {(folders.length === 0 || currentFolderId !== null) && (
-          <div className="mt-6 max-w-3xl rounded-xl border border-gray-200 p-5">
+          <div className="mt-6 rounded-xl border border-gray-200 p-5">
             {currentFolderId !== null && (
               <p className="text-sm text-gray-700 mb-4">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
             )}
-
-            <div className="grid sm:grid-cols-2 gap-3 mb-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="uploader-name" className="text-sm">Your name</Label>
-                <Input id="uploader-name" placeholder="Jane Doe" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} disabled={step === 'uploading'} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="uploader-email" className="text-sm">Your email</Label>
-                <Input id="uploader-email" type="email" placeholder="jane@company.com" value={uploaderEmail} onChange={(e) => setUploaderEmail(e.target.value)} disabled={step === 'uploading'} />
-              </div>
-            </div>
 
             {files.length === 0 ? (
               <div
