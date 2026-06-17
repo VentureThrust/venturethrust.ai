@@ -371,10 +371,18 @@ export default function FileRequestUploadPage() {
         title: 'Some files failed',
         description: `${completed} of ${totalFiles} uploaded. Please retry the failed ones.`,
       });
-      // Still show the success screen - the owner will see which made it
+    } else {
+      // Like the content library: a small success toast, and stay on the data
+      // room (banner + folders remain) so they can keep uploading.
+      toast({
+        title: 'Uploaded',
+        description: `${completed} file${completed !== 1 ? 's' : ''} uploaded${currentFolderName ? ` to ${currentFolderName}` : ''}.`,
+      });
     }
 
-    setStep('done');
+    setFiles([]);
+    setUploadProgress(0);
+    setStep('upload');
   };
 
   // Folder-browser helpers for the collection upload view.
