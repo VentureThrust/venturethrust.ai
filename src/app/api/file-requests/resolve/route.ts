@@ -71,12 +71,21 @@ export async function GET(req: NextRequest) {
   // uploader can choose where each document goes. Additive: folder-target
   // requests return an empty list and behave exactly as before.
   let folders: { id: string; name: string; parent_id: string | null }[] = [];
+  let spaceName: string | null = null;
+  let coverImage: string | null = null;
   if (data.target_type === 'space' && data.target_space_id) {
     const { data: f } = await supabase
       .from('folders')
       .select('id, name, parent_id')
       .eq('space_id', data.target_space_id as string);
     folders = (f ?? []) as { id: string; name: string; parent_id: string | null }[];
+    const { data: sp } = await supabase
+      .from('spaces')
+      .select('name, cover_image')
+      .eq('id', data.target_space_id as string)
+      .maybeSingle();
+    spaceName = (sp?.name as string) ?? null;
+    coverImage = (sp?.cover_image as string) ?? null;
   }
 
   return NextResponse.json({
@@ -90,6 +99,8 @@ export async function GET(req: NextRequest) {
       target_type: data.target_type,
       target_space_id: data.target_space_id,
       folders,
+      space_name: spaceName,
+      cover_image: coverImage,
     },
     owner: { displayName, initial },
   });

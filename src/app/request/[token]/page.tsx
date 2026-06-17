@@ -128,6 +128,8 @@ export default function FileRequestUploadPage() {
   // Collection links (space target) return a folder list; the uploader picks one.
   const [folders, setFolders] = useState<{ id: string; name: string; parent_id: string | null }[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [spaceName, setSpaceName] = useState<string | null>(null);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -163,6 +165,8 @@ export default function FileRequestUploadPage() {
           initial: data.owner?.initial ?? 'O',
         });
         setFolders(Array.isArray(data.request.folders) ? data.request.folders : []);
+        setSpaceName(data.request.space_name ?? null);
+        setCoverImage(data.request.cover_image ?? null);
         setStep('upload');
       } catch {
         setStep('not_found');
@@ -476,22 +480,29 @@ export default function FileRequestUploadPage() {
   return (
     <Shell>
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        {/* ── Owner banner ──────────────────────────────────── */}
-        <div className="flex items-center gap-3 px-6 py-4 bg-blue-50/50 border-b border-blue-100">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
-            {owner?.initial ?? 'O'}
-          </div>
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold text-gray-900">{owner?.displayName ?? 'Someone'}</span>{' '}
-            is requesting some files from you. Your files will be uploaded securely to their VentureThrust account.
-          </p>
+        {/* ── Cover (data-room look) ────────────────────────── */}
+        <div className="relative h-40 w-full bg-gradient-to-br from-slate-200 to-slate-300">
+          {coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverImage} alt="" className="h-full w-full object-cover" />
+          )}
         </div>
 
-        {/* ── Title + message ───────────────────────────────── */}
-        <div className="px-6 py-6">
-          <h1 className="text-3xl font-bold leading-tight">{request?.title}</h1>
+        {/* ── Title block ───────────────────────────────────── */}
+        <div className="px-6 pt-2 pb-4 border-b border-gray-100">
+          <div className="flex items-start gap-4">
+            <div className="-mt-12 h-20 w-20 shrink-0 rounded-xl border-4 border-white bg-white shadow-sm grid place-items-center">
+              <Folder className="h-9 w-9 text-blue-500 fill-blue-200" />
+            </div>
+            <div className="min-w-0 pt-2">
+              <h1 className="text-2xl font-bold leading-tight truncate">{spaceName || request?.title}</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                <span className="font-medium text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents. Upload securely below.
+              </p>
+            </div>
+          </div>
           {request?.message && (
-            <p className="text-muted-foreground mt-2 whitespace-pre-line">{request.message}</p>
+            <p className="text-sm text-muted-foreground mt-3 whitespace-pre-line">{request.message}</p>
           )}
         </div>
 
@@ -535,17 +546,23 @@ export default function FileRequestUploadPage() {
               ))}
             </div>
             {childFolders.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="mt-3 space-y-2">
                 {childFolders.map((f) => (
                   <button
                     key={f.id}
                     type="button"
                     onClick={() => setCurrentFolderId(f.id)}
                     disabled={step === 'uploading'}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-left hover:border-blue-400 hover:bg-blue-50/50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3.5 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/40"
                   >
-                    <Folder className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span className="text-sm truncate">{f.name}</span>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50">
+                      <Folder className="h-5 w-5 text-blue-500 fill-blue-200" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-gray-900 truncate">{f.name}</span>
+                      <span className="block text-xs text-muted-foreground">Open to upload</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
                   </button>
                 ))}
               </div>
