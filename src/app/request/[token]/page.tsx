@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { safeStorageKey } from '@/lib/storage-path';
+import { Logo } from '@/components/layout/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -477,240 +478,170 @@ export default function FileRequestUploadPage() {
   }
 
   // ─── Main upload screen (step === 'upload' || 'uploading') ───────────────
+  // Mirrors the space (data room) layout: full-width cover, logo box, title,
+  // Home breadcrumb, and folder rows. The visitor can only upload.
   return (
-    <Shell>
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        {/* ── Cover (data-room look) ────────────────────────── */}
-        <div className="relative h-40 w-full bg-gradient-to-br from-slate-200 to-slate-300">
-          {coverImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverImage} alt="" className="h-full w-full object-cover" />
-          )}
-        </div>
+    <div className="min-h-screen bg-white text-foreground flex flex-col">
+      <header className="flex h-16 shrink-0 items-center border-b px-4 sm:px-6 bg-white">
+        <Logo />
+      </header>
 
-        {/* ── Title block ───────────────────────────────────── */}
-        <div className="px-6 pt-2 pb-4 border-b border-gray-100">
-          <div className="flex items-start gap-4">
-            <div className="-mt-12 h-20 w-20 shrink-0 rounded-xl border-4 border-white bg-white shadow-sm grid place-items-center">
-              <Folder className="h-9 w-9 text-blue-500 fill-blue-200" />
-            </div>
-            <div className="min-w-0 pt-2">
-              <h1 className="text-2xl font-bold leading-tight truncate">{spaceName || request?.title}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                <span className="font-medium text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents. Upload securely below.
-              </p>
-            </div>
-          </div>
-          {request?.message && (
-            <p className="text-sm text-muted-foreground mt-3 whitespace-pre-line">{request.message}</p>
-          )}
-        </div>
-
-        {/* ── Uploader info form ────────────────────────────── */}
-        <div className="px-6 pb-2 grid sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="uploader-name" className="text-sm">Your name</Label>
-            <Input
-              id="uploader-name"
-              placeholder="Jane Doe"
-              value={uploaderName}
-              onChange={(e) => setUploaderName(e.target.value)}
-              disabled={step === 'uploading'}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="uploader-email" className="text-sm">Your email</Label>
-            <Input
-              id="uploader-email"
-              type="email"
-              placeholder="jane@company.com"
-              value={uploaderEmail}
-              onChange={(e) => setUploaderEmail(e.target.value)}
-              disabled={step === 'uploading'}
-            />
-          </div>
-        </div>
-
-        {/* ── Folder browser (collection links) ──────────────── */}
-        {folders.length > 0 && (
-          <div className="px-6 pt-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
-              <button type="button" onClick={() => setCurrentFolderId(null)} disabled={step === 'uploading'} className="font-medium hover:text-foreground">
-                All folders
-              </button>
-              {breadcrumb.map((b) => (
-                <span key={b.id} className="flex items-center gap-1">
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <button type="button" onClick={() => setCurrentFolderId(b.id)} disabled={step === 'uploading'} className="hover:text-foreground">{b.name}</button>
-                </span>
-              ))}
-            </div>
-            {childFolders.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {childFolders.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setCurrentFolderId(f.id)}
-                    disabled={step === 'uploading'}
-                    className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3.5 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/40"
-                  >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50">
-                      <Folder className="h-5 w-5 text-blue-500 fill-blue-200" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-gray-900 truncate">{f.name}</span>
-                      <span className="block text-xs text-muted-foreground">Open to upload</span>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
-                  </button>
-                ))}
-              </div>
-            )}
-            {currentFolderId === null ? (
-              <p className="mt-3 text-sm text-muted-foreground">Open a folder to upload your documents into it.</p>
-            ) : (
-              <p className="mt-3 text-sm text-gray-700">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
-            )}
-          </div>
-        )}
-
-        {/* ── Drop zone ──────────────────────────────────────── */}
-        {(folders.length === 0 || currentFolderId !== null) && (
-        <div className="px-6 py-6">
-          {files.length === 0 ? (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`
-                rounded-xl border-2 border-dashed cursor-pointer transition-all
-                flex flex-col items-center justify-center text-center
-                py-20 px-6 gap-3
-                ${isDragging
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'
-                }
-              `}
-            >
-              <UploadIcon className="h-10 w-10 text-blue-500" />
-              <p className="text-base">
-                <span className="font-semibold">Drop files here</span> or{' '}
-                <span className="text-blue-600 font-semibold underline">browse files</span>
-              </p>
-              <p className="text-xs text-muted-foreground">Multiple files supported</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Selected files header */}
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFiles([]);
-                  }}
-                  disabled={step === 'uploading'}
-                >
-                  Cancel
-                </Button>
-                <span className="text-sm font-semibold">
-                  {files.length} file{files.length !== 1 ? 's' : ''} selected
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={step === 'uploading'}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  + Add more
-                </Button>
-              </div>
-
-              {/* File grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
-                {files.map((file, idx) => {
-                  const Icon = getFileIcon(file.name);
-                  return (
-                    <div
-                      key={`${file.name}-${idx}`}
-                      className="relative group bg-gray-100 rounded-lg p-3 flex flex-col items-center gap-2"
-                    >
-                      {step !== 'uploading' && (
-                        <button
-                          onClick={() => removeFile(idx)}
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          aria-label="Remove file"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      <div className="h-16 w-16 rounded-md bg-white shadow-sm flex items-center justify-center">
-                        <Icon className="h-7 w-7 text-blue-500" />
-                      </div>
-                      <p className="text-xs font-medium text-center line-clamp-2 break-all">
-                        {file.name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Upload progress */}
-              {step === 'uploading' && (
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Uploading {files.length} file{files.length !== 1 ? 's' : ''}…</span>
-                    <span className="font-mono">{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} />
-                </div>
-              )}
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) addFiles(e.target.files);
-              e.target.value = ''; // allow re-selecting same file
-            }}
-          />
-        </div>
-        )}
-
-        {/* ── Footer button ──────────────────────────────────── */}
-        {files.length > 0 && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-2">
-            <Button
-              onClick={handleUpload}
-              disabled={step === 'uploading' || files.length === 0}
-              className="bg-gray-900 hover:bg-gray-800 text-white"
-            >
-              {step === 'uploading' ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Uploading…
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Upload {files.length} file{files.length !== 1 ? 's' : ''}
-                </>
-              )}
-            </Button>
-          </div>
+      {/* Cover - full width */}
+      <div className="relative h-56 sm:h-64 w-full bg-gradient-to-br from-slate-200 to-slate-300">
+        {coverImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverImage} alt="" className="h-full w-full object-cover" />
         )}
       </div>
-    </Shell>
+
+      {/* Logo box */}
+      <div className="relative px-6 sm:px-10">
+        <div className="absolute -top-16 left-6 sm:left-10 z-10 h-28 w-28 sm:h-32 sm:w-32 rounded-md border-4 border-white bg-white shadow-sm grid place-items-center overflow-hidden">
+          <ImageIcon className="h-14 w-14 text-muted-foreground" />
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="px-6 sm:px-10 pt-16 sm:pt-20 pb-1">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{spaceName || request?.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          <span className="font-medium text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents. Open a folder and upload your files.
+        </p>
+        {request?.message && (
+          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line">{request.message}</p>
+        )}
+      </div>
+
+      {/* Breadcrumb */}
+      {folders.length > 0 && (
+        <div className="px-6 sm:px-10 pt-4">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
+            <button type="button" onClick={() => setCurrentFolderId(null)} disabled={step === 'uploading'} className="font-medium hover:text-foreground">Home</button>
+            {breadcrumb.map((b) => (
+              <span key={b.id} className="flex items-center gap-1">
+                <ChevronRight className="h-3.5 w-3.5" />
+                <button type="button" onClick={() => setCurrentFolderId(b.id)} disabled={step === 'uploading'} className="hover:text-foreground">{b.name}</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <main className="px-6 sm:px-10 py-5 flex-1">
+        {/* Folder rows (data-room style) */}
+        {childFolders.length > 0 && (
+          <div className="space-y-3">
+            {childFolders.map((f) => {
+              const subs = folders.filter((x) => (x.parent_id ?? null) === f.id).length;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setCurrentFolderId(f.id)}
+                  disabled={step === 'uploading'}
+                  className="flex w-full items-center gap-4 rounded-lg border border-gray-200 px-4 py-4 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/30"
+                >
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-blue-50">
+                    <Folder className="h-6 w-6 text-blue-500 fill-blue-200" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-gray-900 truncate">{f.name}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">{subs > 0 ? `${subs} folder${subs === 1 ? '' : 's'}` : 'Open to upload'}</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {folders.length > 0 && currentFolderId === null && (
+          <p className="mt-4 text-sm text-muted-foreground">Open a folder to upload your documents into it.</p>
+        )}
+
+        {/* Upload panel - inside a folder (or when there are no folders at all) */}
+        {(folders.length === 0 || currentFolderId !== null) && (
+          <div className="mt-6 max-w-3xl rounded-xl border border-gray-200 p-5">
+            {currentFolderId !== null && (
+              <p className="text-sm text-gray-700 mb-4">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="uploader-name" className="text-sm">Your name</Label>
+                <Input id="uploader-name" placeholder="Jane Doe" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} disabled={step === 'uploading'} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="uploader-email" className="text-sm">Your email</Label>
+                <Input id="uploader-email" type="email" placeholder="jane@company.com" value={uploaderEmail} onChange={(e) => setUploaderEmail(e.target.value)} disabled={step === 'uploading'} />
+              </div>
+            </div>
+
+            {files.length === 0 ? (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`rounded-xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center text-center py-16 px-6 gap-3 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
+              >
+                <UploadIcon className="h-10 w-10 text-blue-500" />
+                <p className="text-base"><span className="font-semibold">Drop files here</span> or <span className="text-blue-600 font-semibold underline">browse files</span></p>
+                <p className="text-xs text-muted-foreground">Multiple files supported</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Button variant="outline" size="sm" onClick={() => { setFiles([]); }} disabled={step === 'uploading'}>Cancel</Button>
+                  <span className="text-sm font-semibold">{files.length} file{files.length !== 1 ? 's' : ''} selected</span>
+                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={step === 'uploading'} className="text-blue-600 hover:text-blue-700">+ Add more</Button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+                  {files.map((file, idx) => {
+                    const Icon = getFileIcon(file.name);
+                    return (
+                      <div key={`${file.name}-${idx}`} className="relative group bg-gray-100 rounded-lg p-3 flex flex-col items-center gap-2">
+                        {step !== 'uploading' && (
+                          <button onClick={() => removeFile(idx)} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" aria-label="Remove file">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <div className="h-16 w-16 rounded-md bg-white shadow-sm flex items-center justify-center">
+                          <Icon className="h-7 w-7 text-blue-500" />
+                        </div>
+                        <p className="text-xs font-medium text-center line-clamp-2 break-all">{file.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {step === 'uploading' && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Uploading {files.length} file{files.length !== 1 ? 's' : ''}…</span>
+                      <span className="font-mono">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
+
+            {files.length > 0 && (
+              <div className="mt-4 flex items-center justify-end">
+                <Button onClick={handleUpload} disabled={step === 'uploading' || files.length === 0} className="bg-gray-900 hover:bg-gray-800 text-white">
+                  {step === 'uploading' ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading…</>) : (<><CheckCircle2 className="h-4 w-4 mr-2" />Upload {files.length} file{files.length !== 1 ? 's' : ''}</>)}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      <footer className="px-6 sm:px-10 pb-10 pt-2 text-center text-xs text-muted-foreground">Your files will be uploaded securely.</footer>
+    </div>
   );
 }
