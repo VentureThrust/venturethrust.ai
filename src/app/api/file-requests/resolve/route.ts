@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
   let folders: { id: string; name: string; parent_id: string | null }[] = [];
   let spaceName: string | null = null;
   let coverImage: string | null = null;
+  let fileRows: { id: string; name: string; folder_id: string | null; type: string | null }[] = [];
   if (data.target_type === 'space' && data.target_space_id) {
     const { data: f } = await supabase
       .from('folders')
@@ -86,6 +87,11 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
     spaceName = (sp?.name as string) ?? null;
     coverImage = (sp?.cover_image as string) ?? null;
+    const { data: fl } = await supabase
+      .from('files')
+      .select('id, name, folder_id, type')
+      .eq('space_id', data.target_space_id as string);
+    fileRows = (fl ?? []) as { id: string; name: string; folder_id: string | null; type: string | null }[];
   }
 
   return NextResponse.json({
@@ -99,6 +105,7 @@ export async function GET(req: NextRequest) {
       target_type: data.target_type,
       target_space_id: data.target_space_id,
       folders,
+      files: fileRows,
       space_name: spaceName,
       cover_image: coverImage,
     },

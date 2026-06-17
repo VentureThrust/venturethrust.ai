@@ -21,6 +21,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { safeStorageKey } from '@/lib/storage-path';
 import { Logo } from '@/components/layout/logo';
+import { UploadProgressPanel, useUploadTracker, type UploadItem } from '@/components/upload-progress-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,6 +131,8 @@ export default function FileRequestUploadPage() {
   const [spaceName, setSpaceName] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [spaceFiles, setSpaceFiles] = useState<{ id: string; name: string; folder_id: string | null; type: string | null }[]>([]);
+  const tracker = useUploadTracker();
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -167,6 +170,7 @@ export default function FileRequestUploadPage() {
         setFolders(Array.isArray(data.request.folders) ? data.request.folders : []);
         setSpaceName(data.request.space_name ?? null);
         setCoverImage(data.request.cover_image ?? null);
+        setSpaceFiles(Array.isArray(data.request.files) ? data.request.files : []);
         setStep('email');
       } catch {
         setStep('not_found');
@@ -305,43 +309,37 @@ export default function FileRequestUploadPage() {
       return;
     }
 
-    setStep('uploading');
-    setUploadProgress(0);
+    // Hand the batch to the bottom-right Uploads card (content-library style) and
+    // clear the staging area so the visitor stays on the data room.
+    const batch = files;
+    setFiles([]);
+    const items: UploadItem[] = batch.map((f, i) => ({
+      id: `up_${Date.now()}_${i}`,
+      name: f.name,
+      type: (f.name.split('.').pop() || 'file').toUpperCase(),
+      progress: 0,
+      status: 'in_progress',
+    }));
+    tracker.addItems(items);
 
-    const totalFiles = files.length;
-    let completed = 0;
-    let anyFailed = false;
-
-    // 1. Push the bytes straight to Storage from the browser (so large files
-    //    don't pass through a serverless function). Collect the resulting
-    //    paths to record server-side afterwards.
     const recorded: { fileId: string; fileName: string; fileSize: number; storagePath: string }[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < batch.length; i++) {
+      const file = batch[i];
       const fileId = `file_${Date.now()}_${i}`;
-      // Belt-and-braces: sanitize again before building the storage key so an
-      // untrusted segment can't escape the request's namespace.
       const safeName = safeStorageKey(file.name);
       const storagePath = `file-requests/${request.id}/${fileId}/${safeName}`;
-
       try {
-        const { error: storageErr } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file, { upsert: false });
+        const { error: storageErr } = await supabase.storage.from('documents').upload(storagePath, file, { upsert: false });
         if (storageErr) throw storageErr;
-
         recorded.push({ fileId, fileName: file.name, fileSize: file.size, storagePath });
-        completed += 1;
-        setUploadProgress(Math.round((completed / totalFiles) * 100));
+        tracker.updateItem(items[i].id, { progress: 100, status: 'completed' });
       } catch (err) {
         console.error(`Upload failed for ${file.name}:`, err);
-        anyFailed = true;
+        tracker.updateItem(items[i].id, { status: 'failed' });
       }
     }
 
-    // 2. Record the batch + notify the owner via the secure service-role route.
-    //    (file_request_uploads / files / alerts are no longer writable by anon.)
+    // Record the batch + notify the owner via the secure service-role route.
     if (recorded.length > 0) {
       try {
         const res = await fetch('/api/file-requests/upload', {
@@ -355,31 +353,21 @@ export default function FileRequestUploadPage() {
             folderId: currentFolderId || undefined,
           }),
         });
-        if (!res.ok) anyFailed = true;
+        if (!res.ok) items.forEach((it) => tracker.updateItem(it.id, { status: 'failed' }));
       } catch (err) {
         console.error('recording upload failed:', err);
-        anyFailed = true;
+        items.forEach((it) => tracker.updateItem(it.id, { status: 'failed' }));
       }
     }
 
-    if (anyFailed) {
-      toast({
-        variant: 'destructive',
-        title: 'Some files failed',
-        description: `${completed} of ${totalFiles} uploaded. Please retry the failed ones.`,
-      });
-    } else {
-      // Like the content library: a small success toast, and stay on the data
-      // room (banner + folders remain) so they can keep uploading.
-      toast({
-        title: 'Uploaded',
-        description: `${completed} file${completed !== 1 ? 's' : ''} uploaded${currentFolderName ? ` to ${currentFolderName}` : ''}.`,
-      });
-    }
-
-    setFiles([]);
-    setUploadProgress(0);
-    setStep('upload');
+    // Refresh the file list so the uploader sees their files in the folder.
+    try {
+      const r = await fetch(`/api/file-requests/resolve?token=${encodeURIComponent(token)}`);
+      const d = await r.json();
+      if (d?.status === 'ok' && d.request) {
+        setSpaceFiles(Array.isArray(d.request.files) ? d.request.files : []);
+      }
+    } catch { /* ignore */ }
   };
 
   // Folder-browser helpers for the collection upload view.
@@ -387,6 +375,7 @@ export default function FileRequestUploadPage() {
   const childFolders = folders
     .filter((f) => (f.parent_id ?? null) === currentFolderId)
     .sort((a, b) => a.name.localeCompare(b.name));
+  const filesHere = currentFolderId ? spaceFiles.filter((f) => f.folder_id === currentFolderId) : [];
   const breadcrumb: { id: string; name: string }[] = (() => {
     const path: { id: string; name: string }[] = [];
     let cur = currentFolderId ? folderById.get(currentFolderId) : undefined;
@@ -622,6 +611,19 @@ export default function FileRequestUploadPage() {
               <p className="text-sm text-gray-700 mb-4">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
             )}
 
+            {filesHere.length > 0 && (
+              <div className="mb-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Already in this folder</p>
+                {filesHere.map((f) => (
+                  <div key={f.id} className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+                    <FileIcon className="h-4 w-4 text-blue-500 shrink-0" />
+                    <span className="text-sm truncate flex-1">{f.name}</span>
+                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {files.length === 0 ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -684,6 +686,10 @@ export default function FileRequestUploadPage() {
           </div>
         )}
       </main>
+
+      {tracker.visible && (
+        <UploadProgressPanel items={tracker.items} onClose={tracker.close} />
+      )}
 
       <footer className="px-6 sm:px-10 pb-10 pt-2 text-center text-xs text-muted-foreground">Your files will be uploaded securely.</footer>
     </div>
