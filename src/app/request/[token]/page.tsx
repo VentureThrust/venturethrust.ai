@@ -94,11 +94,8 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       {/* Top brand */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-            <Shield className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-semibold text-gray-900">VentureThrust</span>
+        <div className="max-w-3xl mx-auto">
+          <Logo />
         </div>
       </div>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10">{children}</main>

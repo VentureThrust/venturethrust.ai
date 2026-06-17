@@ -370,7 +370,13 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
       const baseName = space.name || 'Template';
       const newSpaceId = await addSpace({ name: `${baseName} (collection)`, folders: [] });
       if (tree.length) await insertFolders(tree, newSpaceId, null);
-      await supabase.from('spaces').update({ is_collection: true }).eq('id', newSpaceId);
+      // Copy the cover image + logo so the collection looks like the template.
+      const { data: srcMeta } = await supabase.from('spaces').select('cover_image, logo').eq('id', space.id).maybeSingle();
+      await supabase.from('spaces').update({
+        is_collection: true,
+        cover_image: (srcMeta as { cover_image?: string | null } | null)?.cover_image ?? null,
+        logo: (srcMeta as { logo?: string | null } | null)?.logo ?? null,
+      }).eq('id', newSpaceId);
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       const arr = new Uint8Array(20);
       crypto.getRandomValues(arr);
