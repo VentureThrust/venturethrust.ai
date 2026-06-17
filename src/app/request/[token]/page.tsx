@@ -41,6 +41,7 @@ import {
   Shield,
   Folder,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ export default function FileRequestUploadPage() {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [spaceName, setSpaceName] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -560,30 +562,47 @@ export default function FileRequestUploadPage() {
 
       {/* Content */}
       <main className="px-6 sm:px-10 py-5 flex-1">
+        {/* Toolbar - mirrors the data room (no AI report button) */}
+        {folders.length > 0 && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center mb-5">
+            <h2 className="text-2xl font-bold">{currentFolderName ?? 'Home'}</h2>
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+              <span className="px-4 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium">All files</span>
+              <span className="px-4 py-1.5 rounded-md text-sm text-gray-400">Recently added</span>
+            </div>
+            <div className="relative sm:ml-auto w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search this space" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            </div>
+          </div>
+        )}
+
         {/* Folder rows (data-room style) */}
         {childFolders.length > 0 && (
           <div className="space-y-3">
-            {childFolders.map((f) => {
-              const subs = folders.filter((x) => (x.parent_id ?? null) === f.id).length;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setCurrentFolderId(f.id)}
-                  disabled={step === 'uploading'}
-                  className="flex w-full items-center gap-4 rounded-lg border border-gray-200 px-4 py-4 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/30"
-                >
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-blue-50">
-                    <Folder className="h-6 w-6 text-blue-500 fill-blue-200" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-gray-900 truncate">{f.name}</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">{subs > 0 ? `${subs} folder${subs === 1 ? '' : 's'}` : 'Open to upload'}</span>
-                  </span>
-                  <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
-                </button>
-              );
-            })}
+            {childFolders
+              .filter((f) => f.name.toLowerCase().includes(search.trim().toLowerCase()))
+              .map((f) => {
+                const subs = folders.filter((x) => (x.parent_id ?? null) === f.id).length;
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setCurrentFolderId(f.id)}
+                    disabled={step === 'uploading'}
+                    className="flex w-full items-center gap-4 rounded-lg border border-gray-200 px-4 py-4 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/30"
+                  >
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-blue-50">
+                      <Folder className="h-6 w-6 text-blue-500 fill-blue-200" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-gray-900 truncate">{f.name}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">0 files{subs > 0 ? ` · ${subs} folder${subs === 1 ? '' : 's'}` : ''}</span>
+                    </span>
+                    <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+                  </button>
+                );
+              })}
           </div>
         )}
 
