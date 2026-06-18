@@ -67,33 +67,6 @@ export async function GET(req: NextRequest) {
   }
   const initial = displayName[0]?.toUpperCase() ?? 'O';
 
-  // For a collection link (space target), include the space's folders so the
-  // uploader can choose where each document goes. Additive: folder-target
-  // requests return an empty list and behave exactly as before.
-  let folders: { id: string; name: string; parent_id: string | null }[] = [];
-  let spaceName: string | null = null;
-  let coverImage: string | null = null;
-  let fileRows: { id: string; name: string; folder_id: string | null; type: string | null }[] = [];
-  if (data.target_type === 'space' && data.target_space_id) {
-    const { data: f } = await supabase
-      .from('folders')
-      .select('id, name, parent_id')
-      .eq('space_id', data.target_space_id as string);
-    folders = (f ?? []) as { id: string; name: string; parent_id: string | null }[];
-    const { data: sp } = await supabase
-      .from('spaces')
-      .select('name, cover_image')
-      .eq('id', data.target_space_id as string)
-      .maybeSingle();
-    spaceName = (sp?.name as string) ?? null;
-    coverImage = (sp?.cover_image as string) ?? null;
-    const { data: fl } = await supabase
-      .from('files')
-      .select('id, name, folder_id, type')
-      .eq('space_id', data.target_space_id as string);
-    fileRows = (fl ?? []) as { id: string; name: string; folder_id: string | null; type: string | null }[];
-  }
-
   return NextResponse.json({
     status: 'ok',
     request: {
@@ -104,10 +77,6 @@ export async function GET(req: NextRequest) {
       target_folder_name: data.target_folder_name,
       target_type: data.target_type,
       target_space_id: data.target_space_id,
-      folders,
-      files: fileRows,
-      space_name: spaceName,
-      cover_image: coverImage,
     },
     owner: { displayName, initial },
   });

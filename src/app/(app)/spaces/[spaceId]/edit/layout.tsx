@@ -128,8 +128,6 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [collectLink, setCollectLink] = useState<string | null>(null);
-  const [isCollecting, setIsCollecting] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isCollaboratorDialogOpen, setIsCollaboratorDialogOpen] = useState(false);
 
@@ -339,68 +337,6 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
       toast({ variant: 'destructive', title: 'Could not send invite', description: e instanceof Error ? e.message : 'Please try again.' });
     } finally {
       setIsInviting(false);
-    }
-  };
-
-  // Share this template/space so a recipient can upload: clone the folder
-  // structure into a fresh collection space (so each recipient stays separate),
-  // then create the upload link for that copy.
-  const handleCollectDocuments = async () => {
-    if (!space) return;
-    setIsCollecting(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('You must be signed in.');
-      const { data: srcFolders } = await supabase
-        .from('folders')
-        .select('id, name, parent_id')
-        .eq('space_id', space.id);
-      const buildTree = (parentId: string | null): any[] =>
-        (srcFolders ?? [])
-          .filter((f: any) => (f.parent_id ?? null) === parentId)
-          .map((f: any) => ({ name: f.name, children: buildTree(f.id) }));
-      const insertFolders = async (nodes: any[], spId: string, parentId: string | null) => {
-        for (const n of nodes) {
-          const fid = uuidv4();
-          await supabase.from('folders').insert({ id: fid, user_id: user.id, name: n.name, space_id: spId, parent_id: parentId });
-          if (n.children?.length) await insertFolders(n.children, spId, fid);
-        }
-      };
-      const tree = buildTree(null);
-      const baseName = space.name || 'Template';
-      const newSpaceId = await addSpace({ name: `${baseName} (collection)`, folders: [] });
-      if (tree.length) await insertFolders(tree, newSpaceId, null);
-      // Copy the cover image + logo so the collection looks like the template.
-      const { data: srcMeta } = await supabase.from('spaces').select('cover_image, logo').eq('id', space.id).maybeSingle();
-      await supabase.from('spaces').update({
-        is_collection: true,
-        cover_image: (srcMeta as { cover_image?: string | null } | null)?.cover_image ?? null,
-        logo: (srcMeta as { logo?: string | null } | null)?.logo ?? null,
-      }).eq('id', newSpaceId);
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      const arr = new Uint8Array(20);
-      crypto.getRandomValues(arr);
-      const token = Array.from(arr, (b) => chars[b % chars.length]).join('');
-      const { error } = await supabase.from('file_requests').insert({
-        token,
-        title: `Documents for ${baseName}`,
-        message: '',
-        account_name: null,
-        created_by: user.id,
-        target_folder_id: null,
-        target_folder_name: null,
-        target_type: 'space',
-        target_space_id: newSpaceId,
-        expires_at: null,
-        require_email: true,
-        is_active: true,
-      });
-      if (error) throw error;
-      setCollectLink(`${window.location.origin}/request/${token}`);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Could not create collection link', description: e?.message ?? 'Please try again.' });
-    } finally {
-      setIsCollecting(false);
     }
   };
 
@@ -657,9 +593,6 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                           Preview
                         </Link>
                       </Button>
-                      <Button variant="outline" onClick={handleCollectDocuments} disabled={isCollecting}>
-                        {isCollecting ? 'Creating…' : 'Collect documents'}
-                      </Button>
                       <Button onClick={() => setIsShareDialogOpen(true)}>Share</Button>
                     </div>
                   </div>
@@ -701,24 +634,6 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
       {space && (
         <ShareSpaceDialog isOpen={isShareDialogOpen} onOpenChange={setIsShareDialogOpen} space={space} />
       )}
-
-      <Dialog open={!!collectLink} onOpenChange={(o) => { if (!o) setCollectLink(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Collection link ready</DialogTitle>
-            <DialogDescription>
-              Send this to the person who should upload the documents. They open each folder and upload into it. This made a fresh copy, so every recipient stays separate.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-2">
-            <Input readOnly value={collectLink ?? ''} className="font-mono text-sm" />
-            <Button size="sm" onClick={() => { if (collectLink) { navigator.clipboard.writeText(collectLink); toast({ title: 'Link copied' }); } }}>Copy</Button>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setCollectLink(null)}>Done</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>

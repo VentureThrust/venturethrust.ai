@@ -20,8 +20,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { safeStorageKey } from '@/lib/storage-path';
-import { Logo } from '@/components/layout/logo';
-import { UploadProgressPanel, useUploadTracker, type UploadItem } from '@/components/upload-progress-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,9 +38,6 @@ import {
   File as FileIcon,
   CheckCircle2,
   Shield,
-  Folder,
-  ChevronRight,
-  Search,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,7 +63,7 @@ type OwnerInfo = {
   initial: string;
 };
 
-type Step = 'loading' | 'not_found' | 'inactive' | 'expired' | 'email' | 'upload' | 'uploading' | 'done';
+type Step = 'loading' | 'not_found' | 'inactive' | 'expired' | 'upload' | 'uploading' | 'done';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,8 +90,11 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       {/* Top brand */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="max-w-3xl mx-auto">
-          <Logo />
+        <div className="max-w-3xl mx-auto flex items-center gap-2">
+          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+            <Shield className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-lg font-semibold text-gray-900">VentureThrust</span>
         </div>
       </div>
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10">{children}</main>
@@ -108,81 +106,6 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-
-// Recursive folder row: real file count (including subfolders), an expand
-// dropdown when it has subfolders, and an Upload button to upload into it.
-function FolderTreeRow({
-  folder,
-  allFolders,
-  allFiles,
-  depth,
-  onOpen,
-}: {
-  folder: { id: string; name: string; parent_id: string | null };
-  allFolders: { id: string; name: string; parent_id: string | null }[];
-  allFiles: { id: string; name: string; folder_id: string | null; type: string | null }[];
-  depth: number;
-  onOpen: (id: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const children = allFolders
-    .filter((f) => (f.parent_id ?? null) === folder.id)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const hasSubs = children.length > 0;
-  const countFiles = (fid: string): number => {
-    let n = allFiles.filter((f) => f.folder_id === fid).length;
-    for (const c of allFolders.filter((x) => (x.parent_id ?? null) === fid)) n += countFiles(c.id);
-    return n;
-  };
-  const fileCount = countFiles(folder.id);
-  return (
-    <div>
-      <div
-        className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-3.5 transition-colors hover:border-blue-400"
-        style={{ marginLeft: depth * 20 }}
-      >
-        {hasSubs ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            aria-label={expanded ? 'Collapse subfolders' : 'Expand subfolders'}
-          >
-            <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </button>
-        ) : (
-          <span className="w-6 shrink-0" />
-        )}
-        <button type="button" onClick={() => onOpen(folder.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50">
-            <Folder className="h-5 w-5 text-blue-500 fill-blue-200" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-gray-900 truncate">{folder.name}</span>
-            <span className="block text-xs text-muted-foreground mt-0.5">
-              {fileCount} file{fileCount === 1 ? '' : 's'}{hasSubs ? ` · ${children.length} folder${children.length === 1 ? '' : 's'}` : ''}
-            </span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onOpen(folder.id)}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-gray-800"
-          title="Upload to this folder"
-        >
-          <UploadIcon className="h-3.5 w-3.5" /> Upload
-        </button>
-      </div>
-      {expanded && hasSubs && (
-        <div className="mt-2 space-y-2">
-          {children.map((c) => (
-            <FolderTreeRow key={c.id} folder={c} allFolders={allFolders} allFiles={allFiles} depth={depth + 1} onOpen={onOpen} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function FileRequestUploadPage() {
   const params = useParams();
@@ -200,14 +123,6 @@ export default function FileRequestUploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Collection links (space target) return a folder list; the uploader picks one.
-  const [folders, setFolders] = useState<{ id: string; name: string; parent_id: string | null }[]>([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [spaceName, setSpaceName] = useState<string | null>(null);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [spaceFiles, setSpaceFiles] = useState<{ id: string; name: string; folder_id: string | null; type: string | null }[]>([]);
-  const tracker = useUploadTracker();
 
   // ── Initial fetch: validate the link via the service-role route ──────────
   // (We no longer read file_requests / profiles with the anon key, so RLS can
@@ -242,11 +157,7 @@ export default function FileRequestUploadPage() {
           displayName: data.owner?.displayName ?? 'Owner',
           initial: data.owner?.initial ?? 'O',
         });
-        setFolders(Array.isArray(data.request.folders) ? data.request.folders : []);
-        setSpaceName(data.request.space_name ?? null);
-        setCoverImage(data.request.cover_image ?? null);
-        setSpaceFiles(Array.isArray(data.request.files) ? data.request.files : []);
-        setStep('email');
+        setStep('upload');
       } catch {
         setStep('not_found');
       }
@@ -352,21 +263,24 @@ export default function FileRequestUploadPage() {
   };
 
   // ── Upload all files ───────────────────────────────────────────────────
-  // Email gate: just like opening a shared space, the visitor enters their email
-  // before they can upload. We use it to label their uploads (no more Anonymous).
-  const submitEmail = () => {
-    const em = uploaderEmail.trim().toLowerCase();
-    if (!em.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      toast({ variant: 'destructive', title: 'Enter a valid email', description: 'Please enter a valid email address to continue.' });
-      return;
-    }
-    setUploaderEmail(em);
-    setUploaderName(em.split('@')[0]);
-    setStep('upload');
-  };
-
   const handleUpload = async () => {
     if (!request) return;
+    if (!uploaderEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid email',
+        description: 'Please enter a valid email address before uploading.',
+      });
+      return;
+    }
+    if (!uploaderName.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Name required',
+        description: 'Please enter your name so the owner knows who uploaded.',
+      });
+      return;
+    }
     if (files.length === 0) {
       toast({
         variant: 'destructive',
@@ -375,46 +289,44 @@ export default function FileRequestUploadPage() {
       });
       return;
     }
-    if (folders.length > 0 && !currentFolderId) {
-      toast({
-        variant: 'destructive',
-        title: 'Open a folder',
-        description: 'Please open the folder you want to upload these documents into.',
-      });
-      return;
-    }
 
-    // Hand the batch to the bottom-right Uploads card (content-library style) and
-    // clear the staging area so the visitor stays on the data room.
-    const batch = files;
-    setFiles([]);
-    const items: UploadItem[] = batch.map((f, i) => ({
-      id: `up_${Date.now()}_${i}`,
-      name: f.name,
-      type: (f.name.split('.').pop() || 'file').toUpperCase(),
-      progress: 0,
-      status: 'in_progress',
-    }));
-    tracker.addItems(items);
+    setStep('uploading');
+    setUploadProgress(0);
 
+    const totalFiles = files.length;
+    let completed = 0;
+    let anyFailed = false;
+
+    // 1. Push the bytes straight to Storage from the browser (so large files
+    //    don't pass through a serverless function). Collect the resulting
+    //    paths to record server-side afterwards.
     const recorded: { fileId: string; fileName: string; fileSize: number; storagePath: string }[] = [];
-    for (let i = 0; i < batch.length; i++) {
-      const file = batch[i];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const fileId = `file_${Date.now()}_${i}`;
+      // Belt-and-braces: sanitize again before building the storage key so an
+      // untrusted segment can't escape the request's namespace.
       const safeName = safeStorageKey(file.name);
       const storagePath = `file-requests/${request.id}/${fileId}/${safeName}`;
+
       try {
-        const { error: storageErr } = await supabase.storage.from('documents').upload(storagePath, file, { upsert: false });
+        const { error: storageErr } = await supabase.storage
+          .from('documents')
+          .upload(storagePath, file, { upsert: false });
         if (storageErr) throw storageErr;
+
         recorded.push({ fileId, fileName: file.name, fileSize: file.size, storagePath });
-        tracker.updateItem(items[i].id, { progress: 100, status: 'completed' });
+        completed += 1;
+        setUploadProgress(Math.round((completed / totalFiles) * 100));
       } catch (err) {
         console.error(`Upload failed for ${file.name}:`, err);
-        tracker.updateItem(items[i].id, { status: 'failed' });
+        anyFailed = true;
       }
     }
 
-    // Record the batch + notify the owner via the secure service-role route.
+    // 2. Record the batch + notify the owner via the secure service-role route.
+    //    (file_request_uploads / files / alerts are no longer writable by anon.)
     if (recorded.length > 0) {
       try {
         const res = await fetch('/api/file-requests/upload', {
@@ -422,46 +334,29 @@ export default function FileRequestUploadPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token,
-            uploaderName: uploaderName.trim() || 'Anonymous',
+            uploaderName: uploaderName.trim(),
             uploaderEmail: uploaderEmail.trim(),
             files: recorded,
-            folderId: currentFolderId || undefined,
           }),
         });
-        if (!res.ok) items.forEach((it) => tracker.updateItem(it.id, { status: 'failed' }));
+        if (!res.ok) anyFailed = true;
       } catch (err) {
         console.error('recording upload failed:', err);
-        items.forEach((it) => tracker.updateItem(it.id, { status: 'failed' }));
+        anyFailed = true;
       }
     }
 
-    // Refresh the file list so the uploader sees their files in the folder.
-    try {
-      const r = await fetch(`/api/file-requests/resolve?token=${encodeURIComponent(token)}`);
-      const d = await r.json();
-      if (d?.status === 'ok' && d.request) {
-        setSpaceFiles(Array.isArray(d.request.files) ? d.request.files : []);
-      }
-    } catch { /* ignore */ }
+    if (anyFailed) {
+      toast({
+        variant: 'destructive',
+        title: 'Some files failed',
+        description: `${completed} of ${totalFiles} uploaded. Please retry the failed ones.`,
+      });
+      // Still show the success screen - the owner will see which made it
+    }
+
+    setStep('done');
   };
-
-  // Folder-browser helpers for the collection upload view.
-  const folderById = new Map(folders.map((f) => [f.id, f] as const));
-  const childFolders = folders
-    .filter((f) => (f.parent_id ?? null) === currentFolderId)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const filesHere = currentFolderId ? spaceFiles.filter((f) => f.folder_id === currentFolderId) : [];
-  const topFolders = folders.filter((f) => (f.parent_id ?? null) === null).sort((a, b) => a.name.localeCompare(b.name));
-  const breadcrumb: { id: string; name: string }[] = (() => {
-    const path: { id: string; name: string }[] = [];
-    let cur = currentFolderId ? folderById.get(currentFolderId) : undefined;
-    while (cur) {
-      path.unshift({ id: cur.id, name: cur.name });
-      cur = cur.parent_id ? folderById.get(cur.parent_id) : undefined;
-    }
-    return path;
-  })();
-  const currentFolderName = currentFolderId ? (folderById.get(currentFolderId)?.name ?? 'folder') : null;
 
   // ─── Render by step ──────────────────────────────────────────────────────
 
@@ -546,217 +441,188 @@ export default function FileRequestUploadPage() {
     );
   }
 
-  // ─── Email gate (entered before the upload interface) ────────────────────
-  if (step === 'email') {
-    return (
-      <Shell>
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-md mx-auto">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
-              {owner?.initial ?? 'O'}
-            </div>
-            <p className="text-sm text-gray-700">
-              <span className="font-semibold text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents.
-            </p>
-          </div>
-          <h1 className="text-xl font-bold leading-tight">Enter your email to continue</h1>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">
-            We use this to label your uploads for {owner?.displayName ?? 'the owner'}.
-          </p>
-          <Label htmlFor="gate-email" className="text-sm">Your email</Label>
-          <Input
-            id="gate-email"
-            type="email"
-            placeholder="you@company.com"
-            value={uploaderEmail}
-            onChange={(e) => setUploaderEmail(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitEmail(); }}
-            className="mt-1.5"
-            autoFocus
-          />
-          <Button className="mt-4 w-full" onClick={submitEmail}>Continue</Button>
-        </div>
-      </Shell>
-    );
-  }
-
   // ─── Main upload screen (step === 'upload' || 'uploading') ───────────────
-  // Mirrors the space (data room) layout: full-width cover, logo box, title,
-  // Home breadcrumb, and folder rows. The visitor can only upload.
   return (
-    <div className="min-h-screen bg-white text-foreground flex flex-col">
-      <header className="flex h-16 shrink-0 items-center border-b px-4 sm:px-6 bg-white">
-        <Logo />
-      </header>
-
-      {/* Cover - full width */}
-      <div className="relative h-56 sm:h-64 w-full bg-gradient-to-br from-slate-200 to-slate-300">
-        {coverImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverImage} alt="" className="h-full w-full object-cover" />
-        )}
-      </div>
-
-      {/* Logo box */}
-      <div className="relative px-6 sm:px-10">
-        <div className="absolute -top-16 left-6 sm:left-10 z-10 h-28 w-28 sm:h-32 sm:w-32 rounded-md border-4 border-white bg-white shadow-sm grid place-items-center overflow-hidden">
-          <ImageIcon className="h-14 w-14 text-muted-foreground" />
+    <Shell>
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        {/* ── Owner banner ──────────────────────────────────── */}
+        <div className="flex items-center gap-3 px-6 py-4 bg-blue-50/50 border-b border-blue-100">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
+            {owner?.initial ?? 'O'}
+          </div>
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold text-gray-900">{owner?.displayName ?? 'Someone'}</span>{' '}
+            is requesting some files from you. Your files will be uploaded securely to their VentureThrust account.
+          </p>
         </div>
-      </div>
 
-      {/* Title */}
-      <div className="px-6 sm:px-10 pt-16 sm:pt-20 pb-1">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{spaceName || request?.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          <span className="font-medium text-gray-900">{owner?.displayName ?? 'Someone'}</span> is requesting documents. Open a folder and upload your files.
-        </p>
-        {request?.message && (
-          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line">{request.message}</p>
-        )}
-      </div>
+        {/* ── Title + message ───────────────────────────────── */}
+        <div className="px-6 py-6">
+          <h1 className="text-3xl font-bold leading-tight">{request?.title}</h1>
+          {request?.message && (
+            <p className="text-muted-foreground mt-2 whitespace-pre-line">{request.message}</p>
+          )}
+        </div>
 
-      {/* Breadcrumb */}
-      {folders.length > 0 && (
-        <div className="px-6 sm:px-10 pt-4">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
-            <button type="button" onClick={() => setCurrentFolderId(null)} disabled={step === 'uploading'} className="font-medium hover:text-foreground">Home</button>
-            {breadcrumb.map((b) => (
-              <span key={b.id} className="flex items-center gap-1">
-                <ChevronRight className="h-3.5 w-3.5" />
-                <button type="button" onClick={() => setCurrentFolderId(b.id)} disabled={step === 'uploading'} className="hover:text-foreground">{b.name}</button>
-              </span>
-            ))}
+        {/* ── Uploader info form ────────────────────────────── */}
+        <div className="px-6 pb-2 grid sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="uploader-name" className="text-sm">Your name</Label>
+            <Input
+              id="uploader-name"
+              placeholder="Jane Doe"
+              value={uploaderName}
+              onChange={(e) => setUploaderName(e.target.value)}
+              disabled={step === 'uploading'}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="uploader-email" className="text-sm">Your email</Label>
+            <Input
+              id="uploader-email"
+              type="email"
+              placeholder="jane@company.com"
+              value={uploaderEmail}
+              onChange={(e) => setUploaderEmail(e.target.value)}
+              disabled={step === 'uploading'}
+            />
           </div>
         </div>
-      )}
 
-      {/* Content */}
-      <main className="px-6 sm:px-10 py-5 flex-1">
-        {/* Toolbar - mirrors the data room (no AI report button) */}
-        {folders.length > 0 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center mb-5">
-            <h2 className="text-2xl font-bold">{currentFolderName ?? 'Home'}</h2>
-            <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 w-fit">
-              <span className="px-4 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium">All files</span>
-              <span className="px-4 py-1.5 rounded-md text-sm text-gray-400">Recently added</span>
+        {/* ── Drop zone ──────────────────────────────────────── */}
+        <div className="px-6 py-6">
+          {files.length === 0 ? (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`
+                rounded-xl border-2 border-dashed cursor-pointer transition-all
+                flex flex-col items-center justify-center text-center
+                py-20 px-6 gap-3
+                ${isDragging
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'
+                }
+              `}
+            >
+              <UploadIcon className="h-10 w-10 text-blue-500" />
+              <p className="text-base">
+                <span className="font-semibold">Drop files here</span> or{' '}
+                <span className="text-blue-600 font-semibold underline">browse files</span>
+              </p>
+              <p className="text-xs text-muted-foreground">Multiple files supported</p>
             </div>
-            <div className="relative sm:ml-auto w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search this space" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-          </div>
-        )}
-
-        {/* Folder tree: real file counts, expand for subfolders, Upload per folder */}
-        {folders.length > 0 && (
-          <div className="space-y-2">
-            {topFolders
-              .filter((f) => f.name.toLowerCase().includes(search.trim().toLowerCase()))
-              .map((f) => (
-                <FolderTreeRow
-                  key={f.id}
-                  folder={f}
-                  allFolders={folders}
-                  allFiles={spaceFiles}
-                  depth={0}
-                  onOpen={(id) => setCurrentFolderId(id)}
-                />
-              ))}
-          </div>
-        )}
-
-        {folders.length > 0 && currentFolderId === null && (
-          <p className="mt-4 text-sm text-muted-foreground">Use the Upload button on a folder to add your documents.</p>
-        )}
-
-        {/* Upload panel - inside a folder (or when there are no folders at all) */}
-        {(folders.length === 0 || currentFolderId !== null) && (
-          <div className="mt-6 rounded-xl border border-gray-200 p-5">
-            {currentFolderId !== null && (
-              <p className="text-sm text-gray-700 mb-4">Uploading to <span className="font-semibold">{currentFolderName}</span></p>
-            )}
-
-            {filesHere.length > 0 && (
-              <div className="mb-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Already in this folder</p>
-                {filesHere.map((f) => (
-                  <div key={f.id} className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
-                    <FileIcon className="h-4 w-4 text-blue-500 shrink-0" />
-                    <span className="text-sm truncate flex-1">{f.name}</span>
-                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {files.length === 0 ? (
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`rounded-xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center text-center py-16 px-6 gap-3 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
-              >
-                <UploadIcon className="h-10 w-10 text-blue-500" />
-                <p className="text-base"><span className="font-semibold">Drop files here</span> or <span className="text-blue-600 font-semibold underline">browse files</span></p>
-                <p className="text-xs text-muted-foreground">Multiple files supported</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Button variant="outline" size="sm" onClick={() => { setFiles([]); }} disabled={step === 'uploading'}>Cancel</Button>
-                  <span className="text-sm font-semibold">{files.length} file{files.length !== 1 ? 's' : ''} selected</span>
-                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={step === 'uploading'} className="text-blue-600 hover:text-blue-700">+ Add more</Button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
-                  {files.map((file, idx) => {
-                    const Icon = getFileIcon(file.name);
-                    return (
-                      <div key={`${file.name}-${idx}`} className="relative group bg-gray-100 rounded-lg p-3 flex flex-col items-center gap-2">
-                        {step !== 'uploading' && (
-                          <button onClick={() => removeFile(idx)} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" aria-label="Remove file">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        <div className="h-16 w-16 rounded-md bg-white shadow-sm flex items-center justify-center">
-                          <Icon className="h-7 w-7 text-blue-500" />
-                        </div>
-                        <p className="text-xs font-medium text-center line-clamp-2 break-all">{file.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                {step === 'uploading' && (
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Uploading {files.length} file{files.length !== 1 ? 's' : ''}…</span>
-                      <span className="font-mono">{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
-
-            {files.length > 0 && (
-              <div className="mt-4 flex items-center justify-end">
-                <Button onClick={handleUpload} disabled={step === 'uploading' || files.length === 0} className="bg-gray-900 hover:bg-gray-800 text-white">
-                  {step === 'uploading' ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading…</>) : (<><CheckCircle2 className="h-4 w-4 mr-2" />Upload {files.length} file{files.length !== 1 ? 's' : ''}</>)}
+          ) : (
+            <div className="space-y-3">
+              {/* Selected files header */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFiles([]);
+                  }}
+                  disabled={step === 'uploading'}
+                >
+                  Cancel
+                </Button>
+                <span className="text-sm font-semibold">
+                  {files.length} file{files.length !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={step === 'uploading'}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  + Add more
                 </Button>
               </div>
-            )}
+
+              {/* File grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+                {files.map((file, idx) => {
+                  const Icon = getFileIcon(file.name);
+                  return (
+                    <div
+                      key={`${file.name}-${idx}`}
+                      className="relative group bg-gray-100 rounded-lg p-3 flex flex-col items-center gap-2"
+                    >
+                      {step !== 'uploading' && (
+                        <button
+                          onClick={() => removeFile(idx)}
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          aria-label="Remove file"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <div className="h-16 w-16 rounded-md bg-white shadow-sm flex items-center justify-center">
+                        <Icon className="h-7 w-7 text-blue-500" />
+                      </div>
+                      <p className="text-xs font-medium text-center line-clamp-2 break-all">
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Upload progress */}
+              {step === 'uploading' && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Uploading {files.length} file{files.length !== 1 ? 's' : ''}…</span>
+                    <span className="font-mono">{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                </div>
+              )}
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = ''; // allow re-selecting same file
+            }}
+          />
+        </div>
+
+        {/* ── Footer button ──────────────────────────────────── */}
+        {files.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-2">
+            <Button
+              onClick={handleUpload}
+              disabled={step === 'uploading' || files.length === 0}
+              className="bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {step === 'uploading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Upload {files.length} file{files.length !== 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
           </div>
         )}
-      </main>
-
-      {tracker.visible && (
-        <UploadProgressPanel items={tracker.items} onClose={tracker.close} />
-      )}
-
-      <footer className="px-6 sm:px-10 pb-10 pt-2 text-center text-xs text-muted-foreground">Your files will be uploaded securely.</footer>
-    </div>
+      </div>
+    </Shell>
   );
 }
