@@ -15,7 +15,7 @@ import {
 export const metadata = {
   title: 'The affordable DocSend alternative · VentureThrust',
   description:
-    'VentureThrust is a secure data room and an affordable DocSend alternative. Share documents with one link, gate access with NDAs and expiry, and see exactly who opened them and which pages they read. Plans from ₹999/mo.',
+    'VentureThrust is a secure data room and an affordable DocSend alternative. Share documents with one link, gate access with NDAs and expiry, and see exactly who opened them and which pages they read. Plans from $12/mo.',
   keywords: [
     'DocSend alternative',
     'affordable DocSend alternative',
@@ -59,7 +59,7 @@ const POINTS = [
   {
     icon: Wallet,
     title: 'Affordable, transparent pricing',
-    desc: 'Plans from ₹999 a month, with no enterprise-only paywall on the features that matter.',
+    desc: 'Plans from $12 a month, with no enterprise-only paywall on the features that matter.',
   },
 ];
 
@@ -143,7 +143,7 @@ export default function DocSendAlternativePage() {
             Switch to a data room that respects your budget
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base text-gray-600">
-            Start free for 7 days, then plans from ₹999 a month.
+            Start free for 7 days, then plans from $12 a month.
           </p>
           <Link
             href="/signup"

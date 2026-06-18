@@ -67,7 +67,7 @@ const jsonLd = {
   url: 'https://www.venturethrust.com',
   description:
     'A secure virtual data room to share documents and see exactly who opened them and which pages they read.',
-  offers: { '@type': 'Offer', price: '999', priceCurrency: 'INR' },
+  offers: { '@type': 'Offer', price: '12', priceCurrency: 'USD' },
 };
 
 export default function RootLayout({

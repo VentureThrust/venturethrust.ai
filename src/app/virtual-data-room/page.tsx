@@ -6,7 +6,7 @@ import { ArrowRight, Link2, ShieldCheck, BarChart3, Droplets, History, MessageSq
 export const metadata = {
   title: 'Virtual data room (VDR) · VentureThrust',
   description:
-    'A virtual data room (VDR) is a secure online space to share confidential documents and control who sees them. VentureThrust gives you secure links, granular access, watermarks, page-by-page analytics, and a full audit trail. From ₹999/mo.',
+    'A virtual data room (VDR) is a secure online space to share confidential documents and control who sees them. VentureThrust gives you secure links, granular access, watermarks, page-by-page analytics, and a full audit trail. From $12/mo.',
   keywords: [
     'virtual data room',
     'VDR',
@@ -67,7 +67,7 @@ export default function VirtualDataRoomPage() {
       <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-2xl px-6 py-20 text-center sm:py-24">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Open your virtual data room today</h2>
-          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from ₹999 a month.</p>
+          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from $12 a month.</p>
           <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-lg px-8 text-base font-semibold text-white transition-opacity hover:opacity-90" style={{ background: BLUE }}>
             Start free <ArrowRight className="h-4 w-4" />
           </Link>

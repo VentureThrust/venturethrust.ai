@@ -69,7 +69,7 @@ export default function SecureDataRoomPage() {
       <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-2xl px-6 py-20 text-center sm:py-24">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Set up your secure room in minutes</h2>
-          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from ₹999 a month.</p>
+          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from $12 a month.</p>
           <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-lg px-8 text-base font-semibold text-white transition-opacity hover:opacity-90" style={{ background: BLUE }}>
             Start free <ArrowRight className="h-4 w-4" />
           </Link>

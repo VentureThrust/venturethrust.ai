@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { StorageMeter } from '@/components/storage-meter';
 import { ContactSalesDialog } from '@/components/contact-sales-dialog';
 
-const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 /** Human-friendly time remaining until an ISO expiry. Null if past/invalid. */
 function timeLeft(iso: string | null | undefined): string | null {

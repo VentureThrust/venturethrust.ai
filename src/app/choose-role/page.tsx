@@ -38,7 +38,7 @@ import { getDeviceFingerprint } from '@/lib/device-id';
 import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
 
-const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 // Per-plan icon + chip colour, so each card has its own personality.
 const PLAN_META: Record<string, { icon: LucideIcon; chip: string }> = {

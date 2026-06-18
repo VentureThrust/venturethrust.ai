@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ContactSalesButton } from '@/components/contact-sales-dialog';
 
 const BLUE = '#4285F4';
-const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 /** Public pricing section on the landing page. Reads the shared plan catalogue
  *  so it never drifts from the real plans; CTAs send visitors to sign up. */
@@ -21,7 +21,7 @@ export function LandingPricing() {
             Simple plans that scale with your raise
           </h2>
           <p className="mt-4 text-base text-gray-600">
-            Start free for 7 days. Upgrade when you grow. Prices in INR, plus GST.
+            Start free for 7 days. Upgrade when you grow. Prices in USD.
           </p>
         </div>
 

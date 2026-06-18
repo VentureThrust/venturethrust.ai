@@ -7,7 +7,7 @@ import { ArrowRight } from 'lucide-react';
 export const metadata = {
   title: 'Data room pricing · VentureThrust',
   description:
-    'Simple, affordable data room pricing. VentureThrust plans start at ₹999 a month with a 7-day free trial and no card required. See what every plan includes.',
+    'Simple, affordable data room pricing. VentureThrust plans start at $12 a month with a 7-day free trial and no card required. See what every plan includes.',
   keywords: [
     'data room pricing',
     'virtual data room pricing',
@@ -31,7 +31,7 @@ export default function DataRoomPricingPage() {
           Simple, affordable data room pricing
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600">
-          Plans start at ₹999 a month, with a 7-day free trial and no card required. No enterprise-only
+          Plans start at $12 a month, with a 7-day free trial and no card required. No enterprise-only
           paywall on the features that matter.
         </p>
       </section>

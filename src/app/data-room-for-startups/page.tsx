@@ -6,7 +6,7 @@ import { ArrowRight, Rocket, BarChart3, FolderOpen, FileSignature, Wallet, Palet
 export const metadata = {
   title: 'Data room for startups · VentureThrust',
   description:
-    'A secure data room for startups. Share your deck, financials, and updates with investors and partners through one link, see who is engaged, and keep everything in one reusable library. From ₹999/mo.',
+    'A secure data room for startups. Share your deck, financials, and updates with investors and partners through one link, see who is engaged, and keep everything in one reusable library. From $12/mo.',
   keywords: [
     'data room for startups',
     'startup data room',
@@ -25,7 +25,7 @@ const POINTS = [
   { icon: BarChart3, title: 'See investor interest', desc: 'Track who opened your deck, time on each slide, and who read it all.' },
   { icon: FolderOpen, title: 'Reusable content library', desc: 'Keep every doc in one place and reuse it across rooms without re-uploading.' },
   { icon: FileSignature, title: 'NDA and gates', desc: 'Require an email, password, or NDA before anyone gets in.' },
-  { icon: Wallet, title: 'Founder-friendly pricing', desc: 'Plans from ₹999 a month, not enterprise-only pricing.' },
+  { icon: Wallet, title: 'Founder-friendly pricing', desc: 'Plans from $12 a month, not enterprise-only pricing.' },
   { icon: Palette, title: 'On-brand rooms', desc: 'Your logo and cover, so your room looks as serious as your company.' },
 ];
 
@@ -67,7 +67,7 @@ export default function StartupsDataRoomPage() {
       <section className="border-t border-gray-200">
         <div className="container mx-auto max-w-2xl px-6 py-20 text-center sm:py-24">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Give your startup a serious data room</h2>
-          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from ₹999 a month.</p>
+          <p className="mx-auto mt-4 max-w-md text-base text-gray-600">Start free for 7 days, then plans from $12 a month.</p>
           <Link href="/signup" className="mt-8 inline-flex h-12 items-center gap-2 rounded-lg px-8 text-base font-semibold text-white transition-opacity hover:opacity-90" style={{ background: BLUE }}>
             Start free <ArrowRight className="h-4 w-4" />
           </Link>

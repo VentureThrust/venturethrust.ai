@@ -13,7 +13,7 @@
 export type PlanTier = {
   id: string;
   name: string;
-  price: number; // INR per month, for display
+  price: number; // USD per month, for display (billing currency handled separately)
   rank: number; // higher rank = higher plan; used to detect upgrades
   seats: number; // total members allowed, including the account holder
   spaces: number | null; // max spaces; null = unlimited
@@ -51,7 +51,7 @@ export const PLAN_TIERS: PlanTier[] = [
   {
     id: 'vdr-starter',
     name: 'Starter',
-    price: 999,
+    price: 12,
     rank: 1,
     seats: 1,
     spaces: 5,
@@ -72,7 +72,7 @@ export const PLAN_TIERS: PlanTier[] = [
   {
     id: 'vdr-growth',
     name: 'Growth',
-    price: 2499,
+    price: 29,
     rank: 2,
     seats: 2,
     spaces: 20,
@@ -96,7 +96,7 @@ export const PLAN_TIERS: PlanTier[] = [
   {
     id: 'vdr-business',
     name: 'Business',
-    price: 5999,
+    price: 69,
     rank: 3,
     seats: 3,
     spaces: null,
