@@ -3,7 +3,7 @@
 /**
  * Billing & plans - the user's subscription management page. Shows the current
  * plan, status, and access-until date, and lets them upgrade with a real
- * Cashfree payment (the existing /api/payments flow). Higher tiers show an
+ * Paddle subscription (overlay checkout + webhook). Higher tiers show an
  * Upgrade button; the same/lower tiers and storage/seat add-ons point to sales.
  *
  * The current tier is derived from the user's latest PAID payment (payments
@@ -17,9 +17,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { useUser } from '@/hooks/use-user';
 import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, tierById, type PlanTier } from '@/lib/plan-catalogue';
+import { usePaddle } from '@/hooks/use-paddle';
+import { PADDLE_PRICE_BY_TIER } from '@/lib/paddle';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -78,7 +78,6 @@ export default function BillingPage() {
     const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
     return () => clearInterval(t);
   }, []);
-  const [phone, setPhone] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -141,53 +140,66 @@ export default function BillingPage() {
     })();
   }, []);
 
-  const openCheckout = (t: PlanTier) => {
-    setPendingPlan(t);
-    setPhone('');
-    setPayError(null);
+  // A completed Paddle checkout is confirmed server-side by the webhook; poll the
+  // profile + tier until the plan flips, then show the success dialog.
+  const confirmPaddlePayment = async () => {
+    setPaying(false);
+    setVerifying(true);
+    const name = pendingPlan?.name ?? 'your plan';
+    const {
+      data: { user: u },
+    } = await supabase.auth.getUser();
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan, plan_expires_at')
+        .eq('id', u?.id ?? '')
+        .maybeSingle();
+      const pr = data as { plan?: string | null; plan_expires_at?: string | null } | null;
+      if (pr?.plan && isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
+        await loadTier();
+        setVerifying(false);
+        setSuccess({ name, expiresAt: pr.plan_expires_at ?? null });
+        return;
+      }
+    }
+    await loadTier();
+    setVerifying(false);
+    setSuccess({ name, expiresAt: null });
   };
 
-  const pay = async () => {
-    if (!pendingPlan) return;
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (!/^\d{10}$/.test(cleanPhone)) {
-      setPayError('Enter a valid 10-digit mobile number.');
+  const paddle = usePaddle((eventName) => {
+    if (eventName === 'checkout.completed') confirmPaddlePayment();
+  });
+
+  // Open Paddle's overlay checkout for a plan.
+  const openCheckout = async (t: PlanTier) => {
+    const priceId = PADDLE_PRICE_BY_TIER[t.id];
+    if (!priceId) {
+      setPayError('This plan is not available for online checkout yet.');
       return;
     }
-    setPaying(true);
-    setPayError(null);
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
-      const res = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone, returnPath: '/dashboard/billing' }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json?.paymentSessionId) {
-        setPaying(false);
-        const cfMsg = json?.detail || json?.cf?.message;
-        setPayError(
-          json?.error === 'not_configured'
-            ? 'Payments are not configured yet.'
-            : cfMsg
-              ? `Cashfree: ${cfMsg}`
-              : 'Could not start checkout. Please try again.',
-        );
-        return;
-      }
-      const { load } = await import('@cashfreepayments/cashfree-js');
-      const cashfree = await load({ mode: json.mode === 'production' ? 'production' : 'sandbox' });
-      await cashfree.checkout({ paymentSessionId: json.paymentSessionId, redirectTarget: '_self' });
-    } catch {
-      setPaying(false);
-      setPayError('Could not start checkout. Please try again.');
+    if (!paddle) {
+      setPayError('Checkout is still loading. Please try again in a moment.');
+      return;
     }
+    const {
+      data: { user: u },
+    } = await supabase.auth.getUser();
+    if (!u) {
+      router.replace('/login');
+      return;
+    }
+    setPendingPlan(t);
+    setPayError(null);
+    setPaying(true);
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: u.email ? { email: u.email } : undefined,
+      customData: { user_id: u.id },
+    });
+    setTimeout(() => setPaying(false), 1500);
   };
 
   const paidTier = tierById(currentTierId);
@@ -346,44 +358,6 @@ export default function BillingPage() {
 
       <ContactSalesDialog open={salesOpen} onOpenChange={setSalesOpen} />
 
-      {/* Phone dialog before checkout */}
-      <Dialog
-        open={!!pendingPlan}
-        onOpenChange={(o) => {
-          if (!paying && !o) setPendingPlan(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Continue to secure payment</DialogTitle>
-            <DialogDescription>
-              {pendingPlan ? `${pendingPlan.name} plan, ${inr(pendingPlan.price)} per month. ` : ''}
-              Enter a mobile number for the payment receipt.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="bill-phone">Mobile number</Label>
-            <Input
-              id="bill-phone"
-              inputMode="numeric"
-              placeholder="10-digit mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              autoFocus
-            />
-            {payError && <p className="text-sm text-red-600">{payError}</p>}
-          </div>
-          <Button onClick={pay} disabled={paying} className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]">
-            {paying ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
-              </>
-            ) : (
-              `Pay ${pendingPlan ? inr(pendingPlan.price) : ''} with Cashfree`
-            )}
-          </Button>
-        </DialogContent>
-      </Dialog>
 
       {/* Verifying overlay */}
       {verifying && (

@@ -22,13 +22,17 @@ const AI_BACKEND = process.env.NEXT_PUBLIC_AI_BACKEND_URL ?? '';
 // hosts are listed so either CASHFREE_ENV works without another config change.
 const CASHFREE_HOSTS =
   'https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com';
+// Paddle (Billing) checkout: paddle.js loads from cdn.paddle.com, the overlay
+// checkout runs in an iframe from buy.paddle.com, and paddle.js calls its API
+// across *.paddle.com. Sandbox uses the same wildcard hosts.
+const PADDLE_HOSTS = 'https://*.paddle.com https://cdn.paddle.com https://buy.paddle.com';
 
 const ContentSecurityPolicy = [
   "default-src 'self'",
   // 'unsafe-inline' needed by Next.js runtime; 'unsafe-eval' by pdfjs.
   // `blob:` needed by pdfjs which spins up its parser Web Worker from a
   // dynamically-generated blob URL (script.workerSrc → fetch → Blob → URL.createObjectURL).
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://accounts.google.com ${CASHFREE_HOSTS}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdnjs.cloudflare.com https://accounts.google.com ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
   // Explicit worker-src — modern browsers prefer this over script-src for workers.
   `worker-src 'self' blob:`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
@@ -37,14 +41,14 @@ const ContentSecurityPolicy = [
   `media-src 'self' blob: ${SUPABASE_HOST}`,
   // `data:` in connect-src so pdfjs can fetch PDFs served as base64 data
   // URLs (Agreements stores its uploaded PDF as a data URL in client state).
-  `connect-src 'self' data: blob: ${SUPABASE_HOST} ${AI_BACKEND} wss://*.supabase.co https://cdnjs.cloudflare.com https://accounts.google.com ${CASHFREE_HOSTS}`,
+  `connect-src 'self' data: blob: ${SUPABASE_HOST} ${AI_BACKEND} wss://*.supabase.co https://cdnjs.cloudflare.com https://accounts.google.com ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
   // `blob:` so the content-library PDF preview can render the fetched
   // PDF in an <iframe src=blob:…>. Without it the iframe is blocked and
   // shows the browser's broken-file icon.
-  `frame-src 'self' blob: https://accounts.google.com ${CASHFREE_HOSTS}`,
+  `frame-src 'self' blob: https://accounts.google.com ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
   `frame-ancestors 'none'`, // disallow embedding the app in any iframe
   // Cashfree's checkout SDK POSTs a form to its own hosted payment page.
-  `form-action 'self' ${CASHFREE_HOSTS}`,
+  `form-action 'self' ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
   `base-uri 'self'`,
   `object-src 'none'`,
   `upgrade-insecure-requests`,
@@ -70,7 +74,7 @@ const securityHeaders = [
   {
     key: 'Permissions-Policy',
     value:
-      'camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(self "https://sdk.cashfree.com" "https://payments.cashfree.com" "https://payments-test.cashfree.com"), usb=()',
+      'camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(self "https://sdk.cashfree.com" "https://payments.cashfree.com" "https://payments-test.cashfree.com" "https://buy.paddle.com"), usb=()',
   },
   // Prevent Adobe Flash / PDF reader from loading cross-domain (legacy but cheap)
   { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },

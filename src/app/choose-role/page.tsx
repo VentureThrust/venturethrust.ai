@@ -12,8 +12,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ContactSalesButton } from '@/components/contact-sales-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +35,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { getDeviceFingerprint } from '@/lib/device-id';
 import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
+import { usePaddle } from '@/hooks/use-paddle';
+import { PADDLE_PRICE_BY_TIER } from '@/lib/paddle';
 
 const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
@@ -70,17 +70,69 @@ export default function ChoosePlanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  // Cashfree payment state: paid plans open a phone dialog, then hosted checkout.
+  // Paddle payment state: paid plans open the Paddle overlay checkout.
   const [selecting, setSelecting] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
-  const [phone, setPhone] = useState('');
-  const [phoneOpen, setPhoneOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState<{ planName: string; expiresAt: string | null } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
+
+  // A completed Paddle checkout is confirmed server-side by the webhook within a
+  // few seconds. Poll the profile until the plan flips, then show success.
+  const confirmPaddlePayment = async () => {
+    if (!userId) return;
+    setPaying(false);
+    setVerifying(true);
+    const planName = pendingPlan?.name ?? 'VentureThrust';
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan, plan_expires_at')
+        .eq('id', userId)
+        .maybeSingle();
+      const pr = data as { plan?: string | null; plan_expires_at?: string | null } | null;
+      if (pr?.plan && isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
+        setVerifying(false);
+        setSuccess({ planName, expiresAt: pr.plan_expires_at ?? null });
+        return;
+      }
+    }
+    // The webhook may still be processing; show success optimistically.
+    setVerifying(false);
+    setSuccess({ planName, expiresAt: null });
+  };
+
+  const paddle = usePaddle((name) => {
+    if (name === 'checkout.completed') confirmPaddlePayment();
+  });
+
+  // Open Paddle's overlay checkout for a paid plan.
+  const openPaddle = (plan: PlanTier) => {
+    if (!userId) return;
+    const priceId = PADDLE_PRICE_BY_TIER[plan.id];
+    if (!priceId) {
+      setNotice('This plan is not available for online checkout yet.');
+      return;
+    }
+    if (!paddle) {
+      setNotice('Checkout is still loading. Please try again in a moment.');
+      return;
+    }
+    setPendingPlan(plan);
+    setPayError(null);
+    setNotice(null);
+    setPaying(true);
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: email ? { email } : undefined,
+      customData: { user_id: userId },
+    });
+    setTimeout(() => setPaying(false), 1500);
+  };
 
   useEffect(() => {
     (async () => {
@@ -188,59 +240,13 @@ export default function ChoosePlanPage() {
       return;
     }
 
-    // Paid plan: collect the mobile number Cashfree requires, then checkout.
-    setPendingPlan(plan);
-    setPhone('');
-    setPayError(null);
-    setPhoneOpen(true);
+    // Paid plan: open the Paddle overlay checkout.
+    openPaddle(plan);
   };
 
-  // Create a Cashfree order for the pending plan and open hosted checkout.
-  const startPayment = async () => {
-    if (!pendingPlan) return;
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (!/^\d{10}$/.test(cleanPhone)) {
-      setPayError('Enter a valid 10-digit mobile number.');
-      return;
-    }
-    setPaying(true);
-    setPayError(null);
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
-
-      const res = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json?.paymentSessionId) {
-        setPaying(false);
-        const cfMsg = json?.detail || json?.cf?.message;
-        setPayError(
-          json?.error === 'not_configured'
-            ? 'Payments are not configured (check .env.local, then restart the dev server).'
-            : cfMsg
-              ? `Cashfree: ${cfMsg}`
-              : 'Could not start checkout. Please try again.',
-        );
-        return;
-      }
-
-      const { load } = await import('@cashfreepayments/cashfree-js');
-      const cashfree = await load({ mode: json.mode === 'production' ? 'production' : 'sandbox' });
-      await cashfree.checkout({ paymentSessionId: json.paymentSessionId, redirectTarget: '_self' });
-      // redirectTarget '_self' navigates to Cashfree; code after this does not run.
-    } catch {
-      setPaying(false);
-      setPayError('Could not start checkout. Please try again.');
-    }
-  };
+  // (Cashfree checkout removed - payments now run through Paddle. The
+  // /api/payments/* routes and src/lib/cashfree.ts stay server-side for quick
+  // rollback until Paddle is verified live, then they will be deleted.)
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#F0F5FF] via-white to-white px-4 py-12 sm:px-6 lg:px-8">
@@ -401,47 +407,9 @@ export default function ChoosePlanPage() {
         </div>
 
         <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <ShieldCheck className="h-4 w-4 text-emerald-500" /> Secured by Cashfree · UPI, cards &amp;
-          netbanking
+          <ShieldCheck className="h-4 w-4 text-emerald-500" /> Payments secured by Paddle
         </p>
 
-        {/* Phone collection, then Cashfree hosted checkout */}
-        <Dialog open={phoneOpen} onOpenChange={(o) => { if (!paying) setPhoneOpen(o); }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Continue to secure payment</DialogTitle>
-              <DialogDescription>
-                {pendingPlan ? `${pendingPlan.name} plan, ${inr(pendingPlan.price)} per month. ` : ''}
-                Enter a mobile number for the payment receipt.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="pay-phone">Mobile number</Label>
-              <Input
-                id="pay-phone"
-                inputMode="numeric"
-                placeholder="10-digit mobile number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                autoFocus
-              />
-              {payError && <p className="text-sm text-red-600">{payError}</p>}
-            </div>
-            <Button
-              onClick={startPayment}
-              disabled={paying}
-              className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]"
-            >
-              {paying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
-                </>
-              ) : (
-                `Pay ${pendingPlan ? inr(pendingPlan.price) : ''} with Cashfree`
-              )}
-            </Button>
-          </DialogContent>
-        </Dialog>
 
         {verifying && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-white/90">
