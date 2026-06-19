@@ -26,6 +26,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const ip = clientIp(req);
+  // Vercel sets this header at the edge on every request: a reliable, instant
+  // ISO country code (e.g. 'IN'). This is our PRIMARY signal for payment routing.
+  // ipwho.is below only enriches the "City, Country" string for the live viewer.
+  const countryCode = req.headers.get('x-vercel-ip-country') || null;
 
   // Rate-limit per IP - geo lookup is cheap but not free, and there's no
   // legitimate reason for one client to call this more than a few times.
@@ -37,8 +41,8 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Skip lookup for local / private / unknown IPs - they don't resolve
-  // to anything meaningful and ipwhois will just return an error.
+  // Skip the city lookup for local / private / unknown IPs, but still return the
+  // Vercel country header if present.
   const isLocal =
     !ip ||
     ip === 'unknown' ||
@@ -49,7 +53,7 @@ export async function GET(req: NextRequest) {
     /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
 
   if (isLocal) {
-    return NextResponse.json({ location: null, ip: null });
+    return NextResponse.json({ location: null, ip: null, countryCode });
   }
 
   try {
@@ -61,7 +65,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!upstream.ok) {
-      return NextResponse.json({ location: null, ip });
+      return NextResponse.json({ location: null, ip, countryCode });
     }
 
     const data: {
@@ -73,7 +77,7 @@ export async function GET(req: NextRequest) {
     } = await upstream.json();
 
     if (!data.success) {
-      return NextResponse.json({ location: null, ip });
+      return NextResponse.json({ location: null, ip, countryCode });
     }
 
     // Build a compact "City, Country" string. Skip region - too noisy for
@@ -83,12 +87,14 @@ export async function GET(req: NextRequest) {
     );
     const location = parts.length ? parts.join(', ') : null;
 
-    // IP is returned to the browser too - needed by the {{ip-address}}
-    // watermark token. Safe to return because the visitor is looking at
-    // *their own* IP; the only thing we expose is what they already know.
-    return NextResponse.json({ location, ip, countryCode: data.country_code ?? null });
+    // Prefer the Vercel header for the country code; fall back to ipwho.is.
+    return NextResponse.json({
+      location,
+      ip,
+      countryCode: countryCode ?? data.country_code ?? null,
+    });
   } catch (err) {
     console.warn('[geo] lookup failed:', err);
-    return NextResponse.json({ location: null, ip });
+    return NextResponse.json({ location: null, ip, countryCode });
   }
 }
