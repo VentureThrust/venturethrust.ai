@@ -30,6 +30,9 @@ export const PAID_PLANS: Record<
   string,
   { amount: number; planKey: string; name: string; cycleMs: number }
 > = {
+  // TEMPORARY ₹1 test plan for the hidden /paddle-test page (India rail). Remove
+  // after verifying payments.
+  'vdr-test': { amount: 1, planKey: 'vdr_only', name: 'Test', cycleMs: BILLING_CYCLE_MS },
   'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter', cycleMs: BILLING_CYCLE_MS },
   'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth', cycleMs: BILLING_CYCLE_MS },
   'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business', cycleMs: BILLING_CYCLE_MS },

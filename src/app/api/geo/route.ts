@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
       city?: string;
       region?: string;
       country?: string;
+      country_code?: string;
     } = await upstream.json();
 
     if (!data.success) {
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
     // IP is returned to the browser too - needed by the {{ip-address}}
     // watermark token. Safe to return because the visitor is looking at
     // *their own* IP; the only thing we expose is what they already know.
-    return NextResponse.json({ location, ip });
+    return NextResponse.json({ location, ip, countryCode: data.country_code ?? null });
   } catch (err) {
     console.warn('[geo] lookup failed:', err);
     return NextResponse.json({ location: null, ip });

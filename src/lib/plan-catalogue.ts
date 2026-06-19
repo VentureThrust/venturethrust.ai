@@ -13,7 +13,8 @@
 export type PlanTier = {
   id: string;
   name: string;
-  price: number; // USD per month, for display (billing currency handled separately)
+  price: number; // USD per month, shown to non-India visitors (Paddle charges this)
+  priceInr: number; // INR per month, shown to India visitors (Cashfree charges this)
   rank: number; // higher rank = higher plan; used to detect upgrades
   seats: number; // total members allowed, including the account holder
   spaces: number | null; // max spaces; null = unlimited
@@ -31,6 +32,7 @@ export const PLAN_TIERS: PlanTier[] = [
     id: 'vdr-free',
     name: 'Free',
     price: 0,
+    priceInr: 0,
     rank: 0,
     seats: 1,
     spaces: 2,
@@ -52,6 +54,7 @@ export const PLAN_TIERS: PlanTier[] = [
     id: 'vdr-starter',
     name: 'Starter',
     price: 12,
+    priceInr: 999,
     rank: 1,
     seats: 1,
     spaces: 5,
@@ -73,6 +76,7 @@ export const PLAN_TIERS: PlanTier[] = [
     id: 'vdr-growth',
     name: 'Growth',
     price: 29,
+    priceInr: 2499,
     rank: 2,
     seats: 2,
     spaces: 20,
@@ -97,6 +101,7 @@ export const PLAN_TIERS: PlanTier[] = [
     id: 'vdr-business',
     name: 'Business',
     price: 69,
+    priceInr: 5999,
     rank: 3,
     seats: 3,
     spaces: null,
@@ -120,3 +125,10 @@ export const PLAN_TIERS: PlanTier[] = [
 
 export const tierById = (id: string | null | undefined): PlanTier | null =>
   PLAN_TIERS.find((t) => t.id === id) ?? null;
+
+/** Display price string by region: rupees for India (Cashfree), dollars otherwise (Paddle). */
+export function formatPlanPrice(plan: PlanTier, india: boolean): string {
+  return india
+    ? `₹${plan.priceInr.toLocaleString('en-IN')}`
+    : `$${plan.price.toLocaleString('en-US')}`;
+}

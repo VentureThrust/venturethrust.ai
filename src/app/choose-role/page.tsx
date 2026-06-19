@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ContactSalesButton } from '@/components/contact-sales-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -34,11 +36,10 @@ import { Logo } from '@/components/layout/logo';
 import { supabase } from '@/lib/supabaseClient';
 import { getDeviceFingerprint } from '@/lib/device-id';
 import { isPlanActive } from '@/lib/plan';
-import { PLAN_TIERS, type PlanTier } from '@/lib/plan-catalogue';
+import { PLAN_TIERS, formatPlanPrice, type PlanTier } from '@/lib/plan-catalogue';
 import { usePaddle } from '@/hooks/use-paddle';
+import { useCountry } from '@/hooks/use-country';
 import { PADDLE_PRICE_BY_TIER } from '@/lib/paddle';
-
-const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 // Per-plan icon + chip colour, so each card has its own personality.
 const PLAN_META: Record<string, { icon: LucideIcon; chip: string }> = {
@@ -70,9 +71,13 @@ export default function ChoosePlanPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  // Paddle payment state: paid plans open the Paddle overlay checkout.
+  // Payment state. India pays in INR via Cashfree (phone dialog -> hosted
+  // checkout); everyone else pays in USD via the Paddle overlay.
+  const { isIndia } = useCountry();
   const [selecting, setSelecting] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
+  const [phone, setPhone] = useState('');
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -132,6 +137,51 @@ export default function ChoosePlanPage() {
       customData: { user_id: userId },
     });
     setTimeout(() => setPaying(false), 1500);
+  };
+
+  // Open Cashfree hosted checkout for a paid plan (India). Collects the phone
+  // number Cashfree requires, creates an order, then redirects to checkout.
+  const startCashfree = async () => {
+    if (!pendingPlan) return;
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      setPayError('Enter a valid 10-digit mobile number.');
+      return;
+    }
+    setPaying(true);
+    setPayError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.paymentSessionId) {
+        setPaying(false);
+        const cfMsg = json?.detail || json?.cf?.message;
+        setPayError(
+          json?.error === 'not_configured'
+            ? 'Payments are not configured yet. Please contact support.'
+            : cfMsg
+              ? `Cashfree: ${cfMsg}`
+              : 'Could not start checkout. Please try again.',
+        );
+        return;
+      }
+      const { load } = await import('@cashfreepayments/cashfree-js');
+      const cashfree = await load({ mode: json.mode === 'production' ? 'production' : 'sandbox' });
+      await cashfree.checkout({ paymentSessionId: json.paymentSessionId, redirectTarget: '_self' });
+    } catch {
+      setPaying(false);
+      setPayError('Could not start checkout. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -240,13 +290,16 @@ export default function ChoosePlanPage() {
       return;
     }
 
-    // Paid plan: open the Paddle overlay checkout.
-    openPaddle(plan);
+    // Paid plan: India pays via Cashfree (phone dialog), rest of world via Paddle.
+    if (isIndia) {
+      setPendingPlan(plan);
+      setPhone('');
+      setPayError(null);
+      setPhoneOpen(true);
+    } else {
+      openPaddle(plan);
+    }
   };
-
-  // (Cashfree checkout removed - payments now run through Paddle. The
-  // /api/payments/* routes and src/lib/cashfree.ts stay server-side for quick
-  // rollback until Paddle is verified live, then they will be deleted.)
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#F0F5FF] via-white to-white px-4 py-12 sm:px-6 lg:px-8">
@@ -329,7 +382,7 @@ export default function ChoosePlanPage() {
                     <span className="text-4xl font-extrabold">Free</span>
                   ) : (
                     <>
-                      <span className="text-4xl font-extrabold">{inr(plan.price)}</span>
+                      <span className="text-4xl font-extrabold">{formatPlanPrice(plan, isIndia)}</span>
                       <span className={featured ? 'text-blue-200' : 'text-muted-foreground'}>/mo</span>
                     </>
                   )}
@@ -407,9 +460,47 @@ export default function ChoosePlanPage() {
         </div>
 
         <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <ShieldCheck className="h-4 w-4 text-emerald-500" /> Payments secured by Paddle
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />{' '}
+          {isIndia ? 'Payments secured by Cashfree' : 'Payments secured by Paddle'}
         </p>
 
+        {/* India: phone collection, then Cashfree hosted checkout */}
+        <Dialog open={phoneOpen} onOpenChange={(o) => { if (!paying) setPhoneOpen(o); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Continue to secure payment</DialogTitle>
+              <DialogDescription>
+                {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia)} per month. ` : ''}
+                Enter a mobile number for the payment receipt.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="pay-phone">Mobile number</Label>
+              <Input
+                id="pay-phone"
+                inputMode="numeric"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                autoFocus
+              />
+              {payError && <p className="text-sm text-red-600">{payError}</p>}
+            </div>
+            <Button
+              onClick={startCashfree}
+              disabled={paying}
+              className="w-full bg-[#4285F4] text-white hover:bg-[#3367d6]"
+            >
+              {paying ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
+                </>
+              ) : (
+                `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia) : ''} with Cashfree`
+              )}
+            </Button>
+          </DialogContent>
+        </Dialog>
 
         {verifying && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-white/90">
