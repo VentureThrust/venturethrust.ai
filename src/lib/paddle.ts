@@ -36,8 +36,10 @@ export const PADDLE_TEST_PRICE_ID =
  * Paddle account, so it has its own token + price id + webhook secret.
  * Remove after verifying.
  */
-export const PADDLE_SANDBOX_TOKEN = process.env.NEXT_PUBLIC_PADDLE_SANDBOX_TOKEN || '';
-export const PADDLE_SANDBOX_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_SANDBOX_PRICE_ID || '';
+export const PADDLE_SANDBOX_TOKEN =
+  process.env.NEXT_PUBLIC_PADDLE_SANDBOX_TOKEN || 'test_c6cdfa5790d0c9d399f75f96875';
+export const PADDLE_SANDBOX_PRICE_ID =
+  process.env.NEXT_PUBLIC_PADDLE_SANDBOX_PRICE_ID || 'pri_01kvgj0bd2gd3y15pzwj4cd839';
 
 /** Reverse lookup for the webhook: Paddle price id -> our plan tier id. */
 export const TIER_BY_PADDLE_PRICE: Record<string, string> = {
