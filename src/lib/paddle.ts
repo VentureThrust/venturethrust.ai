@@ -30,8 +30,18 @@ export const PADDLE_PRICE_BY_TIER: Record<string, string> = {
 export const PADDLE_TEST_PRICE_ID =
   process.env.NEXT_PUBLIC_PADDLE_TEST_PRICE_ID || 'pri_01kvfhk2z63brms5aya7bqmnvy';
 
+/**
+ * Paddle SANDBOX config for the hidden /paddle-sandbox page, which verifies the
+ * international flow with a TEST card (no real money). Sandbox is a separate
+ * Paddle account, so it has its own token + price id + webhook secret.
+ * Remove after verifying.
+ */
+export const PADDLE_SANDBOX_TOKEN = process.env.NEXT_PUBLIC_PADDLE_SANDBOX_TOKEN || '';
+export const PADDLE_SANDBOX_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_SANDBOX_PRICE_ID || '';
+
 /** Reverse lookup for the webhook: Paddle price id -> our plan tier id. */
 export const TIER_BY_PADDLE_PRICE: Record<string, string> = {
   ...Object.fromEntries(Object.entries(PADDLE_PRICE_BY_TIER).map(([tier, price]) => [price, tier])),
   ...(PADDLE_TEST_PRICE_ID ? { [PADDLE_TEST_PRICE_ID]: 'vdr-starter' } : {}),
+  ...(PADDLE_SANDBOX_PRICE_ID ? { [PADDLE_SANDBOX_PRICE_ID]: 'vdr-starter' } : {}),
 };

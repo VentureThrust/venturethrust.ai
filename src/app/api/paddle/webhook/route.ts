@@ -78,13 +78,17 @@ async function activate(userId: string, expiresIso: string) {
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  const secret = process.env.PADDLE_WEBHOOK_SECRET ?? '';
   const signature = req.headers.get('paddle-signature') ?? '';
+  // Accept events signed by EITHER the production or the sandbox webhook secret,
+  // so the same endpoint verifies both (sandbox is used for the test purchase).
+  const secrets = [process.env.PADDLE_WEBHOOK_SECRET, process.env.PADDLE_WEBHOOK_SECRET_SANDBOX].filter(
+    (s): s is string => !!s,
+  );
 
-  if (!secret) {
+  if (secrets.length === 0) {
     return NextResponse.json({ ok: false, error: 'not_configured' }, { status: 500 });
   }
-  if (!verifySignature(raw, signature, secret)) {
+  if (!secrets.some((s) => verifySignature(raw, signature, s))) {
     return NextResponse.json({ ok: false, error: 'bad_signature' }, { status: 401 });
   }
 

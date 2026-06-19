@@ -11,17 +11,22 @@ import { PADDLE_ENV, PADDLE_CLIENT_TOKEN } from '@/lib/paddle';
  * 'checkout.completed'). It is kept in a ref so the live callback always sees the
  * latest component state, while Paddle itself is only initialised a single time.
  */
-export function usePaddle(onEvent?: (name: string) => void): Paddle | null {
+export function usePaddle(
+  onEvent?: (name: string) => void,
+  opts?: { environment?: 'sandbox' | 'production'; token?: string },
+): Paddle | null {
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const cb = useRef(onEvent);
   cb.current = onEvent;
 
   useEffect(() => {
-    if (!PADDLE_CLIENT_TOKEN) return;
+    const token = opts?.token ?? PADDLE_CLIENT_TOKEN;
+    const environment = opts?.environment ?? PADDLE_ENV;
+    if (!token) return;
     let cancelled = false;
     initializePaddle({
-      environment: PADDLE_ENV,
-      token: PADDLE_CLIENT_TOKEN,
+      environment,
+      token,
       eventCallback: (e) => cb.current?.(e.name ?? ''),
     })
       .then((p) => {
