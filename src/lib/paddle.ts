@@ -27,7 +27,8 @@ export const PADDLE_PRICE_BY_TIER: Record<string, string> = {
  * Starter tier. Remove this and /paddle-test once payments are verified.
  * Set via NEXT_PUBLIC_PADDLE_TEST_PRICE_ID, or paste the id below.
  */
-export const PADDLE_TEST_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_TEST_PRICE_ID || '';
+export const PADDLE_TEST_PRICE_ID =
+  process.env.NEXT_PUBLIC_PADDLE_TEST_PRICE_ID || 'pri_01kvfhk2z63brms5aya7bqmnvy';
 
 /** Reverse lookup for the webhook: Paddle price id -> our plan tier id. */
 export const TIER_BY_PADDLE_PRICE: Record<string, string> = {
