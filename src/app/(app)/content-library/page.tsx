@@ -727,9 +727,8 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
       }
       const inserted = data as { id: string; token: string };
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const newLink: ShareLink = {
-        id: inserted.id as string,
+        id: inserted.id,
         account: accountName || 'Shared link',
         requireEmail: viewingRequirement === 'require_email',
         allowDownloading: allowDownloads,
@@ -738,7 +737,8 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
         expiryDate,
         passcode: passwordProtection,
         passcodeValue: passwordValue,
-        url: `${origin}/shared/${inserted.token}`,
+        // Relative path - CopyLinkDialog prepends the origin.
+        url: `/shared/${inserted.token}`,
         createdAt: new Date().toISOString(),
         eSignatures: 0,
         enabled: true,
@@ -1644,6 +1644,8 @@ function ContentLibraryPageComponent() {
 
   const [isCreateLinkOpen, setIsCreateLinkOpen] = useState(false);
   const [createLinkFile, setCreateLinkFile] = useState<File | null>(null);
+  const [lastCreatedLink, setLastCreatedLink] = useState<ShareLink | null>(null);
+  const [isCopyLinkDialogOpen, setIsCopyLinkDialogOpen] = useState(false);
 
   // ── Spaces state ──────────────────────────────────────────────────────────
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -1861,11 +1863,18 @@ function ContentLibraryPageComponent() {
     setTimeout(() => { setCreateLinkFile(file); setIsCreateLinkOpen(true); }, 0);
   }, []);
   const handleLinkCreated = useCallback((link: ShareLink) => {
-    if (!createLinkFile) return;
-    toast({ title: 'Link created!', description: `Shareable link for "${createLinkFile.name}" is ready.` });
     setIsCreateLinkOpen(false);
-    setCreateLinkFile(null);
-  }, [createLinkFile, toast]);
+    setLastCreatedLink(link);
+    setIsCopyLinkDialogOpen(true);
+    // Auto-copy for convenience; the dialog also shows it with a Copy button.
+    try {
+      const full = typeof window !== 'undefined' ? `${window.location.origin}${link.url}` : link.url;
+      navigator.clipboard?.writeText(full);
+    } catch {
+      /* clipboard may be blocked; the dialog still shows the link */
+    }
+    toast({ title: 'Link created and copied', description: 'Share it with anyone, per your access settings.' });
+  }, [toast]);
 
   const handleAddFolder = async () => {
     if (!newFolderName) return;
@@ -2539,6 +2548,14 @@ function ContentLibraryPageComponent() {
           open={isCreateLinkOpen}
           onOpenChange={(open) => { setIsCreateLinkOpen(open); if (!open) setCreateLinkFile(null); }}
           onLinkCreated={handleLinkCreated}
+        />
+      )}
+
+      {lastCreatedLink && (
+        <CopyLinkDialog
+          link={lastCreatedLink}
+          open={isCopyLinkDialogOpen}
+          onOpenChange={setIsCopyLinkDialogOpen}
         />
       )}
 
