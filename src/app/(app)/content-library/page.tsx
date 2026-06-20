@@ -670,12 +670,22 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
           ? crypto.randomUUID().replace(/-/g, '')
           : `tok_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-      const f = file as unknown as { spaceId?: string | null; space_id?: string | null };
-      const fileSpaceId = f.spaceId ?? f.space_id ?? null;
       const useAllowBlock = allowBlockByEmail && allowBlockEmails.length > 0;
 
-      const payload = {
-        space_id: fileSpaceId,
+      // Scope the link to the user's Content Library space (a real, owned space).
+      // share_links.space_id is NOT NULL and RLS expects an owned space; the
+      // viewer's owner-plan check also resolves the owner from space_id. Every
+      // content-library file lives under this sentinel space.
+      const { data: clSpace } = await supabase
+        .from('spaces')
+        .select('id')
+        .eq('created_by', userId)
+        .eq('title', 'CONTENT_LIBRARY')
+        .maybeSingle();
+      const linkSpaceId = (clSpace?.id as string | undefined) ?? null;
+
+      const basePayload = {
+        space_id: linkSpaceId,
         file_id: file.id,
         created_by: userId,
         token: linkToken,
@@ -684,23 +694,38 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
         password_hash: passwordHash,
         expires_at: setExpiry && expiryDate ? expiryDate.toISOString() : null,
         watermark: addWatermark,
-        watermark_text: addWatermark ? watermarkText.trim() || '{{email}}' : null,
         allow_download: allowDownloads,
-        allow_block_type: useAllowBlock ? allowBlockType : null,
-        allow_block_emails: useAllowBlock ? allowBlockEmails : null,
         is_active: true,
       };
+      const extendedPayload = {
+        ...basePayload,
+        watermark_text: addWatermark ? watermarkText.trim() || '{{email}}' : null,
+        allow_block_type: useAllowBlock ? allowBlockType : null,
+        allow_block_emails: useAllowBlock ? allowBlockEmails : null,
+      };
 
-      const { data: inserted, error } = await supabase
+      let { data, error } = await supabase
         .from('share_links')
-        .insert(payload)
+        .insert(extendedPayload)
         .select('id, token')
         .single();
-      if (error || !inserted) {
-        setSaveError('Could not create the link. Please try again.');
+      // Retry without the extended columns if this DB hasn't run that migration.
+      if (error && (error.code === '42703' || error.code === 'PGRST204' || /column/i.test(error.message ?? ''))) {
+        ({ data, error } = await supabase
+          .from('share_links')
+          .insert(basePayload)
+          .select('id, token')
+          .single());
+      }
+      if (error || !data) {
+        console.error('[create file link] insert failed:', error);
+        setSaveError(
+          error?.message ? `Could not create the link: ${error.message}` : 'Could not create the link. Please try again.',
+        );
         setSaving(false);
         return;
       }
+      const inserted = data as { id: string; token: string };
 
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const newLink: ShareLink = {
