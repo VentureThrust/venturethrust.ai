@@ -547,15 +547,18 @@ export const FoldersProvider = ({ children }: { children: ReactNode }) => {
     async (folderId: string, newFiles: File[]): Promise<void> => {
       if (!userId) return;
 
-      // Local-only path. Some callers (e.g. the Agreements page) pass a
-      // synthetic sentinel folder id like 'personal-root' which has no
-      // corresponding row in the DB. Trying to INSERT a file with
-      // folder_id='personal-root' fails the foreign-key constraint and
-      // bubbles up as an empty-looking `{}` error (Supabase error
-      // serialisation quirk). Detect non-UUID folder ids and skip the
-      // DB write - the in-memory tree update still happens.
+      // Persist the file to a REAL folder row. A real folder id is either a
+      // UUID (older folders) or the `folder_<timestamp>` id the UI generates
+      // (current folders) - both have a row in `folders` and MUST be written.
+      // Only synthetic sentinel ids (e.g. 'personal-root', used by the
+      // Agreements flow) have no folders row; those skip the DB write and rely
+      // on the in-memory tree update below.
+      //
+      // BUG FIX: this previously matched UUID only, which rejected every real
+      // content-library folder (they use folder_<timestamp> ids). As a result
+      // uploads were never saved to the DB and disappeared on refresh.
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const isPersistedFolder = UUID_RE.test(folderId);
+      const isPersistedFolder = UUID_RE.test(folderId) || /^folder_\d+/.test(folderId);
 
       if (isPersistedFolder) {
         const inserts = newFiles.map(f => ({
