@@ -587,10 +587,16 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
   const [passwordProtection, setPasswordProtection] = useState(false);
   const [passwordValue, setPasswordValue] = useState('');
   const [allowBlockByEmail, setAllowBlockByEmail] = useState(false);
+  const [allowBlockType, setAllowBlockType] = useState<'allow' | 'block'>('allow');
+  const [allowBlockEmails, setAllowBlockEmails] = useState<string[]>([]);
+  const [allowBlockInput, setAllowBlockInput] = useState('');
   const [allowDownloads, setAllowDownloads] = useState(false);
   const [setExpiry, setSetExpiry] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>();
   const [addWatermark, setAddWatermark] = useState(false);
+  const [watermarkText, setWatermarkText] = useState('{{email}}');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // ── Validation ────────────────────────────────────────────────────────
   // The Create button stays dimmed/disabled until every toggled-on setting
@@ -600,32 +606,124 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
   today.setHours(0, 0, 0, 0);
   const needsPassword = passwordProtection && !passwordValue.trim();
   const needsExpiryDate = setExpiry && !expiryDate;
-  const isIncomplete = needsPassword || needsExpiryDate;
+  const needsAllowBlock = allowBlockByEmail && allowBlockEmails.length === 0;
+  const isIncomplete = needsPassword || needsExpiryDate || needsAllowBlock;
   const incompleteHint = needsPassword
     ? 'Enter a password to continue.'
     : needsExpiryDate
       ? 'Pick an expiration date to continue.'
-      : '';
+      : needsAllowBlock
+        ? 'Add at least one email, or uncheck allow/block.'
+        : '';
 
-  const handleCreate = () => {
-    if (isIncomplete) return; // guard - button is also disabled
-    const newLink: ShareLink = {
-      id: `link_${Date.now()}`,
-      account: accountName || 'Example Account',
-      requireEmail: viewingRequirement === 'require_email',
-      allowDownloading: allowDownloads,
-      requireNameToSign: false,
-      expires: setExpiry,
-      expiryDate,
-      passcode: passwordProtection,
-      passcodeValue: passwordValue,
-      url: `/view/${file.id}/link_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      eSignatures: 0,
-      enabled: true,
-    };
-    onLinkCreated(newLink);
-    onOpenChange(false);
+  const EMAIL_OR_DOMAIN_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$|^@[^\s@]+\.[^\s@]+$/;
+  const addAllowBlockEmail = () => {
+    const v = allowBlockInput.trim().toLowerCase();
+    if (!v) return;
+    if (!EMAIL_OR_DOMAIN_RE.test(v)) {
+      setSaveError('Enter a valid email (name@company.com) or domain (@company.com).');
+      return;
+    }
+    if (!allowBlockEmails.includes(v)) setAllowBlockEmails((prev) => [...prev, v]);
+    setAllowBlockInput('');
+    setSaveError(null);
+  };
+  const removeAllowBlockEmail = (e: string) =>
+    setAllowBlockEmails((prev) => prev.filter((x) => x !== e));
+
+  // Persist a REAL share_links row (file-scoped) so every setting is enforced
+  // by the same server-side gates the space links use. The link opens via
+  // /shared/<token>.
+  const handleCreate = async () => {
+    if (isIncomplete || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      const userId = session?.user?.id;
+      if (!accessToken || !userId) {
+        setSaveError('Please sign in again.');
+        setSaving(false);
+        return;
+      }
+
+      // Hash the password server-side (bcrypt) - never store plaintext.
+      let passwordHash: string | null = null;
+      if (passwordProtection && passwordValue.trim()) {
+        const res = await fetch('/api/share-links/hash-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ password: passwordValue }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.hash) {
+          setSaveError('Could not secure the password. Please try again.');
+          setSaving(false);
+          return;
+        }
+        passwordHash = j.hash;
+      }
+
+      const linkToken =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID().replace(/-/g, '')
+          : `tok_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+      const f = file as unknown as { spaceId?: string | null; space_id?: string | null };
+      const fileSpaceId = f.spaceId ?? f.space_id ?? null;
+      const useAllowBlock = allowBlockByEmail && allowBlockEmails.length > 0;
+
+      const payload = {
+        space_id: fileSpaceId,
+        file_id: file.id,
+        created_by: userId,
+        token: linkToken,
+        link_name: accountName || null,
+        email_required: viewingRequirement === 'require_email',
+        password_hash: passwordHash,
+        expires_at: setExpiry && expiryDate ? expiryDate.toISOString() : null,
+        watermark: addWatermark,
+        watermark_text: addWatermark ? watermarkText.trim() || '{{email}}' : null,
+        allow_download: allowDownloads,
+        allow_block_type: useAllowBlock ? allowBlockType : null,
+        allow_block_emails: useAllowBlock ? allowBlockEmails : null,
+        is_active: true,
+      };
+
+      const { data: inserted, error } = await supabase
+        .from('share_links')
+        .insert(payload)
+        .select('id, token')
+        .single();
+      if (error || !inserted) {
+        setSaveError('Could not create the link. Please try again.');
+        setSaving(false);
+        return;
+      }
+
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const newLink: ShareLink = {
+        id: inserted.id as string,
+        account: accountName || 'Shared link',
+        requireEmail: viewingRequirement === 'require_email',
+        allowDownloading: allowDownloads,
+        requireNameToSign: false,
+        expires: setExpiry,
+        expiryDate,
+        passcode: passwordProtection,
+        passcodeValue: passwordValue,
+        url: `${origin}/shared/${inserted.token}`,
+        createdAt: new Date().toISOString(),
+        eSignatures: 0,
+        enabled: true,
+      };
+      onLinkCreated(newLink);
+      onOpenChange(false);
+    } catch {
+      setSaveError('Something went wrong. Please try again.');
+      setSaving(false);
+    }
   };
 
   return (
@@ -673,7 +771,44 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
               </div>
               <div className="flex items-start gap-3">
                 <Checkbox id="allow-block-email" checked={allowBlockByEmail} onCheckedChange={(c) => setAllowBlockByEmail(Boolean(c))} className="mt-0.5" />
-                <label htmlFor="allow-block-email" className="text-sm font-medium cursor-pointer">Allow or block visitors by email address or domain</label>
+                <div className="flex-1 space-y-3">
+                  <label htmlFor="allow-block-email" className="text-sm font-medium cursor-pointer">Allow or block visitors by email address or domain</label>
+                  {allowBlockByEmail && (
+                    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+                      <Select value={allowBlockType} onValueChange={(v) => setAllowBlockType(v as 'allow' | 'block')}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="allow">Allow only these people</SelectItem>
+                          <SelectItem value="block">Block these people</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="name@company.com or @company.com"
+                          value={allowBlockInput}
+                          onChange={(e) => setAllowBlockInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAllowBlockEmail(); } }}
+                        />
+                        <Button type="button" variant="outline" onClick={addAllowBlockEmail}>Add</Button>
+                      </div>
+                      {allowBlockEmails.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {allowBlockEmails.map((e) => (
+                            <span key={e} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs">
+                              {e}
+                              <button type="button" onClick={() => removeAllowBlockEmail(e)} className="text-gray-500 hover:text-gray-900" aria-label={`Remove ${e}`}>×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {allowBlockType === 'allow'
+                          ? 'Only the people you add here can open this link. Everyone else is denied, even with the link.'
+                          : 'The people you add here are blocked from opening this link. Everyone else can still view it.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -707,16 +842,24 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
               </div>
               <div className="flex items-start gap-3">
                 <Checkbox id="watermark" checked={addWatermark} onCheckedChange={(c) => setAddWatermark(Boolean(c))} className="mt-0.5" />
-                <label htmlFor="watermark" className="text-sm font-medium cursor-pointer">Add a watermark to protect from unauthorized use</label>
+                <div className="flex-1 space-y-2">
+                  <label htmlFor="watermark" className="text-sm font-medium cursor-pointer">Add a watermark to protect from unauthorized use</label>
+                  {addWatermark && (
+                    <>
+                      <Input placeholder="{{email}}" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} />
+                      <p className="text-xs text-muted-foreground">Use {'{{email}}'} to stamp each viewer&apos;s email across the document.</p>
+                    </>
+                  )}
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
         </div>
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-3">
-          <p className="text-xs text-amber-600 min-h-[1rem]">{incompleteHint}</p>
+          <p className="text-xs text-amber-600 min-h-[1rem]">{saveError || incompleteHint}</p>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={isIncomplete}>Create link</Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={isIncomplete || saving}>{saving ? 'Creating...' : 'Create link'}</Button>
           </div>
         </div>
       </DialogContent>
