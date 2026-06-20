@@ -690,7 +690,7 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
         created_by: userId,
         token: linkToken,
         link_name: accountName || null,
-        email_required: viewingRequirement === 'require_email',
+        email_required: viewingRequirement === 'require_email' || useAllowBlock,
         password_hash: passwordHash,
         expires_at: setExpiry && expiryDate ? expiryDate.toISOString() : null,
         watermark: addWatermark,

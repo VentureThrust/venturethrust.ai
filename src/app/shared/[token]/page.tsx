@@ -72,7 +72,7 @@ export default async function SharedTokenPage({ params }: PageProps) {
       // Only the columns we need. Crucially we do NOT include password_hash
       // or allow_block_emails - those stay on the server and are checked
       // via /api/share-links/validate at gate-submit time.
-      'id, space_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text'
+      'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text'
     )
     .eq('token', token)
     .maybeSingle();
@@ -115,6 +115,8 @@ export default async function SharedTokenPage({ params }: PageProps) {
         requireSignature: !!link.require_signature,
         // NDA text is fine to send because it's already shown to the user once they get to that gate
         ndaText: (link.nda_text as string | null) ?? null,
+        // File-scoped link: GatesFlow renders just this one file after the gates pass.
+        fileId: (link.file_id as string | null) ?? null,
       }}
     />
   );

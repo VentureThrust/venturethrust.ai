@@ -116,13 +116,41 @@ export async function POST(req: NextRequest) {
   }
 
   // ── All checks for email + password passed ─────────────────────────────
-  // The client still needs to advance through NDA / signature gates, but
-  // those are tracked client-side (acceptance + name capture only) so the
-  // server doesn't gate on them here. We return the space_id so the client
-  // can redirect after the remaining gates clear.
+  // For a FILE-scoped link, return the file + a short-lived signed URL so the
+  // client can render just that document. This is only reached AFTER email /
+  // password / allow-block / expiry / owner-plan all passed above, so the URL
+  // never reaches an unauthorized visitor. NDA / signature stay client-side
+  // gates (acceptance + name capture), matching the space flow.
+  let file:
+    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean }
+    | null = null;
+  if (link.file_id) {
+    const { data: fileRow } = await supabase
+      .from('files')
+      .select('id, name, type, storage_path')
+      .eq('id', link.file_id)
+      .maybeSingle();
+    if (fileRow?.storage_path) {
+      const { data: signed } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(fileRow.storage_path as string, 3600);
+      const wmRaw = link.watermark ? ((link.watermark_text as string | null) ?? null) : null;
+      const wm = wmRaw ? wmRaw.replace(/\{\{\s*email\s*\}\}/gi, email || 'Confidential') : null;
+      file = {
+        id: fileRow.id as string,
+        name: (fileRow.name as string) ?? 'Document',
+        type: (fileRow.type as string) ?? 'Doc',
+        url: signed?.signedUrl ?? '',
+        watermarkText: wm,
+        allowDownload: link.allow_download !== false,
+      };
+    }
+  }
+
   return NextResponse.json({
     status: 'OK',
     space_id: link.space_id,
+    file,
     require_nda: !!link.require_nda,
     require_signature: !!link.require_signature,
   });

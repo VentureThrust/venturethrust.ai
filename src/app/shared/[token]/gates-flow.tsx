@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { SharedFileView, type SharedFile } from './shared-file-view';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ interface LinkInfo {
   requireNda: boolean;
   requireSignature: boolean;
   ndaText: string | null;
+  fileId: string | null;
 }
 
 interface GatesFlowProps {
@@ -50,7 +52,7 @@ interface GatesFlowProps {
   token: string;
 }
 
-type Step = 'email' | 'password' | 'blocked' | 'nda' | 'signature' | 'redirecting';
+type Step = 'email' | 'password' | 'blocked' | 'nda' | 'signature' | 'redirecting' | 'file';
 
 const DEFAULT_NDA_TEXT = `This Non-Disclosure Agreement ("Agreement") governs your access to the confidential information contained within this shared space.
 
@@ -106,6 +108,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   const [password, setPassword] = useState('');
   const [ndaAccepted, setNdaAccepted] = useState(false);
   const [signatureName, setSignatureName] = useState('');
+  const [fileView, setFileView] = useState<SharedFile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ranInitial = useRef(false);
 
@@ -116,9 +119,14 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     if (ranInitial.current) return;
     ranInitial.current = true;
     if (firstStep === 'redirecting') {
-      logAccess(null).finally(() =>
-        router.replace(`/spaces/${link.space_id}/view`)
-      );
+      // No gates: a file link opens the file directly; a space link redirects.
+      if (link.fileId) {
+        openFile(null);
+      } else {
+        logAccess(null).finally(() =>
+          router.replace(`/spaces/${link.space_id}/view`)
+        );
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -139,11 +147,39 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     void device;
   };
 
+  // Fetch the file (signed URL etc.) via the server validator - which re-checks
+  // every gate - then render it inline. Used for file-scoped links.
+  const openFile = async (visitorEmail: string | null) => {
+    setStep('redirecting');
+    try {
+      const res = await fetch('/api/share-links/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link_id: link.id, email: visitorEmail || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.status === 'OK' && data.file) {
+        logAccess(visitorEmail);
+        setFileView(data.file as SharedFile);
+        setStep('file');
+      } else {
+        toast({ variant: 'destructive', title: 'Could not open the file', description: 'Please reopen the link.' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error' });
+    }
+  };
+
   const finishAndRedirect = (visitorEmail: string | null) => {
     sessionStorage.setItem(
       SESSION_KEY,
       JSON.stringify({ passed: true, email: visitorEmail, spaceId: link.space_id })
     );
+    // File-scoped link: render just that one file instead of the space view.
+    if (link.fileId) {
+      openFile(visitorEmail);
+      return;
+    }
     setStep('redirecting');
     logAccess(visitorEmail).finally(() =>
       router.replace(`/spaces/${link.space_id}/view`)
@@ -281,6 +317,10 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   };
 
   // ─── UI states ────────────────────────────────────────────────────────
+
+  if (step === 'file' && fileView) {
+    return <SharedFileView file={fileView} />;
+  }
 
   if (step === 'redirecting') {
     return (
