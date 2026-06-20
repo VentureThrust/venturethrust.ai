@@ -126,9 +126,11 @@ export const PLAN_TIERS: PlanTier[] = [
 export const tierById = (id: string | null | undefined): PlanTier | null =>
   PLAN_TIERS.find((t) => t.id === id) ?? null;
 
-/** Display price string by region: rupees for India (Cashfree), dollars otherwise (Paddle). */
-export function formatPlanPrice(plan: PlanTier, india: boolean): string {
-  return india
-    ? `₹${plan.priceInr.toLocaleString('en-IN')}`
-    : `$${plan.price.toLocaleString('en-US')}`;
+/**
+ * Display price string. Pricing is shown in USD to EVERYONE (India included);
+ * payment is still routed by country at checkout (India -> Cashfree in INR, rest
+ * of world -> Paddle in USD). The `india` arg is kept for call-site compatibility.
+ */
+export function formatPlanPrice(plan: PlanTier, _india: boolean): string {
+  return `$${plan.price.toLocaleString('en-US')}`;
 }

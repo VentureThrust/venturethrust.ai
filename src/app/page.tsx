@@ -25,6 +25,8 @@ import {
   Globe2,
   ScanLine,
   History,
+  FileSignature,
+  EyeOff,
 } from 'lucide-react';
 
 const BLUE = '#4285F4';
@@ -246,11 +248,13 @@ export default function LandingPage() {
               Every layer of VentureThrust assumes the contents are confidential.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { icon: Lock, t: 'Encrypted', d: 'Encrypted in transit and at rest, with hashed link passcodes.' },
               { icon: Globe2, t: 'Access controls', d: 'Email gates, allow and block lists, expiry, and instant revoke.' },
               { icon: ScanLine, t: 'Watermarking', d: 'Dynamic watermarks tie every page to the person viewing it.' },
+              { icon: FileSignature, t: 'NDA & e-sign', d: 'Require visitors to accept an NDA or sign before they can view.' },
+              { icon: EyeOff, t: 'View-only protection', d: 'Right-click, copy, print, and screenshot deterrents, with per-link download control.' },
               { icon: History, t: 'Audit trail', d: 'A complete log of who entered, what they saw, and when.' },
             ].map((s) => (
               <div key={s.t}>
