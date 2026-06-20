@@ -5,6 +5,7 @@ import { FoldersProvider } from '@/lib/folder-provider';
 import NextTopLoader from 'nextjs-toploader';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { ScreenGuard } from '@/components/screen-guard';
+import { DisableContextMenu } from '@/components/disable-context-menu';
 
 // Inter - the closest free match to DocSend's UI font (Atlas Grotesk).
 // Self-hosted by next/font (downloaded at build, served from our own domain),
@@ -99,6 +100,7 @@ export default function RootLayout({
           easing="ease"
         />
         <ScreenGuard />
+        <DisableContextMenu />
         <FoldersProvider>
           {children}
         </FoldersProvider>
