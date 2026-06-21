@@ -1,15 +1,18 @@
+'use client';
+
 import Link from 'next/link';
-import { PLAN_TIERS } from '@/lib/plan-catalogue';
+import { useState } from 'react';
+import { PLAN_TIERS, formatPlanPrice } from '@/lib/plan-catalogue';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ContactSalesButton } from '@/components/contact-sales-dialog';
 
 const BLUE = '#4285F4';
-const inr = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 /** Public pricing section on the landing page. Reads the shared plan catalogue
  *  so it never drifts from the real plans; CTAs send visitors to sign up. */
 export function LandingPricing() {
+  const [annual, setAnnual] = useState(false);
   return (
     <section id="pricing" className="border-t border-gray-200 bg-gray-50">
       <div className="container mx-auto max-w-6xl px-6 py-20 sm:py-24">
@@ -25,7 +28,24 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Monthly / Annual toggle */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <span className={cn('text-sm font-medium', !annual ? 'text-gray-900' : 'text-gray-500')}>Monthly</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={annual}
+            onClick={() => setAnnual((a) => !a)}
+            className={cn('relative h-6 w-11 rounded-full transition-colors', annual ? 'bg-[#4285F4]' : 'bg-gray-300')}
+          >
+            <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform', annual ? 'translate-x-5' : 'translate-x-0.5')} />
+          </button>
+          <span className={cn('text-sm font-medium', annual ? 'text-gray-900' : 'text-gray-500')}>
+            Annual <span className="text-[#34A853]">(1 month free)</span>
+          </span>
+        </div>
+
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_TIERS.map((t) => {
             const featured = !!t.popular;
             return (
@@ -48,8 +68,8 @@ export function LandingPricing() {
                     <span className="text-3xl font-bold">Free</span>
                   ) : (
                     <>
-                      <span className="text-3xl font-bold">{inr(t.price)}</span>
-                      <span className="text-muted-foreground">/mo</span>
+                      <span className="text-3xl font-bold">{formatPlanPrice(t, false, annual)}</span>
+                      <span className="text-muted-foreground">{annual ? '/year' : '/mo'}</span>
                     </>
                   )}
                 </div>
