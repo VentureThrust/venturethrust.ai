@@ -772,7 +772,7 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
             <CollapsibleTrigger className="w-full group">
               <div className="flex items-center justify-between py-3 border-t border-b border-gray-200 group">
                 <div className="flex items-center gap-2"><Lock className="h-4 w-4" /><span className="font-semibold text-base">Manage file access</span></div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=closed]:rotate-180 transition-transform" />
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-4 space-y-4">
@@ -841,7 +841,7 @@ function CreateLinkDialog({ file, open, onOpenChange, onLinkCreated }: {
             <CollapsibleTrigger className="w-full group">
               <div className="flex items-center justify-between py-3 border-t border-b border-gray-200 group">
                 <div className="flex items-center gap-2"><Shield className="h-4 w-4" /><span className="font-semibold text-base">Add extra security settings</span></div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=closed]:rotate-180 transition-transform" />
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-4 space-y-4">
