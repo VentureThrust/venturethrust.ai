@@ -28,24 +28,22 @@ export function LandingPricing() {
           </p>
         </div>
 
-        {/* Monthly / Annual toggle (segmented pill) */}
-        <div className="mt-8 flex justify-center">
-          <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 p-1">
-            <button
-              type="button"
-              onClick={() => setAnnual(false)}
-              className={cn('rounded-full px-5 py-2 text-sm font-semibold transition-colors', !annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900')}
-            >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setAnnual(true)}
-              className={cn('rounded-full px-5 py-2 text-sm font-semibold transition-colors', annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900')}
-            >
-              Annual <span className="text-[#34A853]">1 month free</span>
-            </button>
-          </div>
+        {/* Billing period - radio group (DocSend style) */}
+        <div className="mt-8 flex items-center justify-center gap-8">
+          <button type="button" onClick={() => setAnnual(false)} className="flex items-center gap-2.5">
+            <span className={cn('flex h-5 w-5 items-center justify-center rounded-full border-2', !annual ? 'border-gray-900' : 'border-gray-400')}>
+              {!annual && <span className="h-2.5 w-2.5 rounded-full bg-gray-900" />}
+            </span>
+            <span className={cn('text-base', !annual ? 'font-medium text-gray-900' : 'text-gray-600')}>Billed monthly</span>
+          </button>
+          <button type="button" onClick={() => setAnnual(true)} className="flex items-center gap-2.5">
+            <span className={cn('flex h-5 w-5 items-center justify-center rounded-full border-2', annual ? 'border-gray-900' : 'border-gray-400')}>
+              {annual && <span className="h-2.5 w-2.5 rounded-full bg-gray-900" />}
+            </span>
+            <span className={cn('text-base', annual ? 'font-medium text-gray-900' : 'text-gray-600')}>
+              Billed yearly <span className="text-[#34A853]">(1 month free)</span>
+            </span>
+          </button>
         </div>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
