@@ -28,21 +28,24 @@ export function LandingPricing() {
           </p>
         </div>
 
-        {/* Monthly / Annual toggle */}
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <span className={cn('text-sm font-medium', !annual ? 'text-gray-900' : 'text-gray-500')}>Monthly</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={annual}
-            onClick={() => setAnnual((a) => !a)}
-            className={cn('relative h-6 w-11 rounded-full transition-colors', annual ? 'bg-[#4285F4]' : 'bg-gray-300')}
-          >
-            <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform', annual ? 'translate-x-5' : 'translate-x-0.5')} />
-          </button>
-          <span className={cn('text-sm font-medium', annual ? 'text-gray-900' : 'text-gray-500')}>
-            Annual <span className="text-[#34A853]">(1 month free)</span>
-          </span>
+        {/* Monthly / Annual toggle (segmented pill) */}
+        <div className="mt-8 flex justify-center">
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setAnnual(false)}
+              className={cn('rounded-full px-5 py-2 text-sm font-semibold transition-colors', !annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900')}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnnual(true)}
+              className={cn('rounded-full px-5 py-2 text-sm font-semibold transition-colors', annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900')}
+            >
+              Annual <span className="text-[#34A853]">1 month free</span>
+            </button>
+          </div>
         </div>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
