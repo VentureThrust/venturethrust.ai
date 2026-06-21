@@ -19,7 +19,7 @@ import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, tierById, formatPlanPrice, type PlanTier } from '@/lib/plan-catalogue';
 import { usePaddle } from '@/hooks/use-paddle';
 import { useCountry } from '@/hooks/use-country';
-import { PADDLE_PRICE_BY_TIER } from '@/lib/paddle';
+import { PADDLE_PRICE_BY_TIER, PADDLE_PRICE_BY_TIER_YEAR } from '@/lib/paddle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,6 +83,7 @@ export default function BillingPage() {
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [annual, setAnnual] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState<{ name: string; expiresAt: string | null } | null>(null);
@@ -179,7 +180,7 @@ export default function BillingPage() {
 
   // Open Paddle's overlay checkout (rest of world).
   const openPaddle = async (t: PlanTier) => {
-    const priceId = PADDLE_PRICE_BY_TIER[t.id];
+    const priceId = annual ? PADDLE_PRICE_BY_TIER_YEAR[t.id] : PADDLE_PRICE_BY_TIER[t.id];
     if (!priceId) {
       setPayError('This plan is not available for online checkout yet.');
       return;
@@ -226,7 +227,7 @@ export default function BillingPage() {
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone, returnPath: '/dashboard/billing' }),
+        body: JSON.stringify({ planId: annual ? `${pendingPlan.id}-year` : pendingPlan.id, phone: cleanPhone, returnPath: '/dashboard/billing' }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.paymentSessionId) {
@@ -339,8 +340,25 @@ export default function BillingPage() {
       {/* Storage usage */}
       <StorageMeter className="mt-4" />
 
+      {/* Monthly / Annual toggle */}
+      <div className="mt-8 flex items-center justify-center gap-3">
+        <span className={cn('text-sm font-medium', !annual ? 'text-gray-900' : 'text-muted-foreground')}>Monthly</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={annual}
+          onClick={() => setAnnual((a) => !a)}
+          className={cn('relative h-6 w-11 rounded-full transition-colors', annual ? 'bg-[#4285F4]' : 'bg-gray-300')}
+        >
+          <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform', annual ? 'translate-x-5' : 'translate-x-0.5')} />
+        </button>
+        <span className={cn('text-sm font-medium', annual ? 'text-gray-900' : 'text-muted-foreground')}>
+          Annual <span className="text-[#34A853]">(1 month free)</span>
+        </span>
+      </div>
+
       {/* Plans */}
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {grid.map((t) => {
           const isCurrent = currentTier?.id === t.id;
           const isUpgrade = t.rank > currentRank;
@@ -366,10 +384,10 @@ export default function BillingPage() {
               <h3 className="text-xl font-semibold">{t.name}</h3>
               <p className="mt-1 min-h-[40px] text-sm text-muted-foreground">{t.tagline}</p>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold">{formatPlanPrice(t, isIndia)}</span>
-                <span className="text-muted-foreground">/mo</span>
+                <span className="text-3xl font-bold">{formatPlanPrice(t, isIndia, annual)}</span>
+                <span className="text-muted-foreground">{annual ? '/year' : '/mo'}</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Billed monthly</p>
+              <p className="mt-1 text-xs text-muted-foreground">{annual ? 'Billed yearly, one month free' : 'Billed monthly'}</p>
               <ul className="mt-5 flex-1 space-y-2.5">
                 {t.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
@@ -424,7 +442,7 @@ export default function BillingPage() {
           <DialogHeader>
             <DialogTitle>Continue to secure payment</DialogTitle>
             <DialogDescription>
-              {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia)} per month. ` : ''}
+              {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia, annual)} per month. ` : ''}
               Enter a mobile number for the payment receipt.
             </DialogDescription>
           </DialogHeader>
@@ -446,7 +464,7 @@ export default function BillingPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
               </>
             ) : (
-              `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia) : ''} with Cashfree`
+              `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia, annual) : ''} with Cashfree`
             )}
           </Button>
         </DialogContent>

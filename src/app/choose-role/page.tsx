@@ -39,7 +39,7 @@ import { isPlanActive } from '@/lib/plan';
 import { PLAN_TIERS, formatPlanPrice, type PlanTier } from '@/lib/plan-catalogue';
 import { usePaddle } from '@/hooks/use-paddle';
 import { useCountry } from '@/hooks/use-country';
-import { PADDLE_PRICE_BY_TIER } from '@/lib/paddle';
+import { PADDLE_PRICE_BY_TIER, PADDLE_PRICE_BY_TIER_YEAR } from '@/lib/paddle';
 
 // Per-plan icon + chip colour, so each card has its own personality.
 const PLAN_META: Record<string, { icon: LucideIcon; chip: string }> = {
@@ -75,6 +75,7 @@ export default function ChoosePlanPage() {
   // checkout); everyone else pays in USD via the Paddle overlay.
   const { isIndia } = useCountry();
   const [selecting, setSelecting] = useState<string | null>(null);
+  const [annual, setAnnual] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -118,7 +119,7 @@ export default function ChoosePlanPage() {
   // Open Paddle's overlay checkout for a paid plan.
   const openPaddle = (plan: PlanTier) => {
     if (!userId) return;
-    const priceId = PADDLE_PRICE_BY_TIER[plan.id];
+    const priceId = annual ? PADDLE_PRICE_BY_TIER_YEAR[plan.id] : PADDLE_PRICE_BY_TIER[plan.id];
     if (!priceId) {
       setNotice('This plan is not available for online checkout yet.');
       return;
@@ -160,7 +161,7 @@ export default function ChoosePlanPage() {
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId: pendingPlan.id, phone: cleanPhone }),
+        body: JSON.stringify({ planId: annual ? `${pendingPlan.id}-year` : pendingPlan.id, phone: cleanPhone }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.paymentSessionId) {
@@ -339,10 +340,27 @@ export default function ChoosePlanPage() {
           </div>
         )}
 
+        {/* Monthly / Annual toggle */}
+        <div className="mt-10 flex items-center justify-center gap-3">
+          <span className={cn('text-sm font-medium', !annual ? 'text-gray-900' : 'text-muted-foreground')}>Monthly</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={annual}
+            onClick={() => setAnnual((a) => !a)}
+            className={cn('relative h-6 w-11 rounded-full transition-colors', annual ? 'bg-[#4285F4]' : 'bg-gray-300')}
+          >
+            <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform', annual ? 'translate-x-5' : 'translate-x-0.5')} />
+          </button>
+          <span className={cn('text-sm font-medium', annual ? 'text-gray-900' : 'text-muted-foreground')}>
+            Annual <span className="text-[#34A853]">(1 month free)</span>
+          </span>
+        </div>
+
         {/* Plan cards */}
         <div
           className={cn(
-            'mt-14 grid gap-6 sm:grid-cols-2',
+            'mt-8 grid gap-6 sm:grid-cols-2',
             PLAN_TIERS.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
           )}
         >
@@ -382,14 +400,14 @@ export default function ChoosePlanPage() {
                     <span className="text-4xl font-extrabold">Free</span>
                   ) : (
                     <>
-                      <span className="text-4xl font-extrabold">{formatPlanPrice(plan, isIndia)}</span>
-                      <span className={featured ? 'text-blue-200' : 'text-muted-foreground'}>/mo</span>
+                      <span className="text-4xl font-extrabold">{formatPlanPrice(plan, isIndia, annual)}</span>
+                      <span className={featured ? 'text-blue-200' : 'text-muted-foreground'}>{annual ? '/year' : '/mo'}</span>
                     </>
                   )}
                 </div>
                 {plan.price > 0 && (
                   <p className={cn('mt-1 text-xs', featured ? 'text-blue-200' : 'text-muted-foreground')}>
-                    Billed monthly
+                    {annual ? 'Billed yearly, one month free' : 'Billed monthly'}
                   </p>
                 )}
                 {plan.note && (
@@ -470,7 +488,7 @@ export default function ChoosePlanPage() {
             <DialogHeader>
               <DialogTitle>Continue to secure payment</DialogTitle>
               <DialogDescription>
-                {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia)} per month. ` : ''}
+                {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia, annual)} per month. ` : ''}
                 Enter a mobile number for the payment receipt.
               </DialogDescription>
             </DialogHeader>
@@ -496,7 +514,7 @@ export default function ChoosePlanPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
                 </>
               ) : (
-                `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia) : ''} with Cashfree`
+                `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia, annual) : ''} with Cashfree`
               )}
             </Button>
           </DialogContent>

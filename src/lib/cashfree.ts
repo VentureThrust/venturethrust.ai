@@ -22,6 +22,8 @@ export function cashfreeHeaders(): Record<string, string> {
 
 /** Default billing cycle, in milliseconds (30 days). Used for plan_expires_at. */
 export const BILLING_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Yearly billing cycle, in milliseconds (365 days). */
+export const YEARLY_CYCLE_MS = 365 * 24 * 60 * 60 * 1000;
 
 // Paid VDR plans. `amount` is INR. `cycleMs` is how long the plan stays active
 // after payment before it must be renewed. (The free early-access plan is
@@ -36,6 +38,10 @@ export const PAID_PLANS: Record<
   'vdr-starter': { amount: 999, planKey: 'vdr_only', name: 'Starter', cycleMs: BILLING_CYCLE_MS },
   'vdr-growth': { amount: 2499, planKey: 'vdr_only', name: 'Growth', cycleMs: BILLING_CYCLE_MS },
   'vdr-business': { amount: 5999, planKey: 'vdr_only', name: 'Business', cycleMs: BILLING_CYCLE_MS },
+  // Yearly (annual) plans - INR, one month free (11x monthly). Charged by Cashfree.
+  'vdr-starter-year': { amount: 10989, planKey: 'vdr_only', name: 'Starter (Yearly)', cycleMs: YEARLY_CYCLE_MS },
+  'vdr-growth-year': { amount: 27489, planKey: 'vdr_only', name: 'Growth (Yearly)', cycleMs: YEARLY_CYCLE_MS },
+  'vdr-business-year': { amount: 65989, planKey: 'vdr_only', name: 'Business (Yearly)', cycleMs: YEARLY_CYCLE_MS },
 };
 
 /** How long a paid plan stays active before renewal. Falls back to the default. */

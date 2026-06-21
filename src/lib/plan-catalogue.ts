@@ -15,6 +15,7 @@ export type PlanTier = {
   name: string;
   price: number; // USD per month, shown to non-India visitors (Paddle charges this)
   priceInr: number; // INR per month, shown to India visitors (Cashfree charges this)
+  priceYear: number; // USD per year (annual billing, one month free)
   rank: number; // higher rank = higher plan; used to detect upgrades
   seats: number; // total members allowed, including the account holder
   spaces: number | null; // max spaces; null = unlimited
@@ -33,6 +34,7 @@ export const PLAN_TIERS: PlanTier[] = [
     name: 'Free',
     price: 0,
     priceInr: 0,
+    priceYear: 0,
     rank: 0,
     seats: 1,
     spaces: 2,
@@ -55,6 +57,7 @@ export const PLAN_TIERS: PlanTier[] = [
     name: 'Starter',
     price: 12,
     priceInr: 999,
+    priceYear: 132,
     rank: 1,
     seats: 1,
     spaces: 5,
@@ -77,6 +80,7 @@ export const PLAN_TIERS: PlanTier[] = [
     name: 'Growth',
     price: 29,
     priceInr: 2499,
+    priceYear: 319,
     rank: 2,
     seats: 2,
     spaces: 20,
@@ -102,6 +106,7 @@ export const PLAN_TIERS: PlanTier[] = [
     name: 'Business',
     price: 69,
     priceInr: 5999,
+    priceYear: 759,
     rank: 3,
     seats: 3,
     spaces: null,
@@ -123,14 +128,18 @@ export const PLAN_TIERS: PlanTier[] = [
   },
 ];
 
-export const tierById = (id: string | null | undefined): PlanTier | null =>
-  PLAN_TIERS.find((t) => t.id === id) ?? null;
+export const tierById = (id: string | null | undefined): PlanTier | null => {
+  // Yearly plan ids look like 'vdr-starter-year'; resolve them to the base tier.
+  const base = (id ?? '').replace(/-(year|month|annual|monthly)$/i, '');
+  return PLAN_TIERS.find((t) => t.id === id || t.id === base) ?? null;
+};
 
 /**
  * Display price string. Pricing is shown in USD to EVERYONE (India included);
  * payment is still routed by country at checkout (India -> Cashfree in INR, rest
  * of world -> Paddle in USD). The `india` arg is kept for call-site compatibility.
  */
-export function formatPlanPrice(plan: PlanTier, _india: boolean): string {
-  return `$${plan.price.toLocaleString('en-US')}`;
+export function formatPlanPrice(plan: PlanTier, _india: boolean, annual = false): string {
+  const amt = annual ? plan.priceYear : plan.price;
+  return `$${amt.toLocaleString('en-US')}`;
 }
