@@ -993,6 +993,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
   const [isCopyLinkDialogOpen, setIsCopyLinkDialogOpen] = useState(false);
   const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [dbLinks, setDbLinks] = useState<ShareLink[]>([]);
 
   // Live-poll this file's visits + signatures every 8s so a new signer
   // shows up WITHOUT a manual refresh. The page receives `file` as a prop
@@ -1079,15 +1080,48 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
     return '';
   }, [activeVisit]);
 
+  // Load this file's real share links from the DB (source of truth) so the
+  // "All links" list shows every link created for it, across refreshes.
+  const loadLinks = useCallback(async () => {
+    const { data } = await supabase
+      .from('share_links')
+      .select('id, token, link_name, email_required, allow_download, expires_at, password_hash, created_at, is_active')
+      .eq('file_id', file.id)
+      .order('created_at', { ascending: false });
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    setDbLinks(
+      rows.map((r) => ({
+        id: r.id as string,
+        account: (r.link_name as string) || 'Shared link',
+        requireEmail: !!r.email_required,
+        allowDownloading: r.allow_download !== false,
+        requireNameToSign: false,
+        expires: !!r.expires_at,
+        expiryDate: r.expires_at ? new Date(r.expires_at as string) : undefined,
+        passcode: !!r.password_hash,
+        passcodeValue: '',
+        url: `/shared/${r.token as string}`,
+        createdAt: (r.created_at as string) ?? new Date().toISOString(),
+        eSignatures: 0,
+        enabled: r.is_active !== false,
+      })),
+    );
+  }, [file.id]);
+
+  useEffect(() => {
+    loadLinks();
+  }, [loadLinks]);
+
   const handleLinkCreated = (link: ShareLink) => {
-    addLinkToFile(file.id, link);
     setLastCreatedLink(link);
     setIsCopyLinkDialogOpen(true);
+    void loadLinks();
     toast({ title: 'Link Created!' });
   };
 
-  const handleToggleLink = (linkId: string, enabled: boolean) => {
-    updateFile(file.id, { links: file.links?.map(l => l.id === linkId ? { ...l, enabled } : l) });
+  const handleToggleLink = async (linkId: string, enabled: boolean) => {
+    await supabase.from('share_links').update({ is_active: enabled }).eq('id', linkId);
+    void loadLinks();
   };
 
   const handleDownloadSignedCopy = async (visit: Visit) => {
@@ -1133,7 +1167,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
   const pieData = (pct: number) => [{ value: pct, fill: '#3b82f6' }, { value: 100 - pct, fill: '#e5e7eb' }];
 
   const visitCount = visits.length;
-  const linkCount = file.links?.length ?? 0;
+  const linkCount = dbLinks.length;
   const signatureCount = signatures.length;
 
   // DocSend-style empty card: illustration on top, headline, helper text,
@@ -1457,7 +1491,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {file.links!.map(link => (
+                      {dbLinks.map(link => (
                         <TableRow key={link.id}>
                           <TableCell>
                             <div className="font-medium">{link.account}</div>
@@ -1465,7 +1499,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                           </TableCell>
                           <TableCell>
                             <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate">
-                              secureshare.com{link.url}
+                              venturethrust.com{link.url}
                             </a>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
