@@ -44,8 +44,10 @@ import {
   KeyRound,
   Layers,
   ExternalLink,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SendByEmailDialog } from './send-by-email-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -994,6 +996,8 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
   const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [dbLinks, setDbLinks] = useState<ShareLink[]>([]);
+  const [isSendOpen, setIsSendOpen] = useState(false);
+  const [sends, setSends] = useState<Array<{ id: string; email: string; opened: boolean; openCount: number; createdAt: string }>>([]);
 
   // Live-poll this file's visits + signatures every 8s so a new signer
   // shows up WITHOUT a manual refresh. The page receives `file` as a prop
@@ -1083,12 +1087,28 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
   // Load this file's real share links from the DB (source of truth) so the
   // "All links" list shows every link created for it, across refreshes.
   const loadLinks = useCallback(async () => {
-    const { data } = await supabase
+    // Select recipient_email so we can EXCLUDE per-recipient send-by-email links
+    // from this list (they have their own "Sent by email" section). Falls back
+    // to the base columns on databases that have not run that migration yet.
+    const sel = 'id, token, link_name, email_required, allow_download, expires_at, password_hash, created_at, is_active';
+    const withRecip = await supabase
       .from('share_links')
-      .select('id, token, link_name, email_required, allow_download, expires_at, password_hash, created_at, is_active')
+      .select(`${sel}, recipient_email`)
       .eq('file_id', file.id)
       .order('created_at', { ascending: false });
-    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    let data: Array<Record<string, unknown>>;
+    if (withRecip.error) {
+      // Pre-migration DBs lack recipient_email; fall back to the base columns.
+      const base = await supabase
+        .from('share_links')
+        .select(sel)
+        .eq('file_id', file.id)
+        .order('created_at', { ascending: false });
+      data = (base.data ?? []) as Array<Record<string, unknown>>;
+    } else {
+      data = (withRecip.data ?? []) as Array<Record<string, unknown>>;
+    }
+    const rows = data.filter((r) => !r.recipient_email);
     setDbLinks(
       rows.map((r) => ({
         id: r.id as string,
@@ -1108,9 +1128,30 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
     );
   }, [file.id]);
 
+  // Per-recipient "send by email" invites for this file, with opened status.
+  const loadSends = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('share_links')
+      .select('id, recipient_email, opened_at, open_count, created_at')
+      .eq('file_id', file.id)
+      .not('recipient_email', 'is', null)
+      .order('created_at', { ascending: false });
+    if (error) { setSends([]); return; }
+    setSends(
+      (data ?? []).map((r) => ({
+        id: r.id as string,
+        email: (r.recipient_email as string) ?? '',
+        opened: !!r.opened_at,
+        openCount: Number(r.open_count) || 0,
+        createdAt: (r.created_at as string) ?? new Date().toISOString(),
+      })),
+    );
+  }, [file.id]);
+
   useEffect(() => {
     loadLinks();
-  }, [loadLinks]);
+    loadSends();
+  }, [loadLinks, loadSends]);
 
   const handleLinkCreated = (link: ShareLink) => {
     setLastCreatedLink(link);
@@ -1241,6 +1282,9 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
             </Button>
             <Button variant="outline">
               <Upload className="mr-2 h-4 w-4" />Upload new version
+            </Button>
+            <Button variant="outline" onClick={() => setIsSendOpen(true)}>
+              <Send className="mr-2 h-4 w-4" />Send by email
             </Button>
             <Button className="bg-gray-900 hover:bg-gray-800 text-white" onClick={() => setIsCreateLinkOpen(true)}>
               Create link
@@ -1526,6 +1570,68 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                 </div>
               )}
             </section>
+
+            {/* Sent by email */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-base font-semibold">Sent by email</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-600">{sends.length}</span>
+                </div>
+                {sends.length > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => setIsSendOpen(true)}>
+                    <Send className="mr-1.5 h-4 w-4" />Send more
+                  </Button>
+                )}
+              </div>
+              {sends.length === 0 ? (
+                <EmptyState
+                  illustration={<EmptyIllustrations.Links />}
+                  title="Send this deck straight to investors"
+                  description="Paste a list of investor emails. Each one gets a private link that opens the deck directly, with no email prompt, and you will see exactly who opened it."
+                  action={
+                    <Button className="bg-gray-900 hover:bg-gray-800 text-white" onClick={() => setIsSendOpen(true)}>
+                      <Send className="mr-2 h-4 w-4" />Send by email
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="border-t border-gray-200">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>INVESTOR</TableHead>
+                        <TableHead>STATUS</TableHead>
+                        <TableHead>SENT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sends.map((s) => (
+                        <TableRow key={s.id}>
+                          <TableCell className="font-medium">{s.email}</TableCell>
+                          <TableCell>
+                            {s.opened ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Opened{s.openCount > 1 ? ` (${s.openCount})` : ''}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                <Clock className="h-3.5 w-3.5" />
+                                Not opened yet
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {formatDistanceToNow(new Date(s.createdAt), { addSuffix: true })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </section>
           </TabsContent>
 
           {/* ─── Performance tab ──────────────────────────────────────── */}
@@ -1590,6 +1696,7 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
         </Tabs>
       </div>
       <CreateLinkDialog file={file} open={isCreateLinkOpen} onOpenChange={setIsCreateLinkOpen} onLinkCreated={handleLinkCreated} />
+      <SendByEmailDialog fileId={file.id} open={isSendOpen} onOpenChange={setIsSendOpen} onSent={() => { void loadSends(); }} />
       {lastCreatedLink && <CopyLinkDialog link={lastCreatedLink} open={isCopyLinkDialogOpen} onOpenChange={setIsCopyLinkDialogOpen} />}
       <FileViewer file={file} open={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
     </TooltipProvider>

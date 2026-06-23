@@ -135,7 +135,10 @@ export async function POST(req: NextRequest) {
         .from('documents')
         .createSignedUrl(fileRow.storage_path as string, 3600);
       const wmRaw = link.watermark ? ((link.watermark_text as string | null) ?? null) : null;
-      const wm = wmRaw ? wmRaw.replace(/\{\{\s*email\s*\}\}/gi, email || 'Confidential') : null;
+      // For send-by-email recipient links the viewer never types an email, so
+      // fall back to the recipient address we already know it was sent to.
+      const viewerEmail = email || (link.recipient_email as string | null) || null;
+      const wm = wmRaw ? wmRaw.replace(/\{\{\s*email\s*\}\}/gi, viewerEmail || 'Confidential') : null;
       file = {
         id: fileRow.id as string,
         name: (fileRow.name as string) ?? 'Document',
@@ -147,6 +150,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Send-by-email recipient links: attribute this open to the known recipient,
+  // bump the open counters, and on the FIRST open log a visit + alert the owner.
+  if (link.recipient_email && link.file_id) {
+    await recordRecipientOpen(link as Record<string, unknown>);
+  }
+
   return NextResponse.json({
     status: 'OK',
     space_id: link.space_id,
@@ -154,4 +163,71 @@ export async function POST(req: NextRequest) {
     require_nda: !!link.require_nda,
     require_signature: !!link.require_signature,
   });
+}
+
+// ── Send-by-email open tracking ──────────────────────────────────────────────
+// Recipient links (created by /api/share-links/send) carry recipient_email and
+// have the email gate off. We still want per-recipient attribution, so on every
+// open we bump open_count, and on the FIRST open we append a visit (so it shows
+// in the owner's "All visits") and fire an "X opened your document" alert.
+async function recordRecipientOpen(link: Record<string, unknown>) {
+  try {
+    const nowIso = new Date().toISOString();
+    const firstOpen = !link.opened_at;
+
+    await supabase
+      .from('share_links')
+      .update({
+        open_count: (Number(link.open_count) || 0) + 1,
+        last_opened_at: nowIso,
+        opened_at: (link.opened_at as string | null) ?? nowIso,
+      })
+      .eq('id', link.id as string);
+
+    if (!firstOpen) return;
+
+    const { data: f } = await supabase
+      .from('files')
+      .select('name, visits, user_id')
+      .eq('id', link.file_id as string)
+      .maybeSingle();
+    if (!f) return;
+
+    const recipient = (link.recipient_email as string) || 'Recipient';
+    const visits = Array.isArray(f.visits) ? (f.visits as Array<Record<string, unknown>>) : [];
+    visits.push({
+      id: `visit_${Date.now()}`,
+      name: (link.recipient_name as string) || recipient,
+      email: recipient,
+      account: (link.link_name as string) || 'Email invite',
+      isInternal: false,
+      openedAt: nowIso,
+      time: nowIso,
+      link: 'Email invite',
+      duration: '',
+      durationSeconds: 0,
+      device: 'Unknown',
+      os: 'Unknown',
+      location: 'Unknown',
+      signed: false,
+      viewPercentage: 0,
+      pageViews: {},
+    });
+    await supabase.from('files').update({ visits }).eq('id', link.file_id as string);
+
+    if (f.user_id) {
+      try {
+        await supabase.from('alerts').insert({
+          user_id: f.user_id,
+          space_id: null,
+          type: 'deck_opened',
+          message: `${recipient} opened your document "${(f.name as string) ?? 'document'}".`,
+        });
+      } catch {
+        /* alerts table is optional - never block the open */
+      }
+    }
+  } catch (e) {
+    console.warn('[validate] recordRecipientOpen failed:', e);
+  }
 }
