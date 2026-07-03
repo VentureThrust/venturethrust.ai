@@ -162,8 +162,17 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
         logAccess(visitorEmail);
         setFileView(data.file as SharedFile);
         setStep('file');
+      } else if (res.ok && data.status === 'OK' && !data.file) {
+        // Gates passed but the server couldn't produce the file (missing DB row
+        // or storage object) - an owner-side problem, so say so plainly instead
+        // of telling the visitor to retry something that can never work.
+        toast({
+          variant: 'destructive',
+          title: 'File unavailable',
+          description: 'This file is no longer available. Please ask the sender to reshare it.',
+        });
       } else {
-        toast({ variant: 'destructive', title: 'Could not open the file', description: 'Please reopen the link.' });
+        toast({ variant: 'destructive', title: 'Could not open the file', description: 'Please reopen the link and try again.' });
       }
     } catch {
       toast({ variant: 'destructive', title: 'Network error' });

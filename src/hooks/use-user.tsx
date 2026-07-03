@@ -32,6 +32,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     let active = true;
 
     const loadUser = async (sessionArg?: Session | null) => {
+      try {
+        await loadUserInner(sessionArg);
+      } catch (err) {
+        // NEVER leave the app stuck on the loading spinner - a failed profile
+        // fetch (network blip etc.) must still resolve the auth state.
+        console.warn('[use-user] loadUser failed:', err);
+        if (active) setLoading(false);
+      }
+    };
+
+    const loadUserInner = async (sessionArg?: Session | null) => {
       const session = sessionArg ?? (await supabase.auth.getSession()).data.session;
 
       if (!session?.user) {
@@ -104,7 +115,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         if (active) setUser(null);
         return;
       }
-      loadUser(session);
+      // DEADLOCK FIX: supabase-js holds an internal auth lock while this
+      // callback runs. Awaiting a DB query here (loadUser -> profiles select)
+      // re-enters that lock and hangs forever - which is exactly what happened
+      // when landing on /dashboard#access_token=… from a confirmation link:
+      // SIGNED_IN fired during init, the profiles query deadlocked, `loading`
+      // never resolved, and the app spun forever. Deferring to the next tick
+      // lets the callback return (releasing the lock) before we query.
+      setTimeout(() => loadUser(session), 0);
     });
 
     return () => {

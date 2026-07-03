@@ -45,7 +45,9 @@ const ContentSecurityPolicy = [
   // `blob:` so the content-library PDF preview can render the fetched
   // PDF in an <iframe src=blob:…>. Without it the iframe is blocked and
   // shows the browser's broken-file icon.
-  `frame-src 'self' blob: https://accounts.google.com ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
+  // view.officeapps.live.com renders Word/Excel/PowerPoint inline on shared
+  // links (Microsoft's embed viewer) - browsers can't render these natively.
+  `frame-src 'self' blob: https://accounts.google.com https://view.officeapps.live.com ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
   `frame-ancestors 'none'`, // disallow embedding the app in any iframe
   // Cashfree's checkout SDK POSTs a form to its own hosted payment page.
   `form-action 'self' ${CASHFREE_HOSTS} ${PADDLE_HOSTS}`,
