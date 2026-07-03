@@ -60,6 +60,8 @@ type SharedSpace = {
   invited: boolean;
   unopened: boolean;
   alertId: string | null;
+  /** 'space' for data rooms, 'file' for single decks sent by email. */
+  kind?: 'space' | 'file';
 };
 
 type SharedReport = {
@@ -144,6 +146,11 @@ function SharedSpaceCard({ space, onOpen }: { space: SharedSpace; onOpen: () => 
                   'repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 2px, transparent 2px, transparent 16px)',
               }}
             />
+            {space.kind === 'file' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <FileText className="h-10 w-10 text-white/80" />
+              </div>
+            )}
           </div>
         )}
         <div className="absolute top-2 right-2 flex gap-1.5">
@@ -181,9 +188,13 @@ function SharedSpaceCard({ space, onOpen }: { space: SharedSpace; onOpen: () => 
           <span className="text-xs text-muted-foreground truncate flex-1">
             {space.ownerEmail ?? 'Anonymous owner'}
           </span>
-          {space.invited && (
+          {space.invited ? (
             <Badge variant="outline" className="text-[10px] py-0 h-4 border-blue-200 text-blue-600">
               Invited
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] py-0 h-4 border-green-200 text-green-700">
+              Sent by email
             </Badge>
           )}
         </div>
@@ -399,6 +410,10 @@ export default function SharedWithMePage() {
     // Opening an invited space clears its "unopened" state (marks the alert read).
     if (space.alertId && space.unopened) {
       try { await supabase.from('alerts').update({ read_at: new Date().toISOString() }).eq('id', space.alertId); } catch {}
+    }
+    // Sent-by-email items flip server-side (the /shared open tracking sets
+    // opened_at); mirror it locally so the card moves to Opened immediately.
+    if (space.unopened) {
       setSpaces((prev) => prev.map((s) => (s.spaceId === space.spaceId ? { ...s, unopened: false } : s)));
     }
     if (space.shareToken) {
@@ -523,14 +538,49 @@ export default function SharedWithMePage() {
                   }
                 />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredSpaces.map((space) => (
-                    <SharedSpaceCard
-                      key={space.spaceId}
-                      space={space}
-                      onOpen={() => handleOpenSpace(space)}
-                    />
-                  ))}
+                <div className="space-y-8">
+                  {/* Not opened yet */}
+                  {filteredSpaces.some((s) => s.unopened) && (
+                    <div>
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                        <h3 className="text-sm font-semibold text-gray-900">Not opened yet</h3>
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          {filteredSpaces.filter((s) => s.unopened).length}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredSpaces.filter((s) => s.unopened).map((space) => (
+                          <SharedSpaceCard
+                            key={space.spaceId}
+                            space={space}
+                            onOpen={() => handleOpenSpace(space)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Opened */}
+                  {filteredSpaces.some((s) => !s.unopened) && (
+                    <div>
+                      <div className="mb-3 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <h3 className="text-sm font-semibold text-gray-900">Opened</h3>
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          {filteredSpaces.filter((s) => !s.unopened).length}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredSpaces.filter((s) => !s.unopened).map((space) => (
+                          <SharedSpaceCard
+                            key={space.spaceId}
+                            space={space}
+                            onOpen={() => handleOpenSpace(space)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send, Upload } from 'lucide-react';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_RECIPIENTS = 200;
+const MAX_RECIPIENTS = 10;
 const TEXTAREA_CLASS =
   'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
 
@@ -60,6 +60,7 @@ export function SendByEmailDialog({
   const { toast } = useToast();
   const isSpace = !!spaceId && !fileId;
   const [emailsRaw, setEmailsRaw] = useState('');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [watermark, setWatermark] = useState(true);
   const [allowDownload, setAllowDownload] = useState(false);
@@ -75,6 +76,7 @@ export function SendByEmailDialog({
 
   const reset = () => {
     setEmailsRaw('');
+    setSubject('');
     setMessage('');
     setWatermark(true);
     setAllowDownload(false);
@@ -144,7 +146,7 @@ export function SendByEmailDialog({
           ? crypto.randomUUID().replace(/-/g, '')
           : `tok_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-      const rows = emails.map((email) => ({
+      const baseRow = (email: string) => ({
         space_id: linkSpaceId,
         file_id: fileId ?? null,
         created_by: userId,
@@ -159,12 +161,20 @@ export function SendByEmailDialog({
         is_active: true,
         recipient_email: email,
         sent_message: message.trim() || null,
-      }));
+      });
 
-      const { data: inserted, error: insErr } = await supabase
+      // sent_subject is a newer column - retry without it on databases that
+      // have not run that one-liner yet (the subject falls back server-side).
+      let { data: inserted, error: insErr } = await supabase
         .from('share_links')
-        .insert(rows)
+        .insert(emails.map((e) => ({ ...baseRow(e), sent_subject: subject.trim() || null })))
         .select('id');
+      if (insErr && /sent_subject/i.test(insErr.message ?? '')) {
+        ({ data: inserted, error: insErr } = await supabase
+          .from('share_links')
+          .insert(emails.map(baseRow))
+          .select('id'));
+      }
 
       if (insErr) {
         if (
@@ -259,6 +269,21 @@ export function SendByEmailDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Subject</Label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={isSpace
+                ? 'e.g. Our data room for your review'
+                : 'e.g. Our pitch deck for your review'}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
+            <p className="text-xs text-muted-foreground">
+              This is the exact subject line investors will see, sent under your name.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-sm font-medium">
               Message <span className="font-normal italic text-muted-foreground">(optional)</span>
             </Label>
@@ -271,6 +296,9 @@ export function SendByEmailDialog({
                 : 'Hi, sharing our deck for your review.'}
               className={TEXTAREA_CLASS}
             />
+            <p className="text-xs text-muted-foreground">
+              The email contains only your message and your link. No VentureThrust template.
+            </p>
           </div>
 
           {!isSpace && (

@@ -11,6 +11,7 @@ alter table public.share_links
   add column if not exists recipient_email  text,
   add column if not exists recipient_name   text,
   add column if not exists sent_message     text,
+  add column if not exists sent_subject     text,
   add column if not exists sent_at          timestamptz,
   add column if not exists opened_at        timestamptz,
   add column if not exists last_opened_at   timestamptz,

@@ -7,13 +7,13 @@
  * taking the destination address from the stored row (never from the request
  * body) so it cannot be used to spam arbitrary addresses.
  *
- * Body: { linkIds: string[] }   (up to 200)
+ * Body: { linkIds: string[] }   (up to 10 per send)
  *
- * Reuses the same nodemailer / Zoho SMTP setup as the contact + agreements
- * routes (env: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS,
- * SMTP_FROM). If SMTP is not configured the links still exist; we just report
- * that nothing was emailed. Sends run in small parallel batches so large
- * lists finish inside the function time limit.
+ * The email preserves the FOUNDER's workflow: their name in the sender
+ * ("Name via VentureThrust", with Reply-To set to their real address, since
+ * DMARC forbids literally sending as another domain), their exact subject
+ * line, and a body that is nothing but their message and their link. No
+ * VentureThrust template.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,6 +30,12 @@ const supabase = createClient(
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Bare mailbox address out of SMTP_FROM ("Name <a@b.c>" or "a@b.c"). */
+function bareAddress(from: string): string {
+  const m = from.match(/<([^>]+)>/);
+  return m ? m[1] : from;
+}
 
 export async function POST(req: NextRequest) {
   const rl = consumeRateLimit(`share-send:${clientIp(req)}`, 30, 60_000);
@@ -48,16 +54,27 @@ export async function POST(req: NextRequest) {
   }
 
   const linkIds = Array.isArray(body.linkIds)
-    ? body.linkIds.filter((x): x is string => typeof x === 'string').slice(0, 200)
+    ? body.linkIds.filter((x): x is string => typeof x === 'string').slice(0, 10)
     : [];
   if (linkIds.length === 0) {
     return NextResponse.json({ error: 'NO_LINKS' }, { status: 400 });
   }
 
-  const { data: rows } = await supabase
+  // sent_subject is a newer column - fall back without it if missing.
+  let rows: Array<Record<string, unknown>> = [];
+  const first = await supabase
     .from('share_links')
-    .select('id, token, recipient_email, sent_message, file_id, space_id, created_by, is_active')
+    .select('id, token, recipient_email, sent_message, sent_subject, file_id, space_id, created_by, is_active')
     .in('id', linkIds);
+  if (first.error) {
+    const second = await supabase
+      .from('share_links')
+      .select('id, token, recipient_email, sent_message, file_id, space_id, created_by, is_active')
+      .in('id', linkIds);
+    rows = (second.data ?? []) as Array<Record<string, unknown>>;
+  } else {
+    rows = (first.data ?? []) as Array<Record<string, unknown>>;
+  }
 
   const links = (rows ?? []).filter(
     (r) => r.recipient_email && r.is_active !== false && (r.file_id || r.space_id)
@@ -83,13 +100,33 @@ export async function POST(req: NextRequest) {
     pool: true,
     maxConnections: 3,
   });
-  const fromAddr = process.env.SMTP_FROM ?? `VentureThrust <${smtpUser}>`;
+  const fromMailbox = bareAddress(process.env.SMTP_FROM ?? smtpUser);
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-  // Resolve display names + owner reply-to once per distinct id.
+  // ── Resolve the SENDER (founder) identity once per distinct sender ───────
+  // The investor should see the founder, not VentureThrust: display name in
+  // From, and Reply-To pointing at the founder's real address.
+  const senderCache = new Map<string, { name: string; email: string | null }>();
+  const senderInfo = async (id: string | null) => {
+    if (!id) return { name: 'A founder', email: null };
+    if (senderCache.has(id)) return senderCache.get(id)!;
+    let email: string | null = null;
+    let name = '';
+    const { data: prof } = await supabase.from('profiles').select('email').eq('id', id).maybeSingle();
+    email = (prof?.email as string) ?? null;
+    try {
+      const { data: au } = await supabase.auth.admin.getUserById(id);
+      const meta = (au?.user?.user_metadata ?? {}) as { full_name?: string };
+      if (typeof meta.full_name === 'string' && meta.full_name.trim()) name = meta.full_name.trim();
+    } catch { /* fall back to email prefix */ }
+    if (!name) name = email ? email.split('@')[0] : 'A founder';
+    const info = { name, email };
+    senderCache.set(id, info);
+    return info;
+  };
+
   const fileNameCache = new Map<string, string>();
   const spaceNameCache = new Map<string, string>();
-  const ownerEmailCache = new Map<string, string | null>();
   const fileName = async (id: string) => {
     if (fileNameCache.has(id)) return fileNameCache.get(id)!;
     const { data } = await supabase.from('files').select('name').eq('id', id).maybeSingle();
@@ -104,14 +141,6 @@ export async function POST(req: NextRequest) {
     spaceNameCache.set(id, n);
     return n;
   };
-  const ownerEmail = async (id: string | null) => {
-    if (!id) return null;
-    if (ownerEmailCache.has(id)) return ownerEmailCache.get(id)!;
-    const { data } = await supabase.from('profiles').select('email').eq('id', id).maybeSingle();
-    const e = (data?.email as string) ?? null;
-    ownerEmailCache.set(id, e);
-    return e;
-  };
 
   let sent = 0;
   let failed = 0;
@@ -123,27 +152,27 @@ export async function POST(req: NextRequest) {
       const displayName = isFile
         ? await fileName(link.file_id as string)
         : await spaceName(link.space_id as string);
-      const noun = isFile ? 'document' : 'data room';
-      const replyTo = await ownerEmail(link.created_by as string | null);
+      const sender = await senderInfo(link.created_by as string | null);
       const url = `${appUrl}/shared/${link.token}`;
       const msg = (link.sent_message as string | null) || '';
-      const msgHtml = msg ? `<p style="white-space:pre-line">${esc(msg)}</p>` : '';
+      const subject =
+        ((link.sent_subject as string | null) || '').trim() ||
+        `${sender.name} shared "${displayName}" with you`;
+
+      // Body = the founder's own words + their link. Nothing else.
+      const bodyHtml = `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#111;font-size:14px;line-height:1.6">
+          ${msg ? `<p style="white-space:pre-line;margin:0 0 16px">${esc(msg)}</p>` : ''}
+          <p style="margin:0"><a href="${url}">${esc(displayName)}</a></p>
+        </div>`;
 
       await transporter.sendMail({
-        from: fromAddr,
+        from: { name: `${sender.name} via VentureThrust`, address: fromMailbox },
         to: link.recipient_email as string,
-        replyTo: replyTo || undefined,
-        subject: `A ${noun} was shared with you: ${displayName}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a2e">
-            <h2 style="font-weight:600">You have a ${noun} to view</h2>
-            ${msgHtml}
-            <p style="margin:28px 0">
-              <a href="${url}" style="background:#4285F4;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;display:inline-block">View ${esc(displayName)}</a>
-            </p>
-            <p style="color:#6b6b8a;font-size:13px">Or open this link: <a href="${url}">${url}</a></p>
-            <p style="color:#6b6b8a;font-size:12px;margin-top:24px">Sent securely via VentureThrust.</p>
-          </div>`,
+        replyTo: sender.email || undefined,
+        subject,
+        html: bodyHtml,
+        text: `${msg ? msg + '\n\n' : ''}${displayName}: ${url}`,
       });
       sent++;
       sentIds.push(link.id as string);
@@ -153,7 +182,6 @@ export async function POST(req: NextRequest) {
     }
   };
 
-  // Parallel batches of 5 - fast enough for 200, gentle on the SMTP server.
   for (let i = 0; i < links.length; i += 5) {
     await Promise.all(links.slice(i, i + 5).map(sendOne));
   }

@@ -133,6 +133,14 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // PAGED mode (phones): small screens fit several scaled-down pages in the
+  // viewport at once, which splits page-time analytics evenly across all of
+  // them and lies to the founder. On phones we show ONE page at a time with
+  // prev/next controls so per-page timing is exact.
+  const [paged, setPaged] = useState(false);
+  useEffect(() => {
+    setPaged(window.matchMedia('(max-width: 767px)').matches);
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageWrapperRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -239,8 +247,10 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
   }, [pdf, numPages, renderPage]);
 
   // Step 4: track which page is most prominent in the viewport.
+  // (Desktop continuous-scroll mode only - paged mode times pages exactly
+  // on navigation instead.)
   useEffect(() => {
-    if (numPages === 0) return;
+    if (numPages === 0 || paged) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -272,7 +282,7 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
     pageWrapperRefs.current.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, [numPages]);
+  }, [numPages, paged]);
 
   // Step 5: on unmount, flush the final page's time.
   useEffect(() => {
@@ -286,6 +296,19 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
   }, []);
 
   const scrollToPage = (pageNum: number) => {
+    if (pageNum < 1 || pageNum > numPages) return;
+    if (paged) {
+      // Flush the time spent on the page we're leaving, then switch.
+      const { page, start } = pageTimerRef.current;
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      if (elapsed > 0 && page !== pageNum && onPageViewRef.current) {
+        onPageViewRef.current(page, elapsed);
+      }
+      pageTimerRef.current = { page: pageNum, start: Date.now() };
+      setCurrentPage(pageNum);
+      containerRef.current?.scrollTo({ top: 0 });
+      return;
+    }
     const wrapper = pageWrapperRefs.current.get(pageNum);
     if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -333,7 +356,7 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
               if (el) pageWrapperRefs.current.set(pageNum, el);
               else pageWrapperRefs.current.delete(pageNum);
             }}
-            className="bg-white shadow-2xl relative"
+            className={`bg-white shadow-2xl relative${paged && pageNum !== currentPage ? ' hidden' : ''}`}
           >
             <canvas
               ref={(el) => {
