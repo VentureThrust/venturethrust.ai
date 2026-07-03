@@ -45,6 +45,9 @@ interface LinkInfo {
   requireSignature: boolean;
   ndaText: string | null;
   fileId: string | null;
+  /** Send-by-email links: the address this link was sent to. The viewer is
+   *  never asked for an email; all activity is attributed to this address. */
+  recipientEmail?: string | null;
 }
 
 interface GatesFlowProps {
@@ -119,11 +122,21 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     if (ranInitial.current) return;
     ranInitial.current = true;
     if (firstStep === 'redirecting') {
+      // Send-by-email links carry the recipient's address: attribute the
+      // visit to it and stamp the session so the space view logs the right
+      // email, all without ever prompting the visitor.
+      const recipient = link.recipientEmail ?? null;
       // No gates: a file link opens the file directly; a space link redirects.
       if (link.fileId) {
-        openFile(null);
+        openFile(recipient);
       } else {
-        logAccess(null).finally(() =>
+        if (recipient) {
+          sessionStorage.setItem(
+            SESSION_KEY,
+            JSON.stringify({ passed: true, email: recipient, spaceId: link.space_id })
+          );
+        }
+        logAccess(recipient).finally(() =>
           router.replace(`/spaces/${link.space_id}/view`)
         );
       }
@@ -179,7 +192,9 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     }
   };
 
-  const finishAndRedirect = (visitorEmail: string | null) => {
+  const finishAndRedirect = (visitorEmailArg: string | null) => {
+    // Recipient links know who the viewer is even when no email gate ran.
+    const visitorEmail = visitorEmailArg || link.recipientEmail || null;
     sessionStorage.setItem(
       SESSION_KEY,
       JSON.stringify({ passed: true, email: visitorEmail, spaceId: link.space_id })

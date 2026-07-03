@@ -66,16 +66,25 @@ export default async function SharedTokenPage({ params }: PageProps) {
 
   // ── 1. Fetch the link (server-side) ────────────────────────────────────
   const supabase = getServerClient();
-  const { data: link, error } = await supabase
+  const BASE_COLS =
+    // Only the columns we need. Crucially we do NOT include password_hash
+    // or allow_block_emails - those stay on the server and are checked
+    // via /api/share-links/validate at gate-submit time.
+    'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text';
+  // recipient_email etc. power the send-by-email flow; retry without them on
+  // databases that have not run that migration so ordinary links never break.
+  let { data: link, error } = await supabase
     .from('share_links')
-    .select(
-      // Only the columns we need. Crucially we do NOT include password_hash
-      // or allow_block_emails - those stay on the server and are checked
-      // via /api/share-links/validate at gate-submit time.
-      'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text'
-    )
+    .select(`${BASE_COLS}, recipient_email, opened_at, open_count`)
     .eq('token', token)
     .maybeSingle();
+  if (error) {
+    ({ data: link, error } = await supabase
+      .from('share_links')
+      .select(BASE_COLS)
+      .eq('token', token)
+      .maybeSingle());
+  }
 
   // ── 2. Server-side validation (no JS needed for error states) ──────────
   if (error || !link) {
@@ -99,6 +108,42 @@ export default async function SharedTokenPage({ params }: PageProps) {
     return <InactiveLink token={token} />;
   }
 
+  // ── 2b. Send-by-email SPACE links: record the open server-side ─────────
+  // (File recipient links are tracked by /api/share-links/validate instead.)
+  // Every page load counts as an open; the first one also alerts the owner.
+  const linkRec = link as Record<string, unknown>;
+  if (linkRec.recipient_email && !linkRec.file_id) {
+    try {
+      const nowIso = new Date().toISOString();
+      const firstOpen = !linkRec.opened_at;
+      await supabase
+        .from('share_links')
+        .update({
+          open_count: (Number(linkRec.open_count) || 0) + 1,
+          last_opened_at: nowIso,
+          opened_at: (linkRec.opened_at as string | null) ?? nowIso,
+        })
+        .eq('id', link.id as string);
+      if (firstOpen) {
+        const { data: spaceRow } = await supabase
+          .from('spaces')
+          .select('name, title, created_by')
+          .eq('id', link.space_id as string)
+          .maybeSingle();
+        if (spaceRow?.created_by) {
+          await supabase.from('alerts').insert({
+            user_id: spaceRow.created_by,
+            space_id: link.space_id,
+            type: 'space_opened',
+            message: `${linkRec.recipient_email as string} opened your space "${(spaceRow.name as string) || (spaceRow.title as string) || 'Space'}".`,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[shared] recipient open tracking failed:', e);
+    }
+  }
+
   // ── 3. Render the interactive client component ─────────────────────────
   // Pass ONLY the minimum needed to draw the UI. The password hash, NDA
   // body, etc. that the client doesn't need are intentionally omitted.
@@ -117,6 +162,9 @@ export default async function SharedTokenPage({ params }: PageProps) {
         ndaText: (link.nda_text as string | null) ?? null,
         // File-scoped link: GatesFlow renders just this one file after the gates pass.
         fileId: (link.file_id as string | null) ?? null,
+        // Send-by-email links: the known recipient. The viewer is never asked
+        // for their email; views are attributed to this address.
+        recipientEmail: ((link as Record<string, unknown>).recipient_email as string | null) ?? null,
       }}
     />
   );

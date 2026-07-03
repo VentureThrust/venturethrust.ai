@@ -17,7 +17,6 @@ import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
 import { HeroWalkthrough } from '@/components/landing/hero-walkthrough';
 import { LinkSettingsDemo } from '@/components/landing/link-settings-demo';
 import { LandingPricing } from '@/components/landing/landing-pricing';
-import { ContactSalesButton } from '@/components/contact-sales-dialog';
 import {
   ArrowRight,
   Check,
@@ -305,20 +304,18 @@ export default function LandingPage() {
               </ul>
             </div>
             <div className="mx-auto w-full max-w-sm">
-              <div className="rounded-2xl border border-[#4285F4] bg-white p-8 shadow-md ring-1 ring-[#4285F4]">
-                <h3 className="text-lg font-semibold text-gray-900">Investor</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Everything in Business, plus Deal Watch and your own account manager.
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
+                <p className="text-sm font-medium text-gray-900">
+                  Two plans for investors and VCs, including a free 7 day trial.
                 </p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">$149</span>
-                  <span className="text-muted-foreground">/mo</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Billed yearly, one month free.</p>
-                <ContactSalesButton className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4285F4] text-sm font-semibold text-white transition-colors hover:bg-[#3367d6]">
-                  Talk to us
-                </ContactSalesButton>
-                <p className="mt-3 text-center text-xs text-muted-foreground">
+                <a
+                  href="#investor-plans"
+                  className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4285F4] text-sm font-semibold text-white transition-colors hover:bg-[#3367d6]"
+                >
+                  See investor plans
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+                <p className="mt-3 text-xs text-muted-foreground">
                   We set up your watchlist and account manager personally.
                 </p>
               </div>

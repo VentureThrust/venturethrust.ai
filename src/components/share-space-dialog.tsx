@@ -31,6 +31,7 @@ import {
 import { type Space } from '@/lib/spaces-provider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
+import { SendByEmailDialog } from '@/app/(app)/content-library/send-by-email-dialog';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,6 +160,8 @@ export function ShareSpaceDialog({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteExists, setInviteExists] = useState<'idle' | 'checking' | 'yes' | 'no' | 'self'>('idle');
   const [inviteSending, setInviteSending] = useState(false);
+  // Send-by-email to investors (per-recipient no-gate links).
+  const [isSendInvestorsOpen, setIsSendInvestorsOpen] = useState(false);
 
   useEffect(() => {
     const email = inviteEmail.trim().toLowerCase();
@@ -572,6 +575,30 @@ export function ShareSpaceDialog({
                 </span>
               </div>
             )}
+          </div>
+
+          {/* ─── Send to investors by email ─────────────────────────────────
+              Per-recipient links with the email gate OFF: the investor clicks
+              the link in their inbox and the space opens directly, no email
+              prompt, while every view is attributed to their address. Supports
+              pasting emails or importing an Excel/CSV list (up to 200). */}
+          <div className="rounded-lg border p-4 space-y-3 bg-green-50/30 mb-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <Mail className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm">Send to investors by email</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Each investor gets a personal link that opens this space directly, no email
+                    prompt, and you see exactly who viewed. Paste emails or import an Excel/CSV list.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="shrink-0" onClick={() => setIsSendInvestorsOpen(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </div>
           </div>
 
           <Separator />
@@ -1032,6 +1059,13 @@ export function ShareSpaceDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Send-by-email to investors: per-recipient links, no email gate. */}
+      <SendByEmailDialog
+        spaceId={space.id}
+        open={isSendInvestorsOpen}
+        onOpenChange={setIsSendInvestorsOpen}
+      />
     </Dialog>
   );
 }
