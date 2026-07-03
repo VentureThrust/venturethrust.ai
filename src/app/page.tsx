@@ -156,8 +156,9 @@ export default function LandingPage() {
             Know exactly who read them.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600">
-            VentureThrust is a secure data room for sales, fundraising, and every kind of deal.
-            Send one link, control who gets in, and see who is engaged so you can follow up and close.
+            Upload your pitch deck or any document and send it as one link instead of an
+            attachment. You see who opened it, which pages they read, and for how long.
+            Lock it with an email gate or a password, and take it back whenever you want.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="cta-glow h-12 px-7 text-base text-white hover:opacity-90" style={{ background: BLUE }}>

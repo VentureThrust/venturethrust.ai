@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/data-room-for-real-estate', priority: 0.8, freq: 'weekly' },
     { path: '/data-room-for-due-diligence', priority: 0.8, freq: 'weekly' },
     { path: '/data-room-for-sales', priority: 0.8, freq: 'weekly' },
+    { path: '/never-lose-a-deal', priority: 0.9, freq: 'weekly' },
     { path: '/about', priority: 0.6, freq: 'monthly' },
     { path: '/contact', priority: 0.6, freq: 'monthly' },
     { path: '/privacy', priority: 0.3, freq: 'yearly' },
