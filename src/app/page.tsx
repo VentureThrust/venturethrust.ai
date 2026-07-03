@@ -17,6 +17,7 @@ import { InviteRedirectCatcher } from '@/components/invite-redirect-catcher';
 import { HeroWalkthrough } from '@/components/landing/hero-walkthrough';
 import { LinkSettingsDemo } from '@/components/landing/link-settings-demo';
 import { LandingPricing } from '@/components/landing/landing-pricing';
+import { ContactSalesButton } from '@/components/contact-sales-dialog';
 import {
   ArrowRight,
   Check,
@@ -269,6 +270,62 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <LandingPricing />
+
+      {/* For investors: Deal Watch */}
+      <section id="investors" className="border-t border-gray-200 bg-white">
+        <div className="container mx-auto max-w-6xl px-6 py-20 sm:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: BLUE }}>
+                For investors
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Deal Watch
+              </h2>
+              <p className="mt-2 text-lg font-medium text-gray-700">
+                Never lose a deal you have already seen.
+              </p>
+              <p className="mt-4 text-base text-gray-600">
+                You pass on hundreds of startups that are simply too early. Some of them grow into
+                exactly what you were looking for, and by then someone else has the deal. Deal Watch
+                keeps quiet track of every startup you have seen, so the right ones come back to you.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  'Every deck and data room shared with you, in one place',
+                  'Add any startup to your private watchlist in one click',
+                  'A human account manager follows every founder update for you',
+                  'You hear about a startup only when it makes real progress',
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: BLUE }} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mx-auto w-full max-w-sm">
+              <div className="rounded-2xl border border-[#4285F4] bg-white p-8 shadow-md ring-1 ring-[#4285F4]">
+                <h3 className="text-lg font-semibold text-gray-900">Investor</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Everything in Business, plus Deal Watch and your own account manager.
+                </p>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">$149</span>
+                  <span className="text-muted-foreground">/mo</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Billed yearly, one month free.</p>
+                <ContactSalesButton className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4285F4] text-sm font-semibold text-white transition-colors hover:bg-[#3367d6]">
+                  Talk to us
+                </ContactSalesButton>
+                <p className="mt-3 text-center text-xs text-muted-foreground">
+                  We set up your watchlist and account manager personally.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Closing CTA */}
       <section className="border-t border-gray-200">

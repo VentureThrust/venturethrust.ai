@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SendByEmailDialog } from './send-by-email-dialog';
+import { fireDealWatchEvent } from '@/lib/deal-watch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1165,6 +1166,48 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
     void loadLinks();
   };
 
+  // ── Update file (new version) ──────────────────────────────────────────
+  // Uploads a replacement and repoints THIS file row's storage_path at it.
+  // Every existing share link keeps working because links resolve the file
+  // by id and sign the storage path fresh on each open. Also fires a Deal
+  // Watch event so the account manager sees the update.
+  const updateFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUpdatingFile, setIsUpdatingFile] = useState(false);
+  const handleUpdateFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || isUpdatingFile) return;
+    setIsUpdatingFile(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
+      if (!uid) throw new Error('Not signed in');
+      const safeName = f.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const newPath = `${uid}/${file.id}/v${Date.now()}_${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from('documents')
+        .upload(newPath, f, { upsert: false });
+      if (upErr) throw upErr;
+      const newType = f.name.split('.').pop()?.toUpperCase() ?? 'FILE';
+      const { error: dbErr } = await supabase
+        .from('files')
+        .update({ name: f.name, type: newType, storage_path: newPath, size_bytes: f.size })
+        .eq('id', file.id);
+      if (dbErr) throw dbErr;
+      updateFile(file.id, { name: f.name });
+      void fireDealWatchEvent({ fileId: file.id, fileName: f.name, eventType: 'file_updated' });
+      toast({
+        title: 'File updated',
+        description: 'All existing links now open the new version.',
+      });
+    } catch (err) {
+      console.error('[update file] failed:', err);
+      toast({ variant: 'destructive', title: 'Update failed', description: 'Please try again.' });
+    } finally {
+      setIsUpdatingFile(false);
+    }
+  };
+
   const handleDownloadSignedCopy = async (visit: Visit) => {
     if (!file.contentUrl) { toast({ variant: 'destructive', title: 'Download failed' }); return; }
     try {
@@ -1280,8 +1323,21 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
             <Button variant="outline" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="mr-2 h-4 w-4" />Preview
             </Button>
-            <Button variant="outline">
-              <Upload className="mr-2 h-4 w-4" />Upload new version
+            <input
+              ref={updateFileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleUpdateFileChosen}
+            />
+            <Button
+              variant="outline"
+              disabled={isUpdatingFile}
+              onClick={() => updateFileInputRef.current?.click()}
+            >
+              {isUpdatingFile
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Upload className="mr-2 h-4 w-4" />}
+              {isUpdatingFile ? 'Updating...' : 'Upload new version'}
             </Button>
             <Button variant="outline" onClick={() => setIsSendOpen(true)}>
               <Send className="mr-2 h-4 w-4" />Send by email

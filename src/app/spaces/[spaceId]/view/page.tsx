@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { InactiveLink } from '@/components/inactive-link';
+import { WatchlistButton } from './watchlist-button';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { Logo } from '@/components/layout/logo';
@@ -1428,6 +1429,7 @@ export default function SpaceViewPage() {
                   />
                 </div>
                 {renderReportButton()}
+                <WatchlistButton />
                 <Button variant="default" onClick={() => setIsQuestionDialogOpen(true)}>
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Ask a question

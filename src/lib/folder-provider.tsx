@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { getEffectiveOwnerId } from '@/lib/workspace';
+import { fireDealWatchEvent } from '@/lib/deal-watch';
 import type { PlacedField } from '@/app/(app)/agreements/edit/_components/agreement-editor';
 import { type ShareLink } from './documents-provider';
 
@@ -588,6 +589,11 @@ export const FoldersProvider = ({ children }: { children: ReactNode }) => {
             hint: error.hint,
           });
           throw error;
+        }
+        // Deal Watch: tell the account manager a watched founder added files.
+        // Server-side no-op when nobody watches this founder; never blocks.
+        for (const f of newFiles) {
+          void fireDealWatchEvent({ fileId: f.id, fileName: f.name, eventType: 'file_added' });
         }
       }
 

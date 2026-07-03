@@ -33,7 +33,11 @@ import {
   Users,
   Inbox,
   CreditCard,
+  Star,
+  Headset,
+  Radar,
 } from 'lucide-react';
+import { DW_MANAGER_EMAIL } from '@/lib/deal-watch';
 import Image from 'next/image';
 import Link from 'next/link';
 import { SupportDialog } from '@/components/support-dialog';
@@ -368,6 +372,35 @@ export function AppSidebarContent({
     ];
   }, [space]);
 
+  // Deal Watch nav visibility: Watchlist + Account Manager only for Investor
+  // plan accounts; the Deal Watch dashboard only for the account manager.
+  // Errors (e.g. the migration not run yet) simply leave both hidden.
+  const [dwInvestor, setDwInvestor] = useState(false);
+  const [dwManager, setDwManager] = useState(false);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const email = session?.user?.email?.toLowerCase();
+        const uid = session?.user?.id;
+        if (!email || !uid) return;
+        if (active && email === DW_MANAGER_EMAIL) setDwManager(true);
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_investor')
+          .eq('id', uid)
+          .maybeSingle();
+        if (active && (data as { is_investor?: boolean } | null)?.is_investor === true) {
+          setDwInvestor(true);
+        }
+      } catch {
+        /* hidden by default */
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
   if (isSpaceView) {
     if (!isClient || !space) return null;
 
@@ -669,6 +702,65 @@ export function AppSidebarContent({
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+
+          {dwInvestor && (
+            <>
+              <div className="border-t border-gray-200" />
+              <SidebarMenuItem>
+                <Link href="/watchlist" className="w-full" passHref>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/watchlist')}
+                    tooltip="Watchlist"
+                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Star className="h-6 w-6 shrink-0" />
+                      <span className="text-base">Watchlist</span>
+                    </div>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+
+              <div className="border-t border-gray-200" />
+              <SidebarMenuItem>
+                <Link href="/account-manager" className="w-full" passHref>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/account-manager')}
+                    tooltip="Account Manager"
+                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Headset className="h-6 w-6 shrink-0" />
+                      <span className="text-base">Account Manager</span>
+                    </div>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </>
+          )}
+
+          {dwManager && (
+            <>
+              <div className="border-t border-gray-200" />
+              <SidebarMenuItem>
+                <Link href="/deal-watch" className="w-full" passHref>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/deal-watch')}
+                    tooltip="Deal Watch"
+                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Radar className="h-6 w-6 shrink-0" />
+                      <span className="text-base">Deal Watch</span>
+                    </div>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </>
+          )}
 
         </SidebarMenu>
       </SidebarContent>

@@ -72,6 +72,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import dynamic from 'next/dynamic';
 import { SectionHeader } from './_components/section-header';
 import { supabase } from '@/lib/supabaseClient';
+import { fireDealWatchEvent } from '@/lib/deal-watch';
 import { v4 as uuidv4 } from 'uuid';
 
 const FileViewer = dynamic(
@@ -561,6 +562,9 @@ function SpaceEditPageComponent() {
       size_bytes: file.size,
     }).select().single();
     if (error) { console.error('files insert error:', error); throw error; }
+    // Deal Watch: notify the account manager when a watched founder adds a
+    // file to their space. No-op server-side when the founder isn't watched.
+    void fireDealWatchEvent({ spaceId, fileId: data.id, fileName: file.name, eventType: 'file_added' });
     return { id: data.id, name: data.name, type: data.type, createdAt: data.created_at, views: data.views, storagePath: data.storage_path };
   };
 
