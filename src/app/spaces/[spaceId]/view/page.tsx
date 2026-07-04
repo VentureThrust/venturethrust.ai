@@ -281,14 +281,17 @@ function findFolderById(nodes: FolderNode[], id: string): FolderNode | null {
   return null;
 }
 
-type FileCategory = 'pdf' | 'image' | 'video' | 'audio' | 'unsupported';
+type FileCategory = 'pdf' | 'image' | 'video' | 'audio' | 'office' | 'text' | 'unsupported';
 
 function getFileCategory(type: string, name = ''): FileCategory {
   const t = normaliseType(type, name);
   if (t === 'pdf') return 'pdf';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(t)) return 'image';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif'].includes(t)) return 'image';
   if (['mp4', 'mov', 'avi', 'webm'].includes(t)) return 'video';
   if (['mp3', 'wav', 'ogg'].includes(t)) return 'audio';
+  // Word / Excel / PowerPoint render through Microsoft's embed viewer.
+  if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(t)) return 'office';
+  if (['txt', 'csv', 'md', 'json', 'xml', 'log', 'yml', 'yaml'].includes(t)) return 'text';
   return 'unsupported';
 }
 
@@ -390,6 +393,22 @@ function FileViewer({ file, url, allFiles, onClose, onNavigate, allowDownload = 
   const category = getFileCategory(file.type, file.name);
   const [imgZoom, setImgZoom] = useState(1);
   const [imgRotation, setImgRotation] = useState(0);
+  // Text files are fetched and rendered inline (readable on every device).
+  const [textContent, setTextContent] = useState<string | null>(null);
+  useEffect(() => {
+    setTextContent(null);
+    if (category !== 'text' || !url) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const t = await res.text();
+        if (!cancelled) setTextContent(t.slice(0, 500_000));
+      } catch { /* falls through to unsupported-style fallback */ }
+    })();
+    return () => { cancelled = true; };
+  }, [category, url]);
   const currentIndex = allFiles.findIndex(f => f.id === file.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < allFiles.length - 1;
@@ -489,6 +508,24 @@ function FileViewer({ file, url, allFiles, onClose, onNavigate, allowDownload = 
             <div className="h-32 w-32 rounded-full bg-white/10 flex items-center justify-center"><Music className="h-16 w-16 text-white/40" /></div>
             <p className="text-white/70 font-medium">{file.name}</p>
             <audio key={url} controls controlsList="nodownload" className="w-full max-w-sm"><source src={url} type={getMimeType(file.type, file.name)} /></audio>
+          </div>
+        )}
+        {category === 'office' && (
+          <div className="relative h-full w-full">
+            <iframe
+              title={file.name}
+              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+              className="h-full w-full border-0 bg-white"
+            />
+            {watermarkText && <FileWatermark text={watermarkText} />}
+          </div>
+        )}
+        {category === 'text' && (
+          <div className="relative h-full w-full overflow-auto bg-white">
+            <pre className="whitespace-pre-wrap break-words p-4 font-mono text-sm text-gray-900">
+              {textContent ?? 'Loading...'}
+            </pre>
+            {watermarkText && <FileWatermark text={watermarkText} />}
           </div>
         )}
         {category === 'unsupported' && (
