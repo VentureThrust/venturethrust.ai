@@ -211,15 +211,26 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
 
       try {
         const page = await pdf.getPage(pageNum);
-        const containerWidth = (containerRef.current?.clientWidth ?? 800) - 64;
+        // Tighter side margins on phones so the page uses the full width.
+        const sidePad = paged ? 16 : 64;
+        const containerWidth = (containerRef.current?.clientWidth ?? 800) - sidePad;
         const initial = page.getViewport({ scale: 1 });
-        const scale = Math.min(2, containerWidth / initial.width);
-        const viewport = page.getViewport({ scale });
+        const cssScale = Math.min(2, containerWidth / initial.width);
+
+        // RETINA FIX: render the canvas backing store at devicePixelRatio,
+        // but display it at CSS size. Without this, high-density screens
+        // (every phone is 2x to 3x) stretch a low-res raster and the page
+        // looks blurry instead of print-sharp.
+        const dpr = Math.min(
+          (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1,
+          3,
+        );
+        const viewport = page.getViewport({ scale: cssScale * dpr });
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -228,7 +239,7 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
         console.error(`Failed to render PDF page ${pageNum}:`, err);
       }
     },
-    [pdf]
+    [pdf, paged]
   );
 
   useEffect(() => {
@@ -382,7 +393,15 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
               if (el) pageWrapperRefs.current.set(pageNum, el);
               else pageWrapperRefs.current.delete(pageNum);
             }}
-            className={`bg-white shadow-2xl relative${paged && pageNum !== currentPage ? ' hidden' : ''}`}
+            className={`bg-white shadow-2xl relative${
+              paged
+                ? pageNum !== currentPage
+                  ? ' hidden'
+                  : ' m-auto' /* auto margins center the single page vertically
+                                 AND horizontally, but never crop when the page
+                                 is taller than the screen (unlike justify-center) */
+                : ''
+            }`}
           >
             <canvas
               ref={(el) => {
