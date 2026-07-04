@@ -540,6 +540,34 @@ function FileViewer({ file, url, allFiles, onClose, onNavigate, allowDownload = 
             )}
           </div>
         )}
+
+        {/* Floating prev/next FILE arrows, centered on the sides. Hidden for
+            PDFs, where the same positions already flip pages (PdfViewer);
+            PDF file switching stays in the header controls. */}
+        {allFiles.length > 1 && category !== 'pdf' && (
+          <>
+            <button
+              type="button"
+              disabled={!hasPrev}
+              onClick={() => hasPrev && onNavigate(allFiles[currentIndex - 1])}
+              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Previous file"
+              aria-label="Previous file"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              disabled={!hasNext}
+              onClick={() => hasNext && onNavigate(allFiles[currentIndex + 1])}
+              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Next file"
+              aria-label="Next file"
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
