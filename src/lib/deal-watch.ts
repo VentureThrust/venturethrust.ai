@@ -10,6 +10,21 @@ export const DW_MANAGER_EMAIL = (
   process.env.NEXT_PUBLIC_DW_MANAGER_EMAIL ?? 'omprakash@venturethrust.com'
 ).toLowerCase();
 
+/** The human behind the plan - shown on the Account Manager page and in the
+ *  investor welcome popup. */
+export const DW_MANAGER_INFO = {
+  name: 'Omprakash Borkar',
+  email: 'omprakash@venturethrust.com',
+  phone: '+91 8530329552',
+};
+
+/** Optional walkthrough video for the investor welcome popup. Upload a short
+ *  screen recording (mp4) to a public bucket and set
+ *  NEXT_PUBLIC_INVESTOR_TOUR_VIDEO_URL; until then an illustrated
+ *  three-step guide shows instead. */
+export const INVESTOR_TOUR_VIDEO_URL =
+  process.env.NEXT_PUBLIC_INVESTOR_TOUR_VIDEO_URL ?? '';
+
 export type DealWatchEventType = 'file_added' | 'file_updated' | 'file_deleted';
 
 /**

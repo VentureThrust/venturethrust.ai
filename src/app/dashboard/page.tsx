@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
 import { ProductTour, type TourStep } from '@/components/product-tour';
 import { MissedVisitors } from '@/components/missed-visitors';
+import { InvestorWelcome } from '@/components/investor-welcome';
 
 // Guided first-run tour: spotlights the real nav items so a new user learns
 // what each part of the workspace does. Shows once, then never again.
@@ -511,6 +512,9 @@ export default function Dashboard() {
       <UpcomingFeatureDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} featureName="AI Due Diligence" />
       {/* First-run guided tour: spotlights real nav items, shows once per user */}
       <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />
+      {/* One-time welcome for freshly activated investors: manager card +
+          walkthrough video (or illustrated steps until the video is set). */}
+      <InvestorWelcome />
     </>
   );
 }

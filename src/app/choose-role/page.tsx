@@ -8,7 +8,7 @@
  * plans open the phone dialog and run Cashfree checkout.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ContactSalesButton } from '@/components/contact-sales-dialog';
@@ -105,6 +105,9 @@ export default function ChoosePlanPage() {
   // Founder plans show by default; investor plans appear only when the
   // visitor flips the audience toggle.
   const [audience, setAudience] = useState<'founders' | 'investors'>('founders');
+  // True when the user ALREADY had an active plan on arrival (upgrade visit);
+  // the activation watcher below must not bounce those users away.
+  const hadActivePlanRef = useRef(false);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -234,6 +237,9 @@ export default function ChoosePlanPage() {
           .eq('id', user.id)
           .maybeSingle();
         const pr = prof as { plan?: string | null; plan_expires_at?: string | null } | null;
+        if (pr?.plan && isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
+          hadActivePlanRef.current = true; // arrived with an active plan (upgrade visit)
+        }
         if (pr?.plan && !isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
           setExpired(true);
           const token = data.session?.access_token;
@@ -249,6 +255,30 @@ export default function ChoosePlanPage() {
       }
     })();
   }, [router]);
+
+  // ACTIVATION WATCHER: if the plan turns active while this page is open
+  // (the manager clicked Activate after a demo call, or a webhook landed),
+  // move the user straight into their dashboard - no refresh, no re-choosing.
+  // Skipped for users who arrived with an already-active plan (upgrades).
+  useEffect(() => {
+    if (!userId) return;
+    const timer = setInterval(async () => {
+      if (hadActivePlanRef.current || success) return;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('plan, plan_expires_at')
+          .eq('id', userId)
+          .maybeSingle();
+        const pr = data as { plan?: string | null; plan_expires_at?: string | null } | null;
+        if (pr?.plan && isPlanActive(pr.plan, pr.plan_expires_at ?? null)) {
+          clearInterval(timer);
+          router.replace('/dashboard');
+        }
+      } catch { /* keep polling */ }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [userId, success, router]);
 
   // After returning from Cashfree checkout (?order_id=...), confirm the payment
   // server-side and, if PAID, send the user into their dashboard.
