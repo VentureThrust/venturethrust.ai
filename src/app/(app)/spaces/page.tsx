@@ -685,9 +685,9 @@ export default function SpacesPage() {
           },
         ]}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Spaces</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <Dialog open={isTemplateGalleryOpen} onOpenChange={setIsTemplateGalleryOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" data-tour="spaces-templates">

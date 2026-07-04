@@ -786,11 +786,13 @@ function SpaceEditPageComponent() {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* Toolbar wraps on phones (DocSend-style stacked buttons) instead of
+          overflowing off the right edge of the screen. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">
           {currentFolderId === 'root' ? 'Home' : currentFolder.name}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline"><ListOrdered className="mr-2 h-4 w-4" />Organize <ChevronDown className="ml-2 h-4 w-4" /></Button>

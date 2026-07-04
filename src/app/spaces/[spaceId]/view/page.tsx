@@ -1418,8 +1418,8 @@ export default function SpaceViewPage() {
                   <button className="px-3 py-1 rounded-full text-gray-600 hover:text-gray-900 transition-colors">Recently added</button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="relative w-64">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search this space"

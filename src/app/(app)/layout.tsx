@@ -11,7 +11,7 @@ import { LayoutProvider, useLayout } from './layout-context';
 import { SpacesProvider } from '@/lib/spaces-provider';
 import { FileRequestProvider } from '@/lib/file-requests-provider';
 import { usePathname } from 'next/navigation';
-import { Search, Monitor } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { AlertsProvider } from '@/lib/alerts-provider';
@@ -54,62 +54,34 @@ const StandardLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// The data-room and agreement editors are desktop tools (folder tree, drag-drop,
-// PDF field placement). On phones we show a tidy notice instead of a cramped,
-// broken layout. Editing stays fully available on tablet/desktop.
-function DesktopOnlyNotice({
-  backHref = '/spaces',
-  backLabel = 'Back to spaces',
-}: {
-  backHref?: string;
-  backLabel?: string;
-}) {
-  return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-muted/40 px-6 text-center md:hidden">
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#F0F5FF] text-[#4285F4]">
-        <Monitor className="h-7 w-7" />
-      </div>
-      <h1 className="text-xl font-semibold text-gray-900">Best edited on a larger screen</h1>
-      <p className="max-w-xs text-sm text-gray-600">
-        Building and managing a data room works best on a laptop or desktop. Open this page there to
-        edit. Sharing and viewing work great on mobile.
-      </p>
-      <a
-        href={backHref}
-        className="inline-flex h-11 items-center rounded-lg bg-[#4285F4] px-5 text-sm font-semibold text-white"
-      >
-        {backLabel}
-      </a>
-    </div>
-  );
-}
-
+// The space and agreement editors are fully available on every screen size
+// (DocSend-style). On phones the space editor gets a slim top bar with the
+// sidebar drawer trigger so navigation is always reachable.
 const SpaceEditLayout = ({ children }: { children: React.ReactNode }) => {
   const { fileRequestCount } = useLayout();
 
   return (
-    <>
-      <DesktopOnlyNotice />
-      <div className="hidden h-screen w-full bg-muted/40 md:flex">
-        <Sidebar>
-          <AppSidebarContent fileRequestCount={fileRequestCount} isSpaceView />
-        </Sidebar>
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
-        </div>
+    <div className="flex h-screen w-full bg-muted/40">
+      <Sidebar>
+        <AppSidebarContent fileRequestCount={fileRequestCount} isSpaceView />
+      </Sidebar>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile-only bar: the drawer trigger, since the editor has no header */}
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-white px-3 md:hidden">
+          <SidebarTrigger />
+          <span className="text-sm font-medium text-gray-700">Space editor</span>
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
-    </>
+    </div>
   );
 };
 
 const AgreementEditLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <>
-      <DesktopOnlyNotice backHref="/agreements" backLabel="Back to agreements" />
-      <div className="hidden h-screen w-full bg-muted/40 md:block">{children}</div>
-    </>
+    <div className="h-screen w-full overflow-y-auto bg-muted/40">{children}</div>
   );
 };
 

@@ -104,7 +104,7 @@ const SecurityOptionCard = ({
                   auto-flipping to top / shifting horizontally as needed. Fixes the
                   rightmost card (Expiration) where the popover was clipping the screen. */}
             <PopoverContent
-              className="w-80 rounded-md"
+              className="w-80 max-w-[calc(100vw-2rem)] rounded-md"
               side="bottom"
               align="center"
               sideOffset={8}
@@ -312,14 +312,14 @@ function SpacePermissionsInner() {
                 <CardHeader>
                     <CardTitle className="text-base">Link name (not visible to visitors)</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center gap-4">
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <Input value={linkName} onChange={(e) => setLinkName(e.target.value)} />
-                     <div className="flex items-center space-x-2 shrink-0">
+                     <div className="flex w-full items-center space-x-2 sm:w-auto sm:shrink-0">
                         <Input
                         id="link"
                         value={fullLink}
                         readOnly
-                        className="bg-muted w-96"
+                        className="bg-muted min-w-0 flex-1 sm:w-96 sm:flex-none"
                         />
                         <Button size="sm" variant="outline" className="px-3" onClick={copyLink}>
                             <Copy className="h-4 w-4 mr-2" />

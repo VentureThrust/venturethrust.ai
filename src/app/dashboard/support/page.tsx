@@ -181,9 +181,9 @@ export default function SupportInboxPage() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] overflow-hidden rounded-xl border bg-white">
-      {/* Conversation list */}
-      <aside className="flex w-80 shrink-0 flex-col border-r">
+    <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border bg-white md:flex-row">
+      {/* Conversation list - stacks above the thread on phones */}
+      <aside className="flex max-h-56 w-full shrink-0 flex-col border-b md:max-h-none md:w-80 md:border-b-0 md:border-r">
         <div className="border-b px-4 py-3 text-lg font-semibold">Support inbox</div>
         <div className="flex flex-wrap gap-1 border-b p-2">
           {TABS.map(([key, label]) => (

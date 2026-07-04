@@ -350,8 +350,9 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
     <>
       <div className="flex flex-col bg-muted/40 h-full">
         <header className="flex h-16 shrink-0 items-center justify-end border-b bg-card px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <div className="relative w-64">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Search hides on phones - the icons alone already fill the bar */}
+            <div className="relative hidden w-64 sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search"
@@ -427,8 +428,9 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="w-full bg-card shadow-sm rounded-none">
-                <div className="pt-20 pb-4 px-8">
-                  <div className="flex justify-between items-start">
+                <div className="pt-20 pb-4 px-4 sm:px-8">
+                  {/* Wraps on phones: Preview/Share drop below the title like DocSend */}
+                  <div className="flex flex-wrap justify-between items-start gap-3">
                     <div className="flex-1 space-y-2">
                       {isEditingTitle ? (
                         <Popover open={isEditingTitle} onOpenChange={setIsEditingTitle}>
@@ -473,7 +475,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                         <h1 className="text-2xl font-bold cursor-pointer" style={{ color: editingTitleColor }} onClick={() => setIsEditingTitle(true)}>{title}</h1>
                       )}
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         {isEditingSubtitle ? (
                           <Popover open={isEditingSubtitle} onOpenChange={setIsEditingSubtitle}>
                             <PopoverTrigger asChild>
@@ -598,8 +600,8 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
 
-                <div className="px-8 pb-8">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                <div className="px-4 pb-8 sm:px-8">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
                     {breadcrumbs.map((crumb, index) => (
                       <div key={crumb.id} className="flex items-center gap-2">
                         {index > 0 && <ChevronRight className="h-4 w-4" />}
