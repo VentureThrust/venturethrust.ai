@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { DW_MANAGER_EMAIL } from '@/lib/deal-watch';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -63,6 +64,9 @@ export default function DealWatchPage() {
   const [events, setEvents] = useState<UpdateEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  // Activate-investor tool (one click instead of SQL).
+  const [activateEmail, setActivateEmail] = useState('');
+  const [activating, setActivating] = useState(false);
 
   const isManager = (user?.email ?? '').toLowerCase() === DW_MANAGER_EMAIL;
 
@@ -145,6 +149,63 @@ export default function DealWatchPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Activate an investor ── */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+        <h2 className="text-base font-semibold">Activate an investor</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          After a sales conversation, enter the investor&apos;s account email. This turns on their
+          Investor features and 30 days of access. Run it again any time to extend. They must have
+          signed up first.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Input
+            type="email"
+            value={activateEmail}
+            onChange={(e) => setActivateEmail(e.target.value)}
+            placeholder="investor@fund.com"
+            className="w-full sm:w-80"
+          />
+          <Button
+            disabled={activating || !activateEmail.trim()}
+            onClick={async () => {
+              setActivating(true);
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/deal-watch/activate', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session?.access_token}`,
+                  },
+                  body: JSON.stringify({ email: activateEmail.trim() }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (res.ok && j.ok) {
+                  toast({
+                    title: 'Investor activated',
+                    description: `${j.email} now has Investor access for ${j.days} days.`,
+                  });
+                  setActivateEmail('');
+                } else if (j.error === 'NO_ACCOUNT') {
+                  toast({
+                    variant: 'destructive',
+                    title: 'No account with this email',
+                    description: 'Ask the investor to sign up first, then activate them here.',
+                  });
+                } else {
+                  toast({ variant: 'destructive', title: 'Activation failed', description: j.error ?? 'Try again.' });
+                }
+              } finally {
+                setActivating(false);
+              }
+            }}
+          >
+            {activating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+            Activate
+          </Button>
+        </div>
+      </section>
 
       {/* ── Updates feed ── */}
       <section>

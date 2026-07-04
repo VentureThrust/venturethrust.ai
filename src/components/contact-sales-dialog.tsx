@@ -30,8 +30,8 @@ export function ContactSalesDialog({
         <DialogHeader>
           <DialogTitle>Talk to sales</DialogTitle>
           <DialogDescription>
-            Tell us what you need: more storage, more seats, SSO, or a custom plan. We will get back
-            within one business day.
+            Tell us what you need: an investor setup, more storage, more seats, SSO, or a custom
+            plan. Replies usually arrive within 5 minutes, and never later than 6 hours.
           </DialogDescription>
         </DialogHeader>
         <ContactForm defaultTopic="sales" hideTopic />
