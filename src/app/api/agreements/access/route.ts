@@ -299,6 +299,7 @@ async function buildSignedPdf(opts: {
   agreementFields: Array<{ id: string; type: string; x: number; y: number; page: number }>;
   fieldValues: Record<string, unknown>;
   watermarkEmail: string;
+  signerName: string;
 }): Promise<Uint8Array | null> {
   try {
     const { data: blob, error } = await supabase.storage.from('documents').download(opts.storagePath);
@@ -332,6 +333,32 @@ async function buildSignedPdf(opts: {
       } else {
         page.drawText(String(value), { x, y: y - 14, font: helv, size: 12, color: rgb(0, 0, 0) });
       }
+    }
+
+    // 1b. GUARANTEED signature block: if the agreement has no placed fields
+    // (or none were filled), the signed copy would otherwise show no
+    // signature at all. Stamp a visible signature block at the bottom of the
+    // LAST page: name in italic (the legal signature), email, and date.
+    const anyStamped = opts.agreementFields.some((f) => !!opts.fieldValues[f.id]);
+    if (!anyStamped) {
+      const oblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+      const last = pages[pages.length - 1];
+      const baseY = 46;
+      last.drawLine({
+        start: { x: 50, y: baseY + 40 },
+        end: { x: 260, y: baseY + 40 },
+        thickness: 0.8,
+        color: rgb(0.45, 0.45, 0.45),
+      });
+      last.drawText(opts.signerName || opts.watermarkEmail, {
+        x: 52, y: baseY + 46, font: oblique, size: 16, color: rgb(0.05, 0.05, 0.05),
+      });
+      last.drawText('Signed electronically', {
+        x: 50, y: baseY + 26, font: helv, size: 8, color: rgb(0.45, 0.45, 0.45),
+      });
+      last.drawText(`${opts.watermarkEmail}   ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`, {
+        x: 50, y: baseY + 14, font: helv, size: 9, color: rgb(0.25, 0.25, 0.25),
+      });
     }
 
     // 2. Tile the signer's email as a faint diagonal watermark.
@@ -409,6 +436,7 @@ async function sendSignedEmails(opts: {
       agreementFields: opts.agreementFields,
       fieldValues: opts.fieldValues,
       watermarkEmail: opts.signerEmail,
+      signerName: opts.signerName,
     });
   }
   const attachments = signedPdf

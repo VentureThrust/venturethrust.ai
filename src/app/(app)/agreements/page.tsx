@@ -100,6 +100,23 @@ export default function AgreementsPage() {
     pdfFile: globalThis.File,
     agreementFields: File['agreementFields'] = [],
   ) => {
+    // Default fields: every agreement gets a Signature + Date Signed field at
+    // the bottom of its LAST page, so a signed copy always carries a visible
+    // signature. The owner can move or delete them in the editor.
+    if (!agreementFields || agreementFields.length === 0) {
+      try {
+        const { PDFDocument } = await import('pdf-lib');
+        const doc = await PDFDocument.load(await pdfFile.arrayBuffer(), { ignoreEncryption: true });
+        const lastPage = Math.max(1, doc.getPageCount());
+        agreementFields = [
+          { id: `field_${Date.now()}_sig`, type: 'signature', x: 10, y: 86, page: lastPage },
+          { id: `field_${Date.now()}_date`, type: 'date-signed', x: 62, y: 86, page: lastPage },
+        ];
+      } catch {
+        // Unreadable PDF metadata - the signed copy still gets the fallback
+        // signature block stamped server-side.
+      }
+    }
     // 1. Get/create the user's Agreements folder (real DB row, real UUID).
     const agreementsFolderId = await ensureAgreementsFolder();
     if (!agreementsFolderId) {

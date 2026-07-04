@@ -458,6 +458,27 @@ export default function ChoosePlanPage() {
           })}
         </div>
 
+        {/* Investors and VCs - no self-serve checkout: our team sets each
+            investor up personally, so the only path is Talk to sales. */}
+        <div className="mt-12 overflow-hidden rounded-2xl border border-[#4285F4] bg-white px-6 py-6 ring-1 ring-[#4285F4]/30 sm:flex sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900">Are you an investor or a VC?</p>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Deal Watch keeps every startup you have seen on a private watchlist, with your own
+              account manager who tells you only when one makes real progress. We set up every
+              investor personally.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Replies usually arrive within 5 minutes. At busy times it can take up to 6 hours.
+            </p>
+          </div>
+          <ContactSalesButton
+            className="mt-4 inline-flex shrink-0 items-center justify-center rounded-xl bg-[#4285F4] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3367d6] sm:ml-6 sm:mt-0"
+          >
+            Talk to sales
+          </ContactSalesButton>
+        </div>
+
         {/* Enterprise / sales */}
         <div className="mt-12 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F0F5FF] to-white px-6 py-6 sm:flex sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
