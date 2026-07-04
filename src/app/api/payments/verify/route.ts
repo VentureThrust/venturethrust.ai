@@ -75,6 +75,12 @@ export async function POST(req: NextRequest) {
           .from('profiles')
           .update({ plan: pay.plan_key, plan_status: 'active', plan_expires_at: expiresAt })
           .eq('id', user.id);
+        // Investor plan: switch on the investor toolkit too. Best-effort so a
+        // missing column can never block plan activation.
+        if (String(pay.plan_id ?? '').startsWith('vdr-investor')) {
+          const { error: invErr } = await admin.from('profiles').update({ is_investor: true }).eq('id', user.id);
+          if (invErr) console.warn('[payments/verify] is_investor update failed:', invErr.message);
+        }
       } else {
         // Idempotent re-check (already activated): return the stored expiry.
         const { data: prof } = await admin

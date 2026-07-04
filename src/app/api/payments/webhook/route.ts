@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
         .from('profiles')
         .update({ plan: pay.plan_key, plan_status: 'active', plan_expires_at: expires })
         .eq('id', pay.user_id);
+      // Investor plan: switch on the investor toolkit too (best-effort).
+      if (String(pay.plan_id ?? '').startsWith('vdr-investor')) {
+        const { error: invErr } = await admin.from('profiles').update({ is_investor: true }).eq('id', pay.user_id);
+        if (invErr) console.warn('[payments/webhook] is_investor update failed:', invErr.message);
+      }
     }
   }
 

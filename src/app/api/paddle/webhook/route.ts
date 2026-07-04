@@ -69,11 +69,18 @@ function isoOrDefault(ends?: string): string {
   return ends ? new Date(ends).toISOString() : new Date(Date.now() + DEFAULT_CYCLE_MS).toISOString();
 }
 
-async function activate(userId: string, expiresIso: string) {
+async function activate(userId: string, expiresIso: string, tier?: string) {
   await admin
     .from('profiles')
     .update({ plan: PLAN_KEY, plan_status: 'active', plan_expires_at: expiresIso })
     .eq('id', userId);
+  // Investor plan: also switch on the investor toolkit (Watchlist, Account
+  // Manager, Deal Watch). Separate best-effort update so a missing column
+  // (migration not run) can never block plan activation itself.
+  if (tier === 'vdr-investor') {
+    const { error } = await admin.from('profiles').update({ is_investor: true }).eq('id', userId);
+    if (error) console.warn('[paddle/webhook] is_investor update failed:', error.message);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -133,7 +140,7 @@ export async function POST(req: NextRequest) {
             .update({ status: 'PAID', updated_at: new Date().toISOString() })
             .eq('id', (existing as { id: string }).id);
         }
-        await activate(userId, expires);
+        await activate(userId, expires, tier);
       }
     } else if (
       type === 'subscription.created' ||
@@ -143,7 +150,7 @@ export async function POST(req: NextRequest) {
       const tier = tierFromItems(data.items);
       const status = data.status ?? '';
       if (userId && tier && (status === 'active' || status === 'trialing')) {
-        await activate(userId, isoOrDefault(data.current_billing_period?.ends_at));
+        await activate(userId, isoOrDefault(data.current_billing_period?.ends_at), tier);
       }
     } else if (type === 'subscription.canceled' || type === 'subscription.paused') {
       // Keep access until the paid period ends (isPlanActive checks the expiry);

@@ -14,11 +14,21 @@ export const PADDLE_ENV: 'sandbox' | 'production' =
 export const PADDLE_CLIENT_TOKEN =
   process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || 'live_7e0b35f6b55dc26d05832b1a6a0';
 
+/**
+ * Investor plan (Deal Watch), $149/mo. Create the recurring price in the
+ * Paddle dashboard and set NEXT_PUBLIC_PADDLE_PRICE_INVESTOR (and optionally
+ * the yearly variant). Until set, the investor card shows a "not available
+ * for online checkout yet" notice instead of a broken checkout.
+ */
+export const PADDLE_PRICE_INVESTOR = process.env.NEXT_PUBLIC_PADDLE_PRICE_INVESTOR || '';
+export const PADDLE_PRICE_INVESTOR_YEAR = process.env.NEXT_PUBLIC_PADDLE_PRICE_INVESTOR_YEAR || '';
+
 /** Our plan tier id -> Paddle price id (monthly, USD). */
 export const PADDLE_PRICE_BY_TIER: Record<string, string> = {
   'vdr-starter': 'pri_01kvcyej4zdgwe38evg7g2fg0r',
   'vdr-growth': 'pri_01kvcyq2x90y3h5b57t8brfdyd',
   'vdr-business': 'pri_01kvcyqyst4h6n3fe7c5ack7f3',
+  'vdr-investor': PADDLE_PRICE_INVESTOR,
 };
 
 /** Yearly (annual) Paddle price ids by tier - one month free vs monthly. */
@@ -26,6 +36,7 @@ export const PADDLE_PRICE_BY_TIER_YEAR: Record<string, string> = {
   'vdr-starter': 'pri_01kvkcenjr5p40wyd5jbbfkwtc',
   'vdr-growth': 'pri_01kvkcgaa7fh3zejpdd553nv83',
   'vdr-business': 'pri_01kvkcjf28yfr7gbvqr93vyf64',
+  'vdr-investor': PADDLE_PRICE_INVESTOR_YEAR,
 };
 
 /**
@@ -50,8 +61,8 @@ export const PADDLE_SANDBOX_PRICE_ID =
 
 /** Reverse lookup for the webhook: Paddle price id -> our plan tier id. */
 export const TIER_BY_PADDLE_PRICE: Record<string, string> = {
-  ...Object.fromEntries(Object.entries(PADDLE_PRICE_BY_TIER).map(([tier, price]) => [price, tier])),
-  ...Object.fromEntries(Object.entries(PADDLE_PRICE_BY_TIER_YEAR).map(([tier, price]) => [price, tier])),
+  ...Object.fromEntries(Object.entries(PADDLE_PRICE_BY_TIER).filter(([, price]) => price).map(([tier, price]) => [price, tier])),
+  ...Object.fromEntries(Object.entries(PADDLE_PRICE_BY_TIER_YEAR).filter(([, price]) => price).map(([tier, price]) => [price, tier])),
   ...(PADDLE_TEST_PRICE_ID ? { [PADDLE_TEST_PRICE_ID]: 'vdr-starter' } : {}),
   ...(PADDLE_SANDBOX_PRICE_ID ? { [PADDLE_SANDBOX_PRICE_ID]: 'vdr-starter' } : {}),
 };

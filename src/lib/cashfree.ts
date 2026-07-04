@@ -42,6 +42,10 @@ export const PAID_PLANS: Record<
   'vdr-starter-year': { amount: 10989, planKey: 'vdr_only', name: 'Starter (Yearly)', cycleMs: YEARLY_CYCLE_MS },
   'vdr-growth-year': { amount: 27489, planKey: 'vdr_only', name: 'Growth (Yearly)', cycleMs: YEARLY_CYCLE_MS },
   'vdr-business-year': { amount: 65989, planKey: 'vdr_only', name: 'Business (Yearly)', cycleMs: YEARLY_CYCLE_MS },
+  // Investor plan (Deal Watch). No Cashfree dashboard setup needed - amounts
+  // come from this server-side map at order creation.
+  'vdr-investor': { amount: 12499, planKey: 'vdr_only', name: 'Investor', cycleMs: BILLING_CYCLE_MS },
+  'vdr-investor-year': { amount: 137489, planKey: 'vdr_only', name: 'Investor (Yearly)', cycleMs: YEARLY_CYCLE_MS },
 };
 
 /** How long a paid plan stays active before renewal. Falls back to the default. */

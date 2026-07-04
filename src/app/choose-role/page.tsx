@@ -49,6 +49,32 @@ const PLAN_META: Record<string, { icon: LucideIcon; chip: string }> = {
   'vdr-business': { icon: Building2, chip: 'bg-violet-50 text-violet-600' },
 };
 
+// Investor plan (Deal Watch) - sold on this page as its own card, not part of
+// the founder grid. Checkout rides the same rails (Cashfree India / Paddle).
+const INVESTOR_TIER: PlanTier = {
+  id: 'vdr-investor',
+  name: 'Investor',
+  price: 149,
+  priceInr: 12499,
+  priceYear: 1639,
+  rank: 4,
+  seats: 1,
+  spaces: null,
+  visitorsPerSpace: null,
+  storageGb: 200,
+  tagline: 'Deal Watch plus your own account manager.',
+  features: [],
+  showInGrid: false,
+};
+
+const INVESTOR_FEATURES = [
+  'Everything in Business',
+  'Deal Watch watchlist across all your deal flow',
+  'A human account manager, assigned automatically',
+  'You are pinged only when a startup makes real progress',
+  'Priority support',
+];
+
 // Friendly date + time for the "plan active" confirmation, e.g. 10 Jun 2026, 11:45 AM.
 const formatExpiry = (iso: string | null): string => {
   if (!iso) return '';
@@ -302,6 +328,39 @@ export default function ChoosePlanPage() {
     }
   };
 
+  // Investor card checkout - monthly only (the annual toggle governs the
+  // founder grid, not this card). Same rails: Cashfree India, Paddle abroad.
+  const handleSelectInvestor = () => {
+    if (!userId || !email) return;
+    setAnnual(false);
+    if (isIndia) {
+      setPendingPlan(INVESTOR_TIER);
+      setPhone('');
+      setPayError(null);
+      setPhoneOpen(true);
+      return;
+    }
+    const priceId = PADDLE_PRICE_BY_TIER['vdr-investor'];
+    if (!priceId) {
+      setNotice('Investor checkout opens very soon. Click Get a demo call and we will set you up today.');
+      return;
+    }
+    if (!paddle) {
+      setNotice('Checkout is still loading. Please try again in a moment.');
+      return;
+    }
+    setPendingPlan(INVESTOR_TIER);
+    setPayError(null);
+    setNotice(null);
+    setPaying(true);
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: email ? { email } : undefined,
+      customData: { user_id: userId },
+    });
+    setTimeout(() => setPaying(false), 1500);
+  };
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#F0F5FF] via-white to-white px-4 py-12 sm:px-6 lg:px-8">
       {/* Soft brand glow behind the header */}
@@ -359,27 +418,67 @@ export default function ChoosePlanPage() {
         </div>
 
         {/* Plan cards */}
-        {/* Investors and VCs FIRST - they are the core customer and must not
-            have to scroll past founder plans. No self-serve checkout: our
-            team sets each investor up personally, so the path is Talk to
-            sales. */}
-        <div className="mt-8 overflow-hidden rounded-2xl border border-[#4285F4] bg-white px-6 py-6 ring-1 ring-[#4285F4]/30 sm:flex sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="font-semibold text-gray-900">Are you an investor or a VC?</p>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Deal Watch keeps every startup you have seen on a private watchlist, with your own
-              account manager who tells you only when one makes real progress. We set up every
-              investor personally.
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Replies usually arrive within 5 minutes. At busy times it can take up to 6 hours.
-            </p>
+        {/* Investors and VCs FIRST - they are the core customer. Two paths:
+            pay and enter instantly (the scalable rail), or personal
+            onboarding via a demo call (the Preferred card). Paying the
+            Investor plan flips is_investor automatically via the payment
+            webhooks, and the account manager is assigned by default. */}
+        <div className="mt-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#4285F4]">
+            For investors and VCs
+          </p>
+          <div className="mx-auto mt-4 grid max-w-4xl gap-5 sm:grid-cols-2">
+            {/* Card 1: self-serve Investor plan */}
+            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6">
+              <h3 className="text-lg font-semibold text-gray-900">Investor</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Deal Watch plus your own account manager.</p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">$149</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <ul className="mt-4 flex-1 space-y-2">
+                {INVESTOR_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-gray-700">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#4285F4]" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                className="mt-5 h-11 w-full bg-gray-900 text-white hover:bg-gray-800"
+                onClick={handleSelectInvestor}
+                disabled={selecting === 'vdr-investor' || paying}
+              >
+                {paying && pendingPlan?.id === 'vdr-investor' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Choose Investor'
+                )}
+              </Button>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Billed monthly. Cancel anytime. Your dashboard opens right after payment.
+              </p>
+            </div>
+
+            {/* Card 2: personal onboarding (Preferred) */}
+            <div className="relative flex flex-col rounded-2xl border border-[#4285F4] bg-white p-6 shadow-md ring-1 ring-[#4285F4]">
+              <span className="absolute -top-3 left-6 rounded-full bg-[#4285F4] px-3 py-1 text-xs font-semibold text-white">
+                Preferred
+              </span>
+              <h3 className="text-lg font-semibold text-gray-900">Personal onboarding</h3>
+              <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                We personally onboard every investor: a live demo, your watchlist set up for you,
+                and a direct introduction to your account manager. Perfect if you want to see Deal
+                Watch working on your own deal flow before paying.
+              </p>
+              <ContactSalesButton className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4285F4] text-sm font-semibold text-white transition-colors hover:bg-[#3367d6]">
+                Get a demo call
+              </ContactSalesButton>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Replies usually arrive within 5 minutes. At busy times it can take up to 6 hours.
+              </p>
+            </div>
           </div>
-          <ContactSalesButton
-            className="mt-4 inline-flex shrink-0 items-center justify-center rounded-xl bg-[#4285F4] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3367d6] sm:ml-6 sm:mt-0"
-          >
-            Talk to sales
-          </ContactSalesButton>
         </div>
 
         <div
