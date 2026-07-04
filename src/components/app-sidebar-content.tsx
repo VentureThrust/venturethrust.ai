@@ -759,6 +759,23 @@ export function AppSidebarContent({
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
+
+              <div className="border-t border-gray-200" />
+              <SidebarMenuItem>
+                <Link href="/enquiries" className="w-full" passHref>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive('/enquiries')}
+                    tooltip="Enquiries"
+                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Inbox className="h-6 w-6 shrink-0" />
+                      <span className="text-base">Enquiries</span>
+                    </div>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
             </>
           )}
 
