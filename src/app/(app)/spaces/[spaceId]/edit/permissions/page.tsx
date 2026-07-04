@@ -43,6 +43,7 @@ import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getFileType } from '@/lib/data';
+import Link from 'next/link';
 
 
 const readFileAsDataURL = (file: globalThis.File): Promise<string> => {
@@ -165,7 +166,107 @@ function SpacePermissionsInner() {
 
   const spaceId = params.spaceId as string;
   const linkId = params.linkId as string;
-  
+
+  // ── Real share links for this space ─────────────────────────────────────
+  // Multiple links per space, DocSend style: one named link per investor or
+  // account, so analytics attribute every visit to the exact link that was
+  // opened. The selected link drives the URL row and the Save button.
+  type SpaceLink = {
+    id: string;
+    token: string;
+    name: string;
+    emailRequired: boolean;
+    active: boolean;
+    createdAt: string;
+  };
+  const [links, setLinks] = useState<SpaceLink[]>([]);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [creatingLink, setCreatingLink] = useState(false);
+
+  const loadLinks = async (selectId?: string) => {
+    const base = 'id, token, link_name, email_required, is_active, created_at';
+    let rows: Array<Record<string, unknown>> = [];
+    // recipient_email is a newer column; retry without it on older DBs.
+    const withRecip = await supabase
+      .from('share_links')
+      .select(`${base}, recipient_email`)
+      .eq('space_id', spaceId)
+      .is('file_id', null)
+      .order('created_at', { ascending: false });
+    if (withRecip.error) {
+      const plain = await supabase
+        .from('share_links')
+        .select(base)
+        .eq('space_id', spaceId)
+        .is('file_id', null)
+        .order('created_at', { ascending: false });
+      rows = (plain.data ?? []) as Array<Record<string, unknown>>;
+    } else {
+      // Per-investor send-by-email links are managed from the Share dialog.
+      rows = ((withRecip.data ?? []) as Array<Record<string, unknown>>).filter((r) => !r.recipient_email);
+    }
+    const mapped: SpaceLink[] = rows.map((r) => ({
+      id: r.id as string,
+      token: r.token as string,
+      name: (r.link_name as string) || 'Untitled link',
+      emailRequired: r.email_required !== false,
+      active: r.is_active !== false,
+      createdAt: (r.created_at as string) ?? '',
+    }));
+    setLinks(mapped);
+    const target = selectId ?? selectedLinkId;
+    const pick = mapped.find((l) => l.id === target) ?? mapped[0];
+    if (pick) {
+      setSelectedLinkId(pick.id);
+      setLinkName(pick.name);
+      setRequireEmail(pick.emailRequired);
+    }
+  };
+
+  useEffect(() => {
+    if (spaceId) void loadLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId]);
+
+  const handleCreateLink = async () => {
+    if (creatingLink) return;
+    setCreatingLink(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) {
+        toast({ variant: 'destructive', title: 'Please sign in again.' });
+        return;
+      }
+      const token =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID().replace(/-/g, '')
+          : `tok_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const { data, error } = await supabase
+        .from('share_links')
+        .insert({
+          space_id: spaceId,
+          created_by: userId,
+          token,
+          link_name: `Link ${links.length + 1}`,
+          email_required: true,
+          is_active: true,
+        })
+        .select('id')
+        .single();
+      if (error || !data) {
+        toast({ variant: 'destructive', title: 'Could not create the link', description: error?.message });
+        return;
+      }
+      await loadLinks(data.id as string);
+      const url = `${window.location.origin}/shared/${token}`;
+      try { await navigator.clipboard.writeText(url); } catch { /* clipboard optional */ }
+      toast({ title: 'New link created', description: 'It was copied to your clipboard. Name it and click Save.' });
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -175,7 +276,6 @@ function SpacePermissionsInner() {
       const foundSpace = findSpace(spaceId);
       if (foundSpace) {
         setSpace(foundSpace);
-        setLinkName("My Company's Example Account"); // Default value
 
         // Initialize state from space properties
         setRequireNda(foundSpace.nda?.required ?? false);
@@ -223,13 +323,14 @@ function SpacePermissionsInner() {
 
 
   const copyLink = () => {
-    if (!space) return;
-     const fullLink =
-    typeof window !== 'undefined' ? `${window.location.origin}/space/${space.id}/${space.id}` : '';
+    if (!selectedLink) {
+      toast({ variant: 'destructive', title: 'Create a link first.' });
+      return;
+    }
     navigator.clipboard.writeText(fullLink);
     toast({
       title: 'Link copied!',
-      description: 'The space link has been copied to your clipboard.',
+      description: 'Share it with your investor.',
     });
   };
   
@@ -284,6 +385,19 @@ function SpacePermissionsInner() {
       return;
     }
 
+    // Persist the selected link's own settings (name + email gate).
+    if (selectedLinkId) {
+      const { error: linkErr } = await supabase
+        .from('share_links')
+        .update({ link_name: linkName.trim() || null, email_required: requireEmail })
+        .eq('id', selectedLinkId);
+      if (linkErr) {
+        toast({ variant: 'destructive', title: 'Could not save link settings', description: linkErr.message });
+        return;
+      }
+      void loadLinks(selectedLinkId);
+    }
+
     toast({
         title: "Permissions saved",
         description: "Your link permissions have been updated."
@@ -295,7 +409,11 @@ function SpacePermissionsInner() {
     return <div>Loading permissions...</div>;
   }
   
-  const fullLink = `docsend.com/view/s/kdgk3tj6kbfzxj7h`; // This is a placeholder
+  // The REAL link for this space (the selected share_links row).
+  const selectedLink = links.find((l) => l.id === selectedLinkId) ?? null;
+  const fullLink = selectedLink
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://venturethrust.com'}/shared/${selectedLink.token}`
+    : 'No link yet. Click Create new link.';
 
 
   return (
@@ -303,8 +421,8 @@ function SpacePermissionsInner() {
         <div className="flex flex-col gap-6 pr-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold tracking-tight">Permissions</h1>
-                 <Button variant="outline">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Create new link
+                 <Button variant="outline" onClick={handleCreateLink} disabled={creatingLink}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> {creatingLink ? 'Creating...' : 'Create new link'}
                 </Button>
             </div>
 
@@ -594,6 +712,77 @@ function SpacePermissionsInner() {
                 />
             </div>
             
+            {/* ── All links for this space ─────────────────────────────────
+                DocSend-style: one named link per investor or account. Click a
+                row to select it (the URL bar and settings above follow), copy
+                it, switch it off, or open its own analytics. */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">All links for this space</CardTitle>
+                    <CardDescription>
+                        Create one link per investor or account. Every visit is tracked against the exact link that was opened.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="divide-y">
+                    {links.length === 0 && (
+                        <p className="py-2 text-sm text-muted-foreground">
+                            No links yet. Click Create new link above to make the first one.
+                        </p>
+                    )}
+                    {links.map((l) => (
+                        <div
+                            key={l.id}
+                            className={cn(
+                                'flex flex-wrap items-center gap-3 py-3',
+                                selectedLinkId === l.id && 'bg-blue-50/60 -mx-2 rounded-md px-2',
+                            )}
+                        >
+                            <button
+                                type="button"
+                                className="min-w-0 flex-1 text-left"
+                                onClick={() => {
+                                    setSelectedLinkId(l.id);
+                                    setLinkName(l.name);
+                                    setRequireEmail(l.emailRequired);
+                                }}
+                                title="Select this link"
+                            >
+                                <p className="truncate text-sm font-medium">{l.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                    /shared/{l.token.slice(0, 14)}…
+                                    {l.createdAt ? ` · created ${format(new Date(l.createdAt), 'MMM d, yyyy')}` : ''}
+                                </p>
+                            </button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/shared/${l.token}`);
+                                    toast({ title: 'Link copied!' });
+                                }}
+                            >
+                                <Copy className="mr-1.5 h-3.5 w-3.5" />Copy
+                            </Button>
+                            <Button size="sm" variant="ghost" asChild>
+                                <Link href={`/analytics/space/${spaceId}/${l.id}`}>
+                                    <Eye className="mr-1.5 h-3.5 w-3.5" />Analytics
+                                </Link>
+                            </Button>
+                            <div className="flex items-center gap-1.5">
+                                <Switch
+                                    checked={l.active}
+                                    onCheckedChange={async (c) => {
+                                        await supabase.from('share_links').update({ is_active: c }).eq('id', l.id);
+                                        void loadLinks(selectedLinkId ?? undefined);
+                                    }}
+                                />
+                                <span className="w-10 text-xs text-muted-foreground">{l.active ? 'Active' : 'Off'}</span>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+
             <div className="flex justify-end gap-2 mt-auto">
                 <Button variant="ghost">Cancel</Button>
                 <Button onClick={handleSave}>Save</Button>
