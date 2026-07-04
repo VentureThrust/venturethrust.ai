@@ -102,6 +102,9 @@ export default function ChoosePlanPage() {
   const { isIndia } = useCountry();
   const [selecting, setSelecting] = useState<string | null>(null);
   const [annual, setAnnual] = useState(false);
+  // Founder plans show by default; investor plans appear only when the
+  // visitor flips the audience toggle.
+  const [audience, setAudience] = useState<'founders' | 'investors'>('founders');
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -399,8 +402,34 @@ export default function ChoosePlanPage() {
           </div>
         )}
 
-        {/* Billing period - radio group (DocSend style) */}
-        <div className="mt-10 flex items-center justify-center gap-8">
+        {/* Audience toggle - founders vs investors */}
+        <div className="mt-10 flex items-center justify-center">
+          <div className="inline-flex rounded-full border border-gray-300 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setAudience('founders')}
+              className={cn(
+                'rounded-full px-5 py-2 text-sm font-medium transition-colors',
+                audience === 'founders' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900',
+              )}
+            >
+              For founders
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudience('investors')}
+              className={cn(
+                'rounded-full px-5 py-2 text-sm font-medium transition-colors',
+                audience === 'investors' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900',
+              )}
+            >
+              For investors and VCs
+            </button>
+          </div>
+        </div>
+
+        {/* Billing period - radio group (DocSend style), founder plans only */}
+        <div className={cn('mt-8 flex items-center justify-center gap-8', audience !== 'founders' && 'hidden')}>
           <button type="button" onClick={() => setAnnual(false)} className="flex items-center gap-2.5">
             <span className={cn('flex h-5 w-5 items-center justify-center rounded-full border-2', !annual ? 'border-gray-900' : 'border-gray-400')}>
               {!annual && <span className="h-2.5 w-2.5 rounded-full bg-gray-900" />}
@@ -423,7 +452,7 @@ export default function ChoosePlanPage() {
             onboarding via a demo call (the Preferred card). Paying the
             Investor plan flips is_investor automatically via the payment
             webhooks, and the account manager is assigned by default. */}
-        <div className="mt-8">
+        <div className={cn('mt-8', audience !== 'investors' && 'hidden')}>
           <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#4285F4]">
             For investors and VCs
           </p>
@@ -485,6 +514,7 @@ export default function ChoosePlanPage() {
           className={cn(
             'mt-8 grid gap-6 sm:grid-cols-2',
             PLAN_TIERS.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+            audience !== 'founders' && 'hidden',
           )}
         >
           {PLAN_TIERS.map((plan) => {
@@ -580,8 +610,8 @@ export default function ChoosePlanPage() {
           })}
         </div>
 
-        {/* Enterprise / sales */}
-        <div className="mt-12 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F0F5FF] to-white px-6 py-6 sm:flex sm:items-center sm:justify-between">
+        {/* Enterprise / sales (founder view only) */}
+        <div className={cn('mt-12 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-[#F0F5FF] to-white px-6 py-6 sm:flex sm:items-center sm:justify-between', audience !== 'founders' && 'hidden')}>
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#4285F4]/10 text-[#4285F4]">
               <Building2 className="h-5 w-5" />
