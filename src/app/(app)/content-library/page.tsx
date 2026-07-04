@@ -2591,14 +2591,14 @@ function ContentLibraryPageComponent() {
           />
 
           {/* RIGHT CONTENT PANEL */}
-          <div className="flex-1 overflow-y-auto pl-6 pt-4 min-w-0 max-md:pl-0">
+          <div className="flex-1 overflow-y-auto pl-6 pt-4 min-w-0 max-md:pl-0 max-md:overflow-x-hidden">
             {showDeletedContent ? (
               <DeletedContentView items={deletedItems} />
             ) : selectedFolder ? (
               <>
-                <div className="flex items-center justify-between mb-5 gap-4">
+                <div className="flex flex-wrap items-center justify-between mb-5 gap-4">
                   <h2 className="text-xl font-bold truncate min-w-0" title={selectedFolder.name}>{selectedFolder.name}</h2>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 max-md:shrink">
                     {/* Folder-view actions - all three use the dark Agreements-style pill.
                         Default-variant dome on hover (white highlight on dark). */}
                     <Button size="sm" className="bg-gray-900 hover:bg-gray-800 text-white" onClick={openUploadSheet}>
