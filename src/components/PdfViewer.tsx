@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, FileWarning, Download, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, FileWarning, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // ── PDF.js types (minimal - we only use a few APIs) ──────────────────────
@@ -343,7 +343,33 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-gray-800">
+    <div className="relative w-full h-full flex flex-col bg-gray-800">
+      {/* Floating prev/next arrows, vertically centered on the sides - one
+          tap to move a page without hunting for the bottom bar. */}
+      {numPages > 1 && (
+        <>
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => scrollToPage(currentPage - 1)}
+            className="absolute left-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Previous page"
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            disabled={currentPage >= numPages}
+            onClick={() => scrollToPage(currentPage + 1)}
+            className="absolute right-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Next page"
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
       <div
         ref={containerRef}
         className="flex-1 overflow-auto py-6 flex flex-col items-center gap-4"
