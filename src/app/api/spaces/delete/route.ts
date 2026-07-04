@@ -280,6 +280,7 @@ export async function POST(req: NextRequest) {
     ['dw_update_events', 'space_id'],
     ['alerts', 'space_id'],
     ['expired_link_attempts', 'space_id'],
+    ['file_request_uploads', 'space_id'],
   ] as const) {
     await purge(table, col, spaceId);
   }

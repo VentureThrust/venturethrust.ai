@@ -525,6 +525,9 @@ export default function SpacesPage() {
   const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+  // Delete confirmation: which space is pending deletion, and in-flight state.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // "Name your space" dialog state
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
@@ -865,7 +868,10 @@ export default function SpacesPage() {
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                                </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(space.id)}>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteTarget({ id: space.id, name: space.name || 'this space' })}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -952,6 +958,39 @@ export default function SpacesPage() {
       title="Space limit reached"
       description={upgradeMsg ?? ''}
     />
+
+    {/* Delete confirmation - nothing is deleted until the user confirms. */}
+    <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o && !isDeleting) setDeleteTarget(null); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete this space?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          You are about to permanently delete <span className="font-semibold text-foreground">{deleteTarget?.name}</span> with
+          all its files, folders, and links. Every shared link for this space will stop working.
+          This cannot be undone.
+        </p>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={isDeleting}
+            onClick={async () => {
+              if (!deleteTarget) return;
+              setIsDeleting(true);
+              await handleDelete(deleteTarget.id);
+              setIsDeleting(false);
+              setDeleteTarget(null);
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {isDeleting ? 'Deleting...' : 'Delete space'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
