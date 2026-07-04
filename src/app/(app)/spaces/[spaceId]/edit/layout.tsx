@@ -232,14 +232,23 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
     }
   };
 
-  const handleDeleteSpace = () => {
+  const handleDeleteSpace = async () => {
     if (!space) return;
-    deleteSpace(space.id);
+    // Only claim success (and navigate away) when the database confirms.
+    const ok = await deleteSpace(space.id);
+    setIsDeleteAlertOpen(false);
+    if (!ok) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not delete the space',
+        description: 'Something blocked the delete. Please try again.',
+      });
+      return;
+    }
     toast({
       title: 'Space deleted',
       description: `The space "${space.title}" has been permanently deleted.`,
     });
-    setIsDeleteAlertOpen(false);
     router.push('/spaces');
   };
 

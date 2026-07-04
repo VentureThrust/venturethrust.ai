@@ -44,6 +44,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getFileType } from '@/lib/data';
 import Link from 'next/link';
+import { logAudit } from '@/lib/audit';
 
 
 const readFileAsDataURL = (file: globalThis.File): Promise<string> => {
@@ -259,6 +260,7 @@ function SpacePermissionsInner() {
         return;
       }
       await loadLinks(data.id as string);
+      void logAudit({ spaceId, action: 'link_created', resourceName: `Link ${links.length + 1}` });
       const url = `${window.location.origin}/shared/${token}`;
       try { await navigator.clipboard.writeText(url); } catch { /* clipboard optional */ }
       toast({ title: 'New link created', description: 'It was copied to your clipboard. Name it and click Save.' });

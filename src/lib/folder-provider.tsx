@@ -687,16 +687,34 @@ export const FoldersProvider = ({ children }: { children: ReactNode }) => {
       const targetFile = targetFolder?.files.find(f => f.id === fileId);
       const fileName = targetFile?.name ?? null;
 
-      if (fileName) logDeletion(fileId, fileName, 'file');
-
-      startTransition(() => {
-        setFolders(prev => deleteFileRecursive(prev, folderId, fileId));
-      });
-      if (userId) {
-        supabase.from('files').delete()
-          .eq('id', fileId).eq('user_id', userId)
-          .then(({ error }) => { if (error) console.error('Error deleting file:', error); });
-      }
+      // Delete through the service-role route: it clears dependents (share
+      // links, permissions) that used to make the direct delete fail silently
+      // on foreign keys, so the "deleted" file reappeared on refresh. Only
+      // update the UI when the database confirms.
+      void (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch('/api/spaces/delete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session?.access_token ?? ''}`,
+            },
+            body: JSON.stringify({ itemId: fileId }),
+          });
+          const j = await res.json().catch(() => ({ ok: false }));
+          if (!res.ok || !j.ok) {
+            console.error('[deleteFile] failed:', j.error ?? res.status);
+            return; // leave the file visible - honest about the failure
+          }
+          if (fileName) logDeletion(fileId, fileName, 'file');
+          startTransition(() => {
+            setFolders(prev => deleteFileRecursive(prev, folderId, fileId));
+          });
+        } catch (e) {
+          console.error('[deleteFile] network error:', e);
+        }
+      })();
     },
     [userId, logDeletion]
   );

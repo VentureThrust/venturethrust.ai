@@ -43,7 +43,7 @@ import { getFileTypeStyle } from '@/lib/file-icons';
 
 // ─── Event model ──────────────────────────────────────────────────────────────
 
-type EventKind = 'session_start' | 'file_uploaded' | 'question_asked' | 'question_answered';
+type EventKind = 'session_start' | 'file_uploaded' | 'question_asked' | 'question_answered' | 'owner_action';
 
 type AuditEvent = {
   id: string;
@@ -55,6 +55,19 @@ type AuditEvent = {
   resourceName?: string;
   /** Optional description / question body. */
   detail?: string;
+  /** Owner actions carry their own label (Renamed, File deleted, ...). */
+  label?: string;
+};
+
+// Owner-action rows (audit_logs table) → human labels.
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  file_deleted: 'File deleted',
+  folder_deleted: 'Folder deleted',
+  space_deleted: 'Space deleted',
+  item_renamed: 'Renamed',
+  link_created: 'Link created',
+  file_updated: 'File updated',
+  file_request_created: 'File request created',
 };
 
 // ─── Icon + label per event kind ──────────────────────────────────────────────
@@ -73,6 +86,8 @@ function eventMeta(kind: EventKind): {
       return { Icon: HelpCircle, iconClass: 'text-amber-600', label: 'Question asked' };
     case 'question_answered':
       return { Icon: MessageSquare, iconClass: 'text-purple-600', label: 'Question answered' };
+    case 'owner_action':
+      return { Icon: FileText, iconClass: 'text-gray-700', label: 'Owner action' };
   }
 }
 
@@ -104,7 +119,7 @@ export default function AuditLogPage() {
     let cancelled = false;
 
     const load = async () => {
-      const [{ data: sessions }, { data: files }, { data: questions }] = await Promise.all([
+      const [{ data: sessions }, { data: files }, { data: questions }, { data: ownerActions }] = await Promise.all([
         supabase
           .from('viewer_sessions')
           .select('id, visitor_email, started_at, current_file_name')
@@ -118,6 +133,13 @@ export default function AuditLogPage() {
         supabase
           .from('questions')
           .select('id, visitor_email, body, file_name, created_at, answered_at, answer_body')
+          .eq('space_id', spaceId)
+          .order('created_at', { ascending: false }),
+        // Owner actions (renames, deletes, links...). Table may not exist
+        // until the audit_logs migration runs - data simply comes back null.
+        supabase
+          .from('audit_logs')
+          .select('id, actor_email, action, resource_name, detail, created_at')
           .eq('space_id', spaceId)
           .order('created_at', { ascending: false }),
       ]);
@@ -165,6 +187,18 @@ export default function AuditLogPage() {
             detail: q.answer_body ?? undefined,
           });
         }
+      }
+
+      for (const a of (ownerActions ?? []) as { id: string; actor_email: string | null; action: string; resource_name: string | null; detail: string | null; created_at: string }[]) {
+        merged.push({
+          id: `audit:${a.id}`,
+          kind: 'owner_action',
+          at: new Date(a.created_at),
+          actorEmail: 'Owner',
+          resourceName: a.resource_name ?? undefined,
+          detail: a.detail ?? undefined,
+          label: AUDIT_ACTION_LABELS[a.action] ?? a.action,
+        });
       }
 
       merged.sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -250,10 +284,32 @@ export default function AuditLogPage() {
       })
       .subscribe();
 
+    const auditChan = supabase
+      .channel(`audit:owner:${spaceId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'audit_logs',
+        filter: `space_id=eq.${spaceId}`,
+      }, payload => {
+        const a = payload.new as { id: string; actor_email: string | null; action: string; resource_name: string | null; detail: string | null; created_at: string };
+        setEvents(prev => prependDistinct(prev, {
+          id: `audit:${a.id}`,
+          kind: 'owner_action',
+          at: new Date(a.created_at),
+          actorEmail: 'Owner',
+          resourceName: a.resource_name ?? undefined,
+          detail: a.detail ?? undefined,
+          label: AUDIT_ACTION_LABELS[a.action] ?? a.action,
+        }));
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(sessionChan);
       supabase.removeChannel(fileChan);
       supabase.removeChannel(questionChan);
+      supabase.removeChannel(auditChan);
     };
   }, [spaceId]);
 
@@ -281,7 +337,7 @@ export default function AuditLogPage() {
         const { label } = eventMeta(e.kind);
         return [
           e.at.toISOString(),
-          label,
+          e.label ?? label,
           e.actorEmail,
           e.resourceName ?? '',
           (e.detail ?? '').replace(/\n/g, ' '),
@@ -328,6 +384,7 @@ export default function AuditLogPage() {
               <DropdownMenuItem onClick={() => setKindFilter('file_uploaded')}>File uploads</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setKindFilter('question_asked')}>Questions asked</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setKindFilter('question_answered')}>Questions answered</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setKindFilter('owner_action')}>Owner actions</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -387,7 +444,7 @@ function EventRow({ event }: { event: AuditEvent }) {
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-medium">{label}</div>
+          <div className="text-sm font-medium">{event.label ?? label}</div>
           {event.resourceName && (() => {
             const isFileEvent = event.kind === 'file_uploaded';
             const { Icon: FileIcon, text: fileColor } = isFileEvent

@@ -8,6 +8,7 @@ import { type ShareLink } from '@/lib/documents-provider';
 import { supabase } from '@/lib/supabaseClient';
 import { getEffectiveOwnerId } from '@/lib/workspace';
 import { getMyPlanTier } from '@/lib/usage-limits';
+import { logAudit } from '@/lib/audit';
 
 export type Space = {
   id: string;
@@ -36,7 +37,7 @@ type SpacesContextType = {
   addSpace: (newSpace: Partial<Omit<Space, 'id' | 'spaceId' | 'links' | 'lastUpdated' | 'collaborators'>>) => Promise<string>;
   findSpace: (id: string, includeContent?: boolean) => Space | undefined;
   updateSpace: (updatedSpace: Partial<Space> & { id: string }) => void;
-  deleteSpace: (id: string) => Promise<void>;
+  deleteSpace: (id: string) => Promise<boolean>;
   addFilesToSpace: (spaceId: string, files: File[], parentId?: string | null) => Promise<void>;
   addFolderToSpace: (spaceId: string, folderName: string, parentId?: string | null) => Promise<string | undefined>;
   renameItemInSpace: (spaceId: string, itemId: string, newName: string) => Promise<void>;
@@ -327,9 +328,33 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const deleteSpace = useCallback(async (id: string) => {
-    await supabase.from("spaces").delete().eq("id", id);
-    setSpaces(prev => prev.filter(space => space.id !== id));
+  // Deletes go through the service-role route, which clears every dependent
+  // row (files, folders, links, analytics) in FK-safe order and VERIFIES the
+  // row is really gone. The old direct delete failed silently on foreign
+  // keys, so the "deleted" space came back on refresh. The UI only updates
+  // when the database confirms.
+  const deleteSpace = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/spaces/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ spaceId: id }),
+      });
+      const j = await res.json().catch(() => ({ ok: false }));
+      if (!res.ok || !j.ok) {
+        console.error('[deleteSpace] failed:', j.error ?? res.status);
+        return false;
+      }
+      setSpaces(prev => prev.filter(space => space.id !== id));
+      return true;
+    } catch (e) {
+      console.error('[deleteSpace] network error:', e);
+      return false;
+    }
   }, []);
 
   const addFilesToSpace = useCallback(async (spaceId: string, files: File[], parentId?: string | null) => {
@@ -434,20 +459,30 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
         await supabase.from("files").update({ name: newName }).eq("id", itemId);
       }
     }
+    void logAudit({ spaceId, action: 'item_renamed', resourceName: newName });
     await refreshSpace(spaceId);
   }, [refreshSpace]);
 
   const deleteItemFromSpace = useCallback(async (spaceId: string, itemId: string, _parentId: string) => {
-    const { data: folder } = await supabase.from("folders").select("id").eq("id", itemId).maybeSingle();
-    if (folder) {
-      await supabase.from("folders").delete().eq("id", itemId);
-    } else {
-      const { data: section } = await supabase.from("space_sections").select("id").eq("id", itemId).maybeSingle();
-      if (section) {
-        await supabase.from("space_sections").delete().eq("id", itemId);
-      } else {
-        await supabase.from("files").delete().eq("id", itemId);
-      }
+    // Service-role route: detects folder/section/file, clears dependents
+    // (share links, permissions, analytics, storage), verifies the row is
+    // gone, and writes the audit entry. The refresh afterwards shows the
+    // TRUE database state, so a failed delete visibly stays instead of
+    // pretending it worked.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/spaces/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ spaceId, itemId }),
+      });
+      const j = await res.json().catch(() => ({ ok: false }));
+      if (!res.ok || !j.ok) console.error('[deleteItemFromSpace] failed:', j.error ?? res.status);
+    } catch (e) {
+      console.error('[deleteItemFromSpace] network error:', e);
     }
     await refreshSpace(spaceId);
   }, [refreshSpace]);
