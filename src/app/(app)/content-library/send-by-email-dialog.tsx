@@ -3,40 +3,35 @@
 /**
  * SendByEmailDialog - "Send to investors" for a deck (file) OR a space.
  *
- * Paste (or bulk-import from Excel/CSV) a list of recipient emails plus a
- * message. For each email we create a dedicated share_links row
- * (recipient_email set, email gate OFF) so the recipient opens the deck or
- * space DIRECTLY, with no email prompt, like a Google Drive link, while every
- * open is still attributed to that exact recipient. Then the server emails
- * each recipient their personal link.
+ * Styled like a real email compose window (Gmail-style): a To line where
+ * every address becomes a removable chip, an underlined Subject row, a plain
+ * writing area, and a Send button in the footer. Typing or pasting emails
+ * (comma, space, or new-line separated) turns them into chips; Backspace
+ * removes the last chip; an Excel/CSV import appends chips.
  *
- * Modes (pass exactly one):
- *   fileId  - single content-library deck; link renders just that file.
- *   spaceId - a whole space; link opens the space view with no email gate,
- *             and the space's own watermark/permission settings apply.
+ * For each recipient we create a dedicated share_links row (recipient_email
+ * set, email gate OFF) so they open the deck or space DIRECTLY from their
+ * inbox, no email prompt, while every view is attributed to that exact
+ * address. The server then emails each recipient their personal link under
+ * the sender's name.
  *
- * Fully additive: the existing gated "Create link" / "Share space" flows are
- * untouched.
+ * Modes (pass exactly one): fileId (single deck) or spaceId (whole space).
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Upload } from 'lucide-react';
+import { Loader2, Send, Upload, Mail, X } from 'lucide-react';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 10;
-const TEXTAREA_CLASS =
-  'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
 
 /** Pull every email address out of arbitrary text (CSV cells, lines, etc.). */
 function extractEmails(text: string): string[] {
@@ -59,7 +54,8 @@ export function SendByEmailDialog({
 }) {
   const { toast } = useToast();
   const isSpace = !!spaceId && !fileId;
-  const [emailsRaw, setEmailsRaw] = useState('');
+  const [chips, setChips] = useState<string[]>([]);
+  const [draft, setDraft] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [watermark, setWatermark] = useState(true);
@@ -68,14 +64,51 @@ export function SendByEmailDialog({
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const toInputRef = useRef<HTMLInputElement>(null);
 
-  const emails = useMemo(() => {
-    const set = new Set<string>(extractEmails(emailsRaw));
-    return Array.from(set).slice(0, MAX_RECIPIENTS);
-  }, [emailsRaw]);
+  const emails = chips;
+
+  const addFromText = (text: string) => {
+    const found = extractEmails(text);
+    if (found.length === 0) return;
+    setChips((prev) => {
+      const set = new Set(prev);
+      for (const e of found) {
+        if (set.size >= MAX_RECIPIENTS) break;
+        set.add(e);
+      }
+      return Array.from(set);
+    });
+  };
+
+  const commitDraft = () => {
+    if (draft.trim()) {
+      addFromText(draft);
+      setDraft('');
+    }
+  };
+
+  const removeChip = (email: string) =>
+    setChips((prev) => prev.filter((e) => e !== email));
+
+  const handleToKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ' || e.key === ';') {
+      e.preventDefault();
+      commitDraft();
+    } else if (e.key === 'Backspace' && draft === '' && chips.length > 0) {
+      setChips((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const handleToPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    addFromText(e.clipboardData.getData('text'));
+    setDraft('');
+  };
 
   const reset = () => {
-    setEmailsRaw('');
+    setChips([]);
+    setDraft('');
     setSubject('');
     setMessage('');
     setWatermark(true);
@@ -105,7 +138,7 @@ export function SendByEmailDialog({
       if (found.length === 0) {
         setError('No email addresses found in that file.');
       } else {
-        setEmailsRaw((prev) => (prev.trim() ? prev.trim() + '\n' : '') + found.join('\n'));
+        addFromText(found.join('\n'));
         toast({ title: `Imported ${found.length} ${found.length === 1 ? 'email' : 'emails'}` });
       }
     } catch {
@@ -116,6 +149,7 @@ export function SendByEmailDialog({
   };
 
   const handleSend = async () => {
+    commitDraft();
     if (sending || emails.length === 0) return;
     setSending(true);
     setError(null);
@@ -224,112 +258,125 @@ export function SendByEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!sending) onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            {isSpace ? 'Send this space to investors' : 'Send to investors by email'}
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
+        {/* Compose header - like a new-message window */}
+        <div className="flex items-center gap-2 border-b bg-gray-50 px-4 py-3">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <DialogTitle className="text-sm font-semibold">
+            {isSpace ? 'New message · send this space' : 'New message · send this deck'}
           </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-5 py-2">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">To</Label>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv,.txt"
-                className="hidden"
-                onChange={handleImportFile}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={importing}
-                onClick={() => importInputRef.current?.click()}
-              >
-                {importing
-                  ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  : <Upload className="mr-1.5 h-3.5 w-3.5" />}
-                Import Excel or CSV
-              </Button>
-            </div>
-            <textarea
-              value={emailsRaw}
-              onChange={(e) => setEmailsRaw(e.target.value)}
-              rows={4}
-              placeholder="Paste emails, separated by commas, spaces, or new lines"
-              className={TEXTAREA_CLASS}
-            />
-            <p className="text-xs text-muted-foreground">
-              {emails.length} valid {emails.length === 1 ? 'email' : 'emails'} (max {MAX_RECIPIENTS} per send).
-              Each investor gets their own private link that opens
-              {isSpace ? ' the space' : ' the deck'} directly, with no email prompt.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Subject</Label>
-            <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder={isSpace
-                ? 'e.g. Our data room for your review'
-                : 'e.g. Our pitch deck for your review'}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
-            <p className="text-xs text-muted-foreground">
-              This is the exact subject line investors will see, sent under your name.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">
-              Message <span className="font-normal italic text-muted-foreground">(optional)</span>
-            </Label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
-              placeholder={isSpace
-                ? 'Hi, sharing our data room for your review.'
-                : 'Hi, sharing our deck for your review.'}
-              className={TEXTAREA_CLASS}
-            />
-            <p className="text-xs text-muted-foreground">
-              The email contains only your message and a Click here to view button. No VentureThrust template.
-            </p>
-          </div>
-
-          {!isSpace && (
-            <>
-              <div className="flex items-start gap-3">
-                <Checkbox id="sbe-watermark" checked={watermark} onCheckedChange={(c) => setWatermark(Boolean(c))} className="mt-0.5" />
-                <label htmlFor="sbe-watermark" className="text-sm font-medium cursor-pointer">
-                  Stamp each investor&apos;s email as a watermark
-                </label>
-              </div>
-              <div className="flex items-start gap-3">
-                <Checkbox id="sbe-download" checked={allowDownload} onCheckedChange={(c) => setAllowDownload(Boolean(c))} className="mt-0.5" />
-                <label htmlFor="sbe-download" className="text-sm font-medium cursor-pointer">
-                  Allow downloads
-                </label>
-              </div>
-            </>
-          )}
-          {isSpace && (
-            <p className="text-xs text-muted-foreground">
-              The space&apos;s own watermark and permission settings apply to these links.
-            </p>
-          )}
         </div>
-        <div className="flex items-center justify-between gap-3 border-t border-gray-200 pt-4">
-          <p className="text-xs text-amber-600 min-h-[1rem]">{error}</p>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>Cancel</Button>
-            <Button onClick={handleSend} disabled={sending || emails.length === 0}>
-              {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {sending ? 'Sending...' : `Send${emails.length ? ` (${emails.length})` : ''}`}
+
+        {/* To row - chips like a real email client */}
+        <div
+          className="flex min-h-[52px] cursor-text flex-wrap items-center gap-1.5 border-b px-4 py-2"
+          onClick={() => toInputRef.current?.focus()}
+        >
+          <span className="mr-1 text-sm text-muted-foreground">To</span>
+          {chips.map((e) => (
+            <span
+              key={e}
+              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 py-0.5 pl-2.5 pr-1 text-sm"
+            >
+              {e}
+              <button
+                type="button"
+                onClick={(ev) => { ev.stopPropagation(); removeChip(e); }}
+                className="rounded-full p-0.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900"
+                aria-label={`Remove ${e}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <input
+            ref={toInputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleToKeyDown}
+            onPaste={handleToPaste}
+            onBlur={commitDraft}
+            placeholder={chips.length === 0 ? 'Type or paste investor emails' : ''}
+            className="min-w-[140px] flex-1 border-0 bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+            {chips.length}/{MAX_RECIPIENTS}
+          </span>
+        </div>
+
+        {/* Subject row - underlined, like a compose window */}
+        <div className="border-b px-4">
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject"
+            className="h-11 w-full border-0 bg-transparent text-sm font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+          />
+        </div>
+
+        {/* Body */}
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={7}
+          placeholder={isSpace
+            ? 'Hi, sharing our data room for your review.'
+            : 'Hi, sharing our deck for your review.'}
+          className="w-full resize-none border-0 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
+        />
+
+        {/* Options + notes */}
+        <div className="space-y-2 border-t px-4 py-3">
+          {!isSpace && (
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={watermark} onCheckedChange={(c) => setWatermark(Boolean(c))} />
+                Watermark with each investor&apos;s email
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={allowDownload} onCheckedChange={(c) => setAllowDownload(Boolean(c))} />
+                Allow downloads
+              </label>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Each investor gets their own private link that opens
+            {isSpace ? ' the space' : ' the deck'} directly, no email prompt, sent under your name
+            with a Click here to view button.
+            {isSpace ? ' The space’s own watermark and permission settings apply.' : ''}
+          </p>
+          {error && <p className="text-xs text-amber-600">{error}</p>}
+        </div>
+
+        {/* Footer - Send on the left like an email client */}
+        <div className="flex items-center justify-between border-t bg-gray-50 px-4 py-3">
+          <Button onClick={handleSend} disabled={sending || (emails.length === 0 && !draft.trim())}>
+            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            {sending ? 'Sending...' : `Send${emails.length ? ` (${emails.length})` : ''}`}
+          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv,.txt"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={importing}
+              onClick={() => importInputRef.current?.click()}
+              title="Import emails from Excel or CSV"
+            >
+              {importing
+                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                : <Upload className="mr-1.5 h-4 w-4" />}
+              Import Excel or CSV
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={sending}>
+              Discard
             </Button>
           </div>
         </div>
