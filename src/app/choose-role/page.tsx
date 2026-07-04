@@ -245,18 +245,15 @@ export default function ChoosePlanPage() {
       setUserId(user.id);
       setEmail(user.email ?? null);
 
-      // Custom offer waiting for this email? RLS only returns the caller's
-      // own open offers. If one exists, open the investor view on it.
+      // Custom offer waiting for this email? Resolved by a server route
+      // (service role), so it works regardless of database policy quirks.
       try {
-        const { data: off } = await supabase
-          .from('dw_offers')
-          .select('id, seats, discount_pct, price_usd, price_inr, paddle_discount_code')
-          .eq('status', 'open')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (off) {
-          setOffer(off as OfferRow);
+        const res = await fetch('/api/deal-watch/my-offer', {
+          headers: { Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.offer) {
+          setOffer(j.offer as OfferRow);
           setAudience('investors');
         }
       } catch { /* offers table not migrated yet - nothing to show */ }

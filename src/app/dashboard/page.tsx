@@ -58,6 +58,31 @@ export default function Dashboard() {
   const { user, loading } = useUser();
   const router = useRouter();
 
+  // Investor accounts get the InvestorWelcome popup INSTEAD of the founder
+  // product tour. Rendering both at once froze the page: the welcome dialog
+  // locks pointer events while the tour's Next/Skip buttons sit beneath it.
+  // null = still resolving, render neither.
+  const [isInvestorAccount, setIsInvestorAccount] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const uid = session?.user?.id;
+        if (!uid) { if (active) setIsInvestorAccount(false); return; }
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_investor')
+          .eq('id', uid)
+          .maybeSingle();
+        if (active) setIsInvestorAccount((data as { is_investor?: boolean } | null)?.is_investor === true);
+      } catch {
+        if (active) setIsInvestorAccount(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -510,11 +535,10 @@ export default function Dashboard() {
       </div>
 
       <UpcomingFeatureDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} featureName="AI Due Diligence" />
-      {/* First-run guided tour: spotlights real nav items, shows once per user */}
-      <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />
-      {/* One-time welcome for freshly activated investors: manager card +
-          walkthrough video (or illustrated steps until the video is set). */}
-      <InvestorWelcome />
+      {/* Exactly ONE onboarding overlay, never both (they blocked each other):
+          founders get the guided tour, investors get the welcome popup. */}
+      {isInvestorAccount === false && <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />}
+      {isInvestorAccount === true && <InvestorWelcome />}
     </>
   );
 }

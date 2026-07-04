@@ -26,7 +26,10 @@ create index if not exists dw_offers_email_idx
 
 alter table public.dw_offers enable row level security;
 drop policy if exists dw_offers_own_read on public.dw_offers;
+-- auth.jwt() ->> 'email' works on every Supabase project (auth.email() does
+-- not exist on some). The app reads offers through a service-role route
+-- anyway; this policy is defense in depth.
 create policy dw_offers_own_read on public.dw_offers
   for select to authenticated
-  using (lower(investor_email) = lower(coalesce(auth.email(), '')));
+  using (lower(investor_email) = lower(coalesce(auth.jwt() ->> 'email', '')));
 -- No insert/update policies: the manager writes through the service role.
