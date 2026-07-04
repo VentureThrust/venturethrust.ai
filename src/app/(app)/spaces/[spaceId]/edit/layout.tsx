@@ -235,13 +235,13 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   const handleDeleteSpace = async () => {
     if (!space) return;
     // Only claim success (and navigate away) when the database confirms.
-    const ok = await deleteSpace(space.id);
+    const res = await deleteSpace(space.id);
     setIsDeleteAlertOpen(false);
-    if (!ok) {
+    if (!res.ok) {
       toast({
         variant: 'destructive',
         title: 'Could not delete the space',
-        description: 'Something blocked the delete. Please try again.',
+        description: res.error ? `Reason: ${res.error}` : 'Something blocked the delete. Please try again.',
       });
       return;
     }

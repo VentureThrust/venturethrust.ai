@@ -550,12 +550,12 @@ export default function SpacesPage() {
   const handleDelete = async (spaceId: string) => {
     // Only claim success when the database confirms the delete. The old
     // fire-and-forget toast said "deleted" even when the row survived.
-    const ok = await deleteSpace(spaceId);
-    if (!ok) {
+    const res = await deleteSpace(spaceId);
+    if (!res.ok) {
       toast({
         variant: "destructive",
         title: "Could not delete the space",
-        description: "Something blocked the delete. Please try again.",
+        description: res.error ? `Reason: ${res.error}` : "Something blocked the delete. Please try again.",
       });
       return;
     }

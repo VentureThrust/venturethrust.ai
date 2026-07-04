@@ -134,6 +134,11 @@ export async function POST(req: NextRequest) {
         .in('folder_id', folderIds);
       const fileIds = (files ?? []).map((f) => f.id as string);
       if (fileIds.length) {
+        // Access logs reference share_links - clear them before the links.
+        const { data: fl } = await admin.from('share_links').select('id').in('file_id', fileIds);
+        const flIds = (fl ?? []).map((l) => l.id as string);
+        if (flIds.length) await purge('share_link_access_logs', 'share_link_id', flIds);
+        await purge('share_link_access_logs', 'file_id', fileIds);
         await purge('share_links', 'file_id', fileIds);
         await purge('file_permissions', 'file_id', fileIds);
         await purge('file_page_views', 'file_id', fileIds);
@@ -183,6 +188,13 @@ export async function POST(req: NextRequest) {
     const allowed = (file.user_id as string) === caller.id || (fSpace ? await ownsSpace(fSpace) : false);
     if (!allowed) return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
 
+    // Access logs reference share_links - clear them before the links.
+    {
+      const { data: fl } = await admin.from('share_links').select('id').eq('file_id', itemId);
+      const flIds = (fl ?? []).map((l) => l.id as string);
+      if (flIds.length) await purge('share_link_access_logs', 'share_link_id', flIds);
+    }
+    await purge('share_link_access_logs', 'file_id', itemId);
     await purge('share_links', 'file_id', itemId);
     await purge('file_permissions', 'file_id', itemId);
     await purge('file_page_views', 'file_id', itemId);
@@ -219,6 +231,29 @@ export async function POST(req: NextRequest) {
   const fileIds = (files ?? []).map((f) => f.id as string);
   await removeStorage((files ?? []).map((f) => (f.storage_path as string) ?? ''));
 
+  // Access logs reference share_links; collect every link id for this space
+  // (space-level links + per-file links) and clear the logs FIRST.
+  {
+    const { data: spaceLinks } = await admin.from('share_links').select('id').eq('space_id', spaceId);
+    let linkIds = (spaceLinks ?? []).map((l) => l.id as string);
+    if (fileIds.length) {
+      const { data: fileLinks } = await admin.from('share_links').select('id').in('file_id', fileIds);
+      linkIds = linkIds.concat((fileLinks ?? []).map((l) => l.id as string));
+    }
+    if (linkIds.length) await purge('share_link_access_logs', 'share_link_id', linkIds);
+  }
+  if (fileIds.length) await purge('share_link_access_logs', 'file_id', fileIds);
+
+  // Upload-tracking rows reference file_requests; clear them before the requests.
+  {
+    const { data: reqs } = await admin.from('file_requests').select('id').eq('space_id', spaceId);
+    const reqIds = (reqs ?? []).map((r) => r.id as string);
+    if (reqIds.length) {
+      await purge('file_request_uploads', 'request_id', reqIds);
+      await purge('file_request_uploads', 'file_request_id', reqIds);
+    }
+  }
+
   // Dependents in FK-safe order. Each purge tolerates missing tables.
   if (fileIds.length) {
     await purge('share_links', 'file_id', fileIds);
@@ -232,6 +267,7 @@ export async function POST(req: NextRequest) {
     ['viewer_sessions', 'space_id'],
     ['space_analytics', 'space_id'],
     ['space_questions', 'space_id'],
+    ['questions', 'space_id'],
     ['space_nodes', 'space_id'],
     ['space_sections', 'space_id'],
     ['file_permissions', 'space_id'],
@@ -241,6 +277,9 @@ export async function POST(req: NextRequest) {
     ['folders', 'space_id'],
     ['space_members', 'space_id'],
     ['dw_watchlist', 'space_id'],
+    ['dw_update_events', 'space_id'],
+    ['alerts', 'space_id'],
+    ['expired_link_attempts', 'space_id'],
   ] as const) {
     await purge(table, col, spaceId);
   }

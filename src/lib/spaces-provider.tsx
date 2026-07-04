@@ -37,7 +37,7 @@ type SpacesContextType = {
   addSpace: (newSpace: Partial<Omit<Space, 'id' | 'spaceId' | 'links' | 'lastUpdated' | 'collaborators'>>) => Promise<string>;
   findSpace: (id: string, includeContent?: boolean) => Space | undefined;
   updateSpace: (updatedSpace: Partial<Space> & { id: string }) => void;
-  deleteSpace: (id: string) => Promise<boolean>;
+  deleteSpace: (id: string) => Promise<{ ok: boolean; error?: string }>;
   addFilesToSpace: (spaceId: string, files: File[], parentId?: string | null) => Promise<void>;
   addFolderToSpace: (spaceId: string, folderName: string, parentId?: string | null) => Promise<string | undefined>;
   renameItemInSpace: (spaceId: string, itemId: string, newName: string) => Promise<void>;
@@ -333,7 +333,7 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
   // row is really gone. The old direct delete failed silently on foreign
   // keys, so the "deleted" space came back on refresh. The UI only updates
   // when the database confirms.
-  const deleteSpace = useCallback(async (id: string): Promise<boolean> => {
+  const deleteSpace = useCallback(async (id: string): Promise<{ ok: boolean; error?: string }> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/spaces/delete', {
@@ -346,14 +346,15 @@ export const SpacesProvider = ({ children }: { children: ReactNode }) => {
       });
       const j = await res.json().catch(() => ({ ok: false }));
       if (!res.ok || !j.ok) {
-        console.error('[deleteSpace] failed:', j.error ?? res.status);
-        return false;
+        const error = typeof j.error === 'string' ? j.error : `HTTP ${res.status}`;
+        console.error('[deleteSpace] failed:', error);
+        return { ok: false, error };
       }
       setSpaces(prev => prev.filter(space => space.id !== id));
-      return true;
+      return { ok: true };
     } catch (e) {
       console.error('[deleteSpace] network error:', e);
-      return false;
+      return { ok: false, error: 'Network error' };
     }
   }, []);
 
