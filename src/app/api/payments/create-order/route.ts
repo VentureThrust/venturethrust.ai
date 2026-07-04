@@ -40,16 +40,40 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await authed.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
-    let body: { planId?: unknown; phone?: unknown; returnPath?: unknown };
+    let body: { planId?: unknown; phone?: unknown; returnPath?: unknown; offerId?: unknown };
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ ok: false, error: 'bad_json' }, { status: 400 });
     }
 
-    const planId = typeof body.planId === 'string' ? body.planId : '';
-    const plan = PAID_PLANS[planId];
-    if (!plan) return NextResponse.json({ ok: false, error: 'invalid_plan' }, { status: 400 });
+    // Either a standard plan (amount from PAID_PLANS) or a custom investor
+    // offer (amount from dw_offers, validated against the buyer's email so a
+    // quote can never be paid by someone it wasn't made for).
+    const offerId = typeof body.offerId === 'string' ? body.offerId : '';
+    let planId = typeof body.planId === 'string' ? body.planId : '';
+    let amountInr: number;
+    let planKey: string;
+    let planName: string;
+    if (offerId) {
+      const { data: offer } = await admin.from('dw_offers').select('*').eq('id', offerId).maybeSingle();
+      const offerEmail = String(offer?.investor_email ?? '').toLowerCase();
+      if (!offer || offer.status !== 'open' || offerEmail !== (user.email ?? '').toLowerCase()) {
+        return NextResponse.json({ ok: false, error: 'invalid_plan' }, { status: 400 });
+      }
+      const seats = Number(offer.seats) || 1;
+      amountInr = Math.round(Number(offer.price_inr));
+      planKey = 'vdr_only';
+      planName = `Investor (${seats} ${seats > 1 ? 'seats' : 'seat'})`;
+      // Prefix keeps the investor auto-activation (startsWith 'vdr-investor').
+      planId = `vdr-investor-offer-${seats}`;
+    } else {
+      const plan = PAID_PLANS[planId];
+      if (!plan) return NextResponse.json({ ok: false, error: 'invalid_plan' }, { status: 400 });
+      amountInr = plan.amount;
+      planKey = plan.planKey;
+      planName = plan.name;
+    }
 
     // Cashfree requires a 10-digit Indian phone number on the order.
     const phone = (typeof body.phone === 'string' ? body.phone : '').replace(/\D/g, '');
@@ -87,7 +111,7 @@ export async function POST(req: NextRequest) {
       headers: cashfreeHeaders(),
       body: JSON.stringify({
         order_id: orderId,
-        order_amount: plan.amount,
+        order_amount: amountInr,
         order_currency: 'INR',
         customer_details: {
           customer_id: user.id,
@@ -95,7 +119,7 @@ export async function POST(req: NextRequest) {
           customer_phone: phone,
         },
         order_meta: { return_url: returnUrl },
-        order_note: `VentureThrust ${plan.name} plan`,
+        order_note: `VentureThrust ${planName} plan`,
       }),
     });
 
@@ -118,8 +142,8 @@ export async function POST(req: NextRequest) {
     const { error: insErr } = await admin.from('payments').insert({
       user_id: user.id,
       plan_id: planId,
-      plan_key: plan.planKey,
-      amount: plan.amount,
+      plan_key: planKey,
+      amount: amountInr,
       currency: 'INR',
       cf_order_id: cf.order_id ?? orderId,
       status: 'PENDING',

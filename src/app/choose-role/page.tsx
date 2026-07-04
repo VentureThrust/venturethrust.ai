@@ -75,6 +75,16 @@ const INVESTOR_FEATURES = [
   'Priority support',
 ];
 
+// A custom offer (quote) the account manager prepared for this investor.
+type OfferRow = {
+  id: string;
+  seats: number;
+  discount_pct: number;
+  price_usd: number;
+  price_inr: number;
+  paddle_discount_code: string | null;
+};
+
 // Friendly date + time for the "plan active" confirmation, e.g. 10 Jun 2026, 11:45 AM.
 const formatExpiry = (iso: string | null): string => {
   if (!iso) return '';
@@ -108,6 +118,9 @@ export default function ChoosePlanPage() {
   // True when the user ALREADY had an active plan on arrival (upgrade visit);
   // the activation watcher below must not bounce those users away.
   const hadActivePlanRef = useRef(false);
+  // Custom offer prepared by the account manager for this login email.
+  const [offer, setOffer] = useState<OfferRow | null>(null);
+  const [pendingOffer, setPendingOffer] = useState<OfferRow | null>(null);
   const [pendingPlan, setPendingPlan] = useState<PlanTier | null>(null);
   const [phone, setPhone] = useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -193,7 +206,11 @@ export default function ChoosePlanPage() {
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId: annual ? `${pendingPlan.id}-year` : pendingPlan.id, phone: cleanPhone }),
+        body: JSON.stringify(
+          pendingOffer
+            ? { offerId: pendingOffer.id, phone: cleanPhone }
+            : { planId: annual ? `${pendingPlan.id}-year` : pendingPlan.id, phone: cleanPhone },
+        ),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.paymentSessionId) {
@@ -227,6 +244,22 @@ export default function ChoosePlanPage() {
       }
       setUserId(user.id);
       setEmail(user.email ?? null);
+
+      // Custom offer waiting for this email? RLS only returns the caller's
+      // own open offers. If one exists, open the investor view on it.
+      try {
+        const { data: off } = await supabase
+          .from('dw_offers')
+          .select('id, seats, discount_pct, price_usd, price_inr, paddle_discount_code')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (off) {
+          setOffer(off as OfferRow);
+          setAudience('investors');
+        }
+      } catch { /* offers table not migrated yet - nothing to show */ }
 
       // If they HAD a plan that has now lapsed, show the "expired" banner and
       // email them once that their shared links are paused.
@@ -351,6 +384,7 @@ export default function ChoosePlanPage() {
     }
 
     // Paid plan: India pays via Cashfree (phone dialog), rest of world via Paddle.
+    setPendingOffer(null);
     if (isIndia) {
       setPendingPlan(plan);
       setPhone('');
@@ -361,11 +395,50 @@ export default function ChoosePlanPage() {
     }
   };
 
+  // Custom offer checkout: seats and discount come from the quote the
+  // account manager prepared. India charges the exact INR amount via
+  // Cashfree; abroad, Paddle bills the investor price times seats, with an
+  // optional Paddle discount code carrying the discount.
+  const handleSelectOffer = () => {
+    if (!offer || !userId || !email) return;
+    setAnnual(false);
+    if (isIndia) {
+      setPendingOffer(offer);
+      setPendingPlan(INVESTOR_TIER);
+      setPhone('');
+      setPayError(null);
+      setPhoneOpen(true);
+      return;
+    }
+    const priceId = PADDLE_PRICE_BY_TIER['vdr-investor'];
+    if (!priceId) {
+      setNotice('Checkout opens very soon. Reply to your account manager and we will finish your setup today.');
+      return;
+    }
+    if (!paddle) {
+      setNotice('Checkout is still loading. Please try again in a moment.');
+      return;
+    }
+    setPendingOffer(offer);
+    setPendingPlan(INVESTOR_TIER);
+    setPayError(null);
+    setNotice(null);
+    setPaying(true);
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: offer.seats }],
+      ...(offer.paddle_discount_code ? { discountCode: offer.paddle_discount_code } : {}),
+      customer: email ? { email } : undefined,
+      customData: { user_id: userId },
+    });
+    setTimeout(() => setPaying(false), 1500);
+  };
+
   // Investor card checkout - monthly only (the annual toggle governs the
   // founder grid, not this card). Same rails: Cashfree India, Paddle abroad.
   const handleSelectInvestor = () => {
     if (!userId || !email) return;
     setAnnual(false);
+    setPendingOffer(null);
     if (isIndia) {
       setPendingPlan(INVESTOR_TIER);
       setPhone('');
@@ -486,14 +559,62 @@ export default function ChoosePlanPage() {
           <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#4285F4]">
             For investors and VCs
           </p>
+
+          {/* Custom offer (quote) prepared by the account manager - shown only
+              to the exact email it was made for. One click pays it. */}
+          {offer && (
+            <div className="mx-auto mt-5 max-w-4xl">
+              <div className="relative rounded-2xl border-2 border-[#34A853] bg-white p-6 sm:flex sm:items-center sm:justify-between">
+                <span className="absolute -top-3 left-6 rounded-full bg-[#34A853] px-3 py-1 text-xs font-semibold text-white">
+                  Made for you
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Investor · {offer.seats} {offer.seats > 1 ? 'seats' : 'seat'}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    The plan we discussed, prepared by your account manager.
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                    {offer.discount_pct > 0 && (
+                      <span className="text-lg font-medium text-muted-foreground line-through">
+                        ${149 * offer.seats}
+                      </span>
+                    )}
+                    <span className="text-3xl font-bold">${Math.round(Number(offer.price_usd))}</span>
+                    <span className="text-muted-foreground">/mo</span>
+                    {offer.discount_pct > 0 && (
+                      <span className="rounded-full bg-[#34A853]/10 px-2 py-0.5 text-xs font-semibold text-[#34A853]">
+                        {Math.round(Number(offer.discount_pct))}% off
+                      </span>
+                    )}
+                  </div>
+                  {isIndia && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      ₹{Math.round(Number(offer.price_inr)).toLocaleString('en-IN')} per month, charged in INR.
+                    </p>
+                  )}
+                </div>
+                <Button
+                  className="mt-4 h-11 shrink-0 bg-[#34A853] px-8 text-white hover:bg-[#2d8f47] sm:ml-6 sm:mt-0"
+                  onClick={handleSelectOffer}
+                  disabled={paying}
+                >
+                  {paying && pendingOffer ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Accept and pay'}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="mx-auto mt-4 grid max-w-4xl gap-5 sm:grid-cols-2">
             {/* Card 1: self-serve Investor plan */}
             <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6">
               <h3 className="text-lg font-semibold text-gray-900">Investor</h3>
               <p className="mt-1 text-sm text-muted-foreground">Deal Watch plus your own account manager.</p>
-              <div className="mt-3 flex items-baseline gap-1">
+              <div className="mt-3 flex flex-wrap items-baseline gap-1.5">
+                <span className="text-base font-medium text-muted-foreground/70 line-through">$299</span>
                 <span className="text-3xl font-bold">$149</span>
                 <span className="text-muted-foreground">/mo</span>
+                <span className="rounded-full bg-[#34A853]/10 px-2 py-0.5 text-xs font-semibold text-[#34A853]">50% off</span>
               </div>
               <ul className="mt-4 flex-1 space-y-2">
                 {INVESTOR_FEATURES.map((f) => (
@@ -583,8 +704,18 @@ export default function ChoosePlanPage() {
                     <span className="text-4xl font-extrabold">Free</span>
                   ) : (
                     <>
+                      {plan.compareAt && (
+                        <span className={cn('mr-1 text-base font-medium line-through', featured ? 'text-blue-200/80' : 'text-muted-foreground/70')}>
+                          ${(annual ? plan.compareAt * 12 : plan.compareAt).toLocaleString('en-US')}
+                        </span>
+                      )}
                       <span className="text-4xl font-extrabold">{formatPlanPrice(plan, isIndia, annual)}</span>
                       <span className={featured ? 'text-blue-200' : 'text-muted-foreground'}>{annual ? '/year' : '/mo'}</span>
+                      {plan.compareAt && (
+                        <span className={cn('ml-1 rounded-full px-2 py-0.5 text-xs font-semibold', featured ? 'bg-white/15 text-white' : 'bg-[#34A853]/10 text-[#34A853]')}>
+                          {Math.round((1 - (annual ? plan.priceYear : plan.price) / (annual ? plan.compareAt * 12 : plan.compareAt)) * 100)}% off
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
@@ -671,7 +802,11 @@ export default function ChoosePlanPage() {
             <DialogHeader>
               <DialogTitle>Continue to secure payment</DialogTitle>
               <DialogDescription>
-                {pendingPlan ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia, annual)} per month. ` : ''}
+                {pendingOffer
+                  ? `Investor plan, ${pendingOffer.seats} ${pendingOffer.seats > 1 ? 'seats' : 'seat'}, ₹${Math.round(Number(pendingOffer.price_inr)).toLocaleString('en-IN')} per month. `
+                  : pendingPlan
+                    ? `${pendingPlan.name} plan, ${formatPlanPrice(pendingPlan, isIndia, annual)} per month. `
+                    : ''}
                 Enter a mobile number for the payment receipt.
               </DialogDescription>
             </DialogHeader>
@@ -697,7 +832,7 @@ export default function ChoosePlanPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Opening checkout...
                 </>
               ) : (
-                `Pay ${pendingPlan ? formatPlanPrice(pendingPlan, isIndia, annual) : ''} with Cashfree`
+                `Pay ${pendingOffer ? `₹${Math.round(Number(pendingOffer.price_inr)).toLocaleString('en-IN')}` : pendingPlan ? formatPlanPrice(pendingPlan, isIndia, annual) : ''} with Cashfree`
               )}
             </Button>
           </DialogContent>

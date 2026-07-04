@@ -16,6 +16,9 @@ export type PlanTier = {
   price: number; // USD per month, shown to non-India visitors (Paddle charges this)
   priceInr: number; // INR per month, shown to India visitors (Cashfree charges this)
   priceYear: number; // USD per year (annual billing, one month free)
+  /** Compare-at USD/month (what the equivalent tier costs elsewhere). Shown
+   *  struck through with a "% off" badge on pricing cards when present. */
+  compareAt?: number;
   rank: number; // higher rank = higher plan; used to detect upgrades
   seats: number; // total members allowed, including the account holder
   spaces: number | null; // max spaces; null = unlimited
@@ -58,6 +61,7 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 12,
     priceInr: 999,
     priceYear: 132,
+    compareAt: 15,
     rank: 1,
     seats: 1,
     spaces: 5,
@@ -81,6 +85,7 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 29,
     priceInr: 2499,
     priceYear: 319,
+    compareAt: 65,
     rank: 2,
     seats: 2,
     spaces: 20,
@@ -107,6 +112,7 @@ export const PLAN_TIERS: PlanTier[] = [
     price: 69,
     priceInr: 5999,
     priceYear: 759,
+    compareAt: 150,
     rank: 3,
     seats: 3,
     spaces: null,

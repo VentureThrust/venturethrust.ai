@@ -67,6 +67,17 @@ export default function DealWatchPage() {
   // Activate-investor tool (one click instead of SQL).
   const [activateEmail, setActivateEmail] = useState('');
   const [activating, setActivating] = useState(false);
+  // Custom offer (quote) builder.
+  const [offerEmail, setOfferEmail] = useState('');
+  const [offerSeats, setOfferSeats] = useState('1');
+  const [offerDiscount, setOfferDiscount] = useState('10');
+  const [offerPaddleCode, setOfferPaddleCode] = useState('');
+  const [creatingOffer, setCreatingOffer] = useState(false);
+
+  const offerSeatsN = Math.min(Math.max(Math.round(Number(offerSeats) || 1), 1), 20);
+  const offerDiscN = Math.min(Math.max(Number(offerDiscount) || 0, 0), 90);
+  const offerUsd = Math.round(149 * offerSeatsN * (1 - offerDiscN / 100));
+  const offerInr = Math.round(12499 * offerSeatsN * (1 - offerDiscN / 100));
 
   const isManager = (user?.email ?? '').toLowerCase() === DW_MANAGER_EMAIL;
 
@@ -203,6 +214,92 @@ export default function DealWatchPage() {
           >
             {activating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
             Activate
+          </Button>
+        </div>
+      </section>
+
+      {/* ── Create a custom offer (enterprise-style quote) ── */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+        <h2 className="text-base font-semibold">Create a custom offer</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          After a demo call, quote the plan you discussed: seats and discount. The investor sees a
+          Made for you card on their plan page and pays in one click. Payment activates them
+          automatically.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Input
+            type="email"
+            value={offerEmail}
+            onChange={(e) => setOfferEmail(e.target.value)}
+            placeholder="investor@fund.com"
+          />
+          <Input
+            type="number"
+            min={1}
+            max={20}
+            value={offerSeats}
+            onChange={(e) => setOfferSeats(e.target.value)}
+            placeholder="Seats"
+            title="Seats"
+          />
+          <Input
+            type="number"
+            min={0}
+            max={90}
+            value={offerDiscount}
+            onChange={(e) => setOfferDiscount(e.target.value)}
+            placeholder="Discount %"
+            title="Discount percent"
+          />
+          <Input
+            value={offerPaddleCode}
+            onChange={(e) => setOfferPaddleCode(e.target.value)}
+            placeholder="Paddle discount code (intl only)"
+            title="Optional Paddle discount code applied for non-India checkout"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            They will see: <span className="font-semibold text-foreground">${offerUsd}/mo</span>
+            {' '}(₹{offerInr.toLocaleString('en-IN')} in India)
+            {offerDiscN > 0 ? `, ${offerDiscN}% off the standard price` : ''}
+          </p>
+          <Button
+            disabled={creatingOffer || !offerEmail.trim()}
+            onClick={async () => {
+              setCreatingOffer(true);
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/deal-watch/offer', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session?.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    email: offerEmail.trim(),
+                    seats: offerSeatsN,
+                    discountPct: offerDiscN,
+                    paddleDiscountCode: offerPaddleCode.trim() || undefined,
+                  }),
+                });
+                const j = await res.json().catch(() => ({}));
+                if (res.ok && j.ok) {
+                  toast({
+                    title: 'Offer created',
+                    description: `${j.email} will see the ${j.seats}-seat plan at $${j.priceUsd}/mo on their plan page.`,
+                  });
+                  setOfferEmail('');
+                } else {
+                  toast({ variant: 'destructive', title: 'Could not create the offer', description: j.error ?? 'Try again.' });
+                }
+              } finally {
+                setCreatingOffer(false);
+              }
+            }}
+          >
+            {creatingOffer ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+            Create offer
           </Button>
         </div>
       </section>

@@ -149,13 +149,23 @@ export function LandingPricing() {
                     )}
                     <h3 className="text-lg font-semibold text-gray-900">{t.name}</h3>
                     <p className="mt-1 min-h-[36px] text-sm text-muted-foreground">{t.tagline}</p>
-                    <div className="mt-3 flex items-baseline gap-1">
+                    <div className="mt-3 flex flex-wrap items-baseline gap-1.5">
                       {t.price === 0 ? (
                         <span className="text-3xl font-bold">Free</span>
                       ) : (
                         <>
+                          {t.compareAt && (
+                            <span className="text-base font-medium text-muted-foreground/70 line-through">
+                              ${(annual ? t.compareAt * 12 : t.compareAt).toLocaleString('en-US')}
+                            </span>
+                          )}
                           <span className="text-3xl font-bold">{formatPlanPrice(t, false, annual)}</span>
                           <span className="text-muted-foreground">{annual ? '/year' : '/mo'}</span>
+                          {t.compareAt && (
+                            <span className="rounded-full bg-[#34A853]/10 px-2 py-0.5 text-xs font-semibold text-[#34A853]">
+                              {Math.round((1 - (annual ? t.priceYear : t.price) / (annual ? t.compareAt * 12 : t.compareAt)) * 100)}% off
+                            </span>
+                          )}
                         </>
                       )}
                     </div>
@@ -211,9 +221,17 @@ export function LandingPricing() {
                   )}
                   <h3 className="text-lg font-semibold text-gray-900">{p.name}</h3>
                   <p className="mt-1 min-h-[36px] text-sm text-muted-foreground">{p.tagline}</p>
-                  <div className="mt-3 flex items-baseline gap-1">
+                  <div className="mt-3 flex flex-wrap items-baseline gap-1.5">
+                    {p.id === 'vdr-investor' && (
+                      <span className="text-base font-medium text-muted-foreground/70 line-through">$299</span>
+                    )}
                     <span className="text-3xl font-bold">{p.priceLabel}</span>
                     <span className="text-muted-foreground">{p.period}</span>
+                    {p.id === 'vdr-investor' && (
+                      <span className="rounded-full bg-[#34A853]/10 px-2 py-0.5 text-xs font-semibold text-[#34A853]">
+                        50% off
+                      </span>
+                    )}
                   </div>
                   <ul className="mt-5 flex-1 space-y-2.5">
                     {p.features.map((f, i) => (
