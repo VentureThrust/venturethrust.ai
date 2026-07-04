@@ -364,8 +364,8 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
           <div className="mx-auto bg-primary/10 text-primary p-4 rounded-full w-fit mb-4">
             <Mail className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl">Verify your email</CardTitle>
-          <CardDescription>Enter your email to access this space.</CardDescription>
+          <CardTitle className="text-2xl">Enter your email</CardTitle>
+          <CardDescription>Enter your email to open this space.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -396,8 +396,8 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
           <div className="mx-auto bg-primary/10 text-primary p-4 rounded-full w-fit mb-4">
             <Lock className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl">Password required</CardTitle>
-          <CardDescription>This space is protected. Enter the password.</CardDescription>
+          <CardTitle className="text-2xl">Enter the password</CardTitle>
+          <CardDescription>Enter the password to open this space.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -413,7 +413,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
           </div>
           <Button onClick={handlePasswordSubmit} className="w-full" size="lg" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Unlock Space
+            Open space
           </Button>
         </CardContent>
       </GateLayout>

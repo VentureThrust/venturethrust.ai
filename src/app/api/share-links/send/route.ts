@@ -159,11 +159,14 @@ export async function POST(req: NextRequest) {
         ((link.sent_subject as string | null) || '').trim() ||
         `${sender.name} shared "${displayName}" with you`;
 
-      // Body = the founder's own words + their link. Nothing else.
+      // Body = the founder's own words + a clean view button. Nothing else.
       const bodyHtml = `
         <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#111;font-size:14px;line-height:1.6">
-          ${msg ? `<p style="white-space:pre-line;margin:0 0 16px">${esc(msg)}</p>` : ''}
-          <p style="margin:0"><a href="${url}">${esc(displayName)}</a></p>
+          ${msg ? `<p style="white-space:pre-line;margin:0 0 20px">${esc(msg)}</p>` : ''}
+          <p style="margin:0 0 6px;color:#555;font-size:13px">${esc(displayName)}</p>
+          <p style="margin:0">
+            <a href="${url}" style="background:#4285F4;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block">Click here to view</a>
+          </p>
         </div>`;
 
       await transporter.sendMail({

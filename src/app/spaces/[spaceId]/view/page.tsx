@@ -1146,8 +1146,15 @@ export default function SpaceViewPage() {
             return;
           }
           if (perm.expired) {
+            // ONE file's access ending must never replace the whole room with
+            // the "link expired" popup (that read as a broken space). Scope the
+            // message to the file and leave the room open.
             setViewerLoading(false);
-            setInactive(true); // the link is inactive: show the reactivate/message popup
+            toast({
+              variant: 'destructive',
+              title: 'This file is not available',
+              description: 'Access to this file has ended. Please contact the sender.',
+            });
             return;
           }
           if (perm.requireAgreement && !perm.signed && perm.agreementFileId) {

@@ -233,7 +233,7 @@ export function SendByEmailDialog({
         <div className="space-y-5 py-2">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Investor emails</Label>
+              <Label className="text-sm font-medium">To</Label>
               <input
                 ref={importInputRef}
                 type="file"
@@ -297,7 +297,7 @@ export function SendByEmailDialog({
               className={TEXTAREA_CLASS}
             />
             <p className="text-xs text-muted-foreground">
-              The email contains only your message and your link. No VentureThrust template.
+              The email contains only your message and a Click here to view button. No VentureThrust template.
             </p>
           </div>
 
