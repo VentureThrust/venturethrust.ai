@@ -2382,10 +2382,10 @@ function ContentLibraryPageComponent() {
         {/* TOP BAR - secondary actions are outline buttons; only the primary
              Upload dropdown gets the dark pill treatment, matching the
              Agreements page header. */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-200">
           <h1 className="text-2xl font-bold tracking-tight">Content Library</h1>
-          <div className="flex items-center gap-2">
-            <div className="relative w-52">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-52">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search" className="pl-9 h-10" />
             </div>
@@ -2439,10 +2439,13 @@ function ContentLibraryPageComponent() {
           ]}
         />
 
-        {/* SIDEBAR + CONTENT */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* LEFT SIDEBAR - width is user-resizable */}
-          <div style={{ width: sidebarWidth, minWidth: 160, maxWidth: 480 }} className="shrink-0 border-r border-gray-200 overflow-y-auto py-4 pr-2 flex flex-col">
+        {/* SIDEBAR + CONTENT - side by side on desktop, stacked on phones
+            (DocSend style: folders become a compact section above the files,
+            never a squeezed half-width column). The !-utilities override the
+            inline resizable width on small screens. */}
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+          {/* LEFT SIDEBAR - width is user-resizable on desktop */}
+          <div style={{ width: sidebarWidth, minWidth: 160, maxWidth: 480 }} className="shrink-0 border-r border-gray-200 overflow-y-auto py-4 pr-2 flex flex-col max-md:!w-full max-md:!min-w-0 max-md:!max-w-none max-md:max-h-48 max-md:border-r-0 max-md:border-b max-md:py-2">
 
             {/* ── PERSONAL FOLDERS SECTION ── */}
             <Collapsible defaultOpen>
@@ -2588,7 +2591,7 @@ function ContentLibraryPageComponent() {
           />
 
           {/* RIGHT CONTENT PANEL */}
-          <div className="flex-1 overflow-y-auto pl-6 pt-4 min-w-0">
+          <div className="flex-1 overflow-y-auto pl-6 pt-4 min-w-0 max-md:pl-0">
             {showDeletedContent ? (
               <DeletedContentView items={deletedItems} />
             ) : selectedFolder ? (
