@@ -53,7 +53,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Menu } from 'lucide-react';
+import { useSidebar } from '@/components/ui/sidebar';
 import { teamMembers } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -112,6 +113,23 @@ const ColorPicker = ({ color, onChange }: { color: string, onChange: (color: str
     </div>
   );
 };
+
+// Three-line hamburger, phones only. Opens the space sidebar drawer (Home,
+// Permissions, Q&A, Analytics, Audit log) exactly like DocSend's mobile menu.
+function MobileSidebarToggle() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="-ml-1 md:hidden"
+      onClick={toggleSidebar}
+      aria-label="Open menu"
+    >
+      <Menu className="h-6 w-6" />
+    </Button>
+  );
+}
 
 export default function SpaceEditLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -349,8 +367,10 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   return (
     <>
       <div className="flex flex-col bg-muted/40 h-full">
-        <header className="flex h-16 shrink-0 items-center justify-end border-b bg-card px-4 sm:px-6">
-          <div className="flex items-center gap-2 sm:gap-4">
+        <header className="flex h-16 shrink-0 items-center border-b bg-card px-3 sm:px-6">
+          {/* Hamburger (phones only) opens the space sidebar drawer - DocSend style */}
+          <MobileSidebarToggle />
+          <div className="ml-auto flex items-center gap-2 sm:gap-4">
             {/* Search hides on phones - the icons alone already fill the bar */}
             <div className="relative hidden w-64 sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

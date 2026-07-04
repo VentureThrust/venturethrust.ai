@@ -66,11 +66,8 @@ const SpaceEditLayout = ({ children }: { children: React.ReactNode }) => {
         <AppSidebarContent fileRequestCount={fileRequestCount} isSpaceView />
       </Sidebar>
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Mobile-only bar: the drawer trigger, since the editor has no header */}
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-white px-3 md:hidden">
-          <SidebarTrigger />
-          <span className="text-sm font-medium text-gray-700">Space editor</span>
-        </header>
+        {/* The nested edit layout renders its own header (hamburger on mobile,
+            bell + avatar on the right) - no extra bar here. */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
