@@ -1739,7 +1739,8 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
 
           {/* ─── Performance tab ──────────────────────────────────────── */}
           <TabsContent value="performance" className="mt-8">
-            <PerformanceView file={file} />
+            {/* Live-merged visits: performance updates as recipients read. */}
+            <PerformanceView file={{ ...file, visits }} />
           </TabsContent>
 
 
