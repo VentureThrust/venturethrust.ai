@@ -162,6 +162,11 @@ export default function Dashboard() {
   const isAiOnly = user.plan === 'ai_only';
   const isBoth = user.plan === 'vdr_ai';
 
+  // AI Due Diligence is an investor-plan feature. Founders never see the
+  // card; when it is hidden the Data Room panel takes the full width.
+  // Kept strictly === true so it never flashes while the flag is resolving.
+  const showAiCard = isInvestorAccount === true;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -346,7 +351,7 @@ export default function Dashboard() {
         <div
           className={cn(
             'grid gap-0',
-            isVdrOnly || isAiOnly ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'
+            isVdrOnly || isAiOnly || !showAiCard ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'
           )}
           style={{ border: '1px solid #ebebeb', borderRadius: '0px' }}
         >
@@ -354,14 +359,14 @@ export default function Dashboard() {
           <div
             className={cn(
               'panel-card relative',
-              isVdrOnly && 'xl:col-span-2',
+              (isVdrOnly || !showAiCard) && 'xl:col-span-2',
               isAiOnly && 'order-2',
               isBoth && 'order-1'
             )}
             style={{
               padding: '28px 28px 32px',
               borderTop: 'none',
-              borderRight: !isVdrOnly && !isAiOnly ? '1px solid #ebebeb' : 'none',
+              borderRight: !isVdrOnly && !isAiOnly && showAiCard ? '1px solid #ebebeb' : 'none',
             }}
           >
             {/* Card header */}
@@ -517,7 +522,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* AI RISK SCANNER */}
+          {/* AI RISK SCANNER - investor plan only */}
+          {showAiCard && (
           <div
             className={cn(
               'panel-card relative flex flex-col',
@@ -580,6 +586,7 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 
