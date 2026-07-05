@@ -112,6 +112,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   const [ndaAccepted, setNdaAccepted] = useState(false);
   const [signatureName, setSignatureName] = useState('');
   const [fileView, setFileView] = useState<SharedFile | null>(null);
+  const [fileVisitorEmail, setFileVisitorEmail] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ranInitial = useRef(false);
 
@@ -175,6 +176,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.status === 'OK' && data.file) {
         logAccess(visitorEmail);
+        setFileVisitorEmail(visitorEmail || link.recipientEmail || null);
         setFileView(data.file as SharedFile);
         setStep('file');
       } else if (res.ok && data.status === 'OK' && !data.file) {
@@ -345,7 +347,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   // ─── UI states ────────────────────────────────────────────────────────
 
   if (step === 'file' && fileView) {
-    return <SharedFileView file={fileView} />;
+    return <SharedFileView file={fileView} token={token} visitorEmail={fileVisitorEmail} />;
   }
 
   if (step === 'redirecting') {

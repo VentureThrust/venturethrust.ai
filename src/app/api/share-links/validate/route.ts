@@ -194,26 +194,9 @@ async function recordRecipientOpen(link: Record<string, unknown>) {
     if (!f) return;
 
     const recipient = (link.recipient_email as string) || 'Recipient';
-    const visits = Array.isArray(f.visits) ? (f.visits as Array<Record<string, unknown>>) : [];
-    visits.push({
-      id: `visit_${Date.now()}`,
-      name: (link.recipient_name as string) || recipient,
-      email: recipient,
-      account: (link.link_name as string) || 'Email invite',
-      isInternal: false,
-      openedAt: nowIso,
-      time: nowIso,
-      link: 'Email invite',
-      duration: '',
-      durationSeconds: 0,
-      device: 'Unknown',
-      os: 'Unknown',
-      location: 'Unknown',
-      signed: false,
-      viewPercentage: 0,
-      pageViews: {},
-    });
-    await supabase.from('files').update({ visits }).eq('id', link.file_id as string);
+    // NOTE: the visit entry itself is written by /api/track/file-open (real
+    // duration, device, per-page dwell). Appending a zero placeholder here
+    // produced duplicate "00:00 / no device" rows in the owner's activity.
 
     if (f.user_id) {
       try {

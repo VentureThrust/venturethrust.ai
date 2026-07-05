@@ -90,6 +90,8 @@ interface PdfViewerProps {
   url: string;
   /** Called when a page leaves the viewport or the viewer unmounts. */
   onPageView?: (pageNumber: number, secondsViewed: number) => void;
+  /** Called once the document loads, with its total page count. */
+  onDocumentLoad?: (numPages: number) => void;
   /**
    * Watermark text already resolved (tokens replaced). When set, it's
    * tiled across each rendered PDF page - not in the surrounding chrome -
@@ -126,7 +128,7 @@ function PageWatermark({ text }: { text: string }) {
   );
 }
 
-export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerProps) {
+export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkText }: PdfViewerProps) {
   const [pdfLib, setPdfLib] = useState<PdfJsLib | null>(null);
   const [pdf, setPdf] = useState<PdfDoc | null>(null);
   const [numPages, setNumPages] = useState(0);
@@ -185,6 +187,7 @@ export default function PdfViewer({ url, onPageView, watermarkText }: PdfViewerP
         if (cancelled) return;
         setPdf(doc);
         setNumPages(doc.numPages);
+        try { onDocumentLoad?.(doc.numPages); } catch { /* analytics only */ }
         pageTimerRef.current = { page: 1, start: Date.now() };
         setCurrentPage(1);
       } catch (err) {

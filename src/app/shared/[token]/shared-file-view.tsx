@@ -22,7 +22,7 @@
  *                never a silent dead end.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, FileWarning, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PdfViewer from '@/components/PdfViewer';
@@ -35,6 +35,21 @@ export interface SharedFile {
   url: string;
   watermarkText: string | null;
   allowDownload: boolean;
+}
+
+function getDeviceInfo(): { device: string; os: string } {
+  if (typeof navigator === 'undefined') return { device: 'Unknown', os: 'Unknown' };
+  const ua = navigator.userAgent;
+  let device = 'Desktop';
+  if (/tablet|ipad|playbook|silk/i.test(ua)) device = 'Tablet';
+  else if (/mobile|iphone|ipod|android|blackberry|opera mini|windows phone/i.test(ua)) device = 'Mobile';
+  let os = 'Unknown';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/mac/i.test(ua)) os = 'macOS';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad/i.test(ua)) os = 'iOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+  return { device, os };
 }
 
 type Kind = 'pdf' | 'image' | 'video' | 'audio' | 'text' | 'office' | 'other';
@@ -72,8 +87,65 @@ function WatermarkOverlay({ text }: { text: string }) {
   );
 }
 
-export function SharedFileView({ file }: { file: SharedFile }) {
+export function SharedFileView({
+  file,
+  token,
+  visitorEmail,
+}: {
+  file: SharedFile;
+  /** Share link token: when present, session analytics are recorded. */
+  token?: string;
+  visitorEmail?: string | null;
+}) {
   const kind = detectKind(file);
+
+  // ── Session analytics ─────────────────────────────────────────────────
+  // One visit entry per open (files.visits), updated by cumulative beats:
+  // duration, device/os, and per-page dwell for PDFs. Without this the
+  // owner's activity view showed 00:00 and "No device details recorded".
+  const visitIdRef = useRef(`visit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const openedAtRef = useRef(Date.now());
+  const pageTimesRef = useRef<Record<string, number>>({});
+  const totalPagesRef = useRef(0);
+
+  useEffect(() => {
+    if (!token) return;
+    const { device, os } = getDeviceInfo();
+    const payload = () => JSON.stringify({
+      token,
+      visitId: visitIdRef.current,
+      email: visitorEmail || undefined,
+      durationSeconds: Math.floor((Date.now() - openedAtRef.current) / 1000),
+      device,
+      os,
+      pageViews: pageTimesRef.current,
+      totalPages: totalPagesRef.current,
+    });
+    const beat = () => {
+      fetch('/api/track/file-open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload(),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    beat(); // the visit appears the moment the file opens
+    const timer = setInterval(beat, 6000);
+    const onHide = () => {
+      // sendBeacon survives tab close; fetch keepalive is the fallback.
+      try {
+        navigator.sendBeacon('/api/track/file-open', new Blob([payload()], { type: 'application/json' }));
+      } catch {
+        beat();
+      }
+    };
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('pagehide', onHide);
+      onHide();
+    };
+  }, [token, visitorEmail]);
 
   // Text files: fetch the content so we can render it inline.
   const [textContent, setTextContent] = useState<string | null>(null);
@@ -118,7 +190,15 @@ export function SharedFileView({ file }: { file: SharedFile }) {
     switch (kind) {
       case 'pdf':
         return (
-          <PdfViewer url={file.url} watermarkText={file.watermarkText ?? undefined} />
+          <PdfViewer
+            url={file.url}
+            watermarkText={file.watermarkText ?? undefined}
+            onDocumentLoad={(n) => { totalPagesRef.current = n; }}
+            onPageView={(page, seconds) => {
+              const k = String(page);
+              pageTimesRef.current[k] = (pageTimesRef.current[k] || 0) + seconds;
+            }}
+          />
         );
       case 'image':
         return (
