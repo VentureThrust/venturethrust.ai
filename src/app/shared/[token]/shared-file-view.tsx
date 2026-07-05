@@ -103,19 +103,30 @@ export function SharedFileView({
   // One visit entry per open (files.visits), updated by cumulative beats:
   // duration, device/os, and per-page dwell for PDFs. Without this the
   // owner's activity view showed 00:00 and "No device details recorded".
+  //
+  // Duration counts ONLY eyes-on-screen time: the stopwatch pauses when the
+  // visitor switches to another tab or minimizes, and resumes when they come
+  // back. Leaving the deck open in a background tab records nothing.
   const visitIdRef = useRef(`visit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-  const openedAtRef = useRef(Date.now());
+  const activeMsRef = useRef(0);
+  const visibleSinceRef = useRef<number | null>(null);
   const pageTimesRef = useRef<Record<string, number>>({});
   const totalPagesRef = useRef(0);
 
   useEffect(() => {
     if (!token) return;
+    if (visibleSinceRef.current === null && document.visibilityState === 'visible') {
+      visibleSinceRef.current = Date.now();
+    }
     const { device, os } = getDeviceInfo();
+    const activeSeconds = () =>
+      Math.floor((activeMsRef.current
+        + (visibleSinceRef.current ? Date.now() - visibleSinceRef.current : 0)) / 1000);
     const payload = () => JSON.stringify({
       token,
       visitId: visitIdRef.current,
       email: visitorEmail || undefined,
-      durationSeconds: Math.floor((Date.now() - openedAtRef.current) / 1000),
+      durationSeconds: activeSeconds(),
       device,
       os,
       pageViews: pageTimesRef.current,
@@ -129,9 +140,7 @@ export function SharedFileView({
         keepalive: true,
       }).catch(() => {});
     };
-    beat(); // the visit appears the moment the file opens
-    const timer = setInterval(beat, 6000);
-    const onHide = () => {
+    const flush = () => {
       // sendBeacon survives tab close; fetch keepalive is the fallback.
       try {
         navigator.sendBeacon('/api/track/file-open', new Blob([payload()], { type: 'application/json' }));
@@ -139,11 +148,26 @@ export function SharedFileView({
         beat();
       }
     };
-    window.addEventListener('pagehide', onHide);
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        if (visibleSinceRef.current !== null) {
+          activeMsRef.current += Date.now() - visibleSinceRef.current;
+          visibleSinceRef.current = null;
+        }
+        flush(); // save what was watched the moment they switch away
+      } else if (visibleSinceRef.current === null) {
+        visibleSinceRef.current = Date.now();
+      }
+    };
+    beat(); // the visit appears the moment the file opens
+    const timer = setInterval(beat, 6000);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', flush);
     return () => {
       clearInterval(timer);
-      window.removeEventListener('pagehide', onHide);
-      onHide();
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', flush);
+      flush();
     };
   }, [token, visitorEmail]);
 

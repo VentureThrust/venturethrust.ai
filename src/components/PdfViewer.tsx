@@ -155,6 +155,24 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
     onPageViewRef.current = onPageView;
   }, [onPageView]);
 
+  // Background tabs must not accrue page time: when the tab hides, flush
+  // what was actually watched and freeze the clock; when it becomes visible
+  // again, restart it. Otherwise "opened the deck, went to another tab for
+  // ten minutes" reads as ten minutes on that page.
+  useEffect(() => {
+    const onVis = () => {
+      const t = pageTimerRef.current;
+      if (document.visibilityState === 'hidden') {
+        const elapsed = Math.round((Date.now() - t.start) / 1000);
+        if (elapsed > 0 && onPageViewRef.current) onPageViewRef.current(t.page, elapsed);
+      }
+      // Either direction: restart the clock so hidden time never counts.
+      pageTimerRef.current = { page: t.page, start: Date.now() };
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   // Step 1: load PDF.js via CDN script tag (one-time global load).
   useEffect(() => {
     let cancelled = false;
@@ -298,9 +316,12 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
     return () => observer.disconnect();
   }, [numPages, paged]);
 
-  // Step 5: on unmount, flush the final page's time.
+  // Step 5: on unmount, flush the final page's time. Skipped while the tab
+  // is hidden: that stretch was already flushed at hide, and counting from
+  // there would bill background time to the page.
   useEffect(() => {
     return () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       const { page, start } = pageTimerRef.current;
       const elapsed = Math.floor((Date.now() - start) / 1000);
       if (elapsed > 0 && onPageViewRef.current) {
