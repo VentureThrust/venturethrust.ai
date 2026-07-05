@@ -17,7 +17,7 @@ import { InactiveLink } from '@/components/inactive-link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import {
   Loader2, Type, ChevronLeft, ChevronRight, FileWarning,
-  Link2Off, ClipboardCheck,
+  Link2Off, ClipboardCheck, CheckCircle2, PenLine,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -115,6 +115,20 @@ export default function ViewFilePage() {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+  // Fields were placed relative to the desktop page; scale them with it so
+  // they keep the same proportion to the document on every screen.
+  const fieldScale = pageWidth / 820;
+
+  // PHONES: one page at a time (chevrons to move), like the deck viewer.
+  // Small screens showing several stacked pages read as a zoomed mess and
+  // split the per-page timing.
+  const [isMobilePaged, setIsMobilePaged] = useState(false);
+  useEffect(() => {
+    setIsMobilePaged(window.matchMedia('(max-width: 767px)').matches);
+  }, []);
+
+  // Signed-and-done popup (DocSend-style ceremony end).
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   // ── Per-page dwell tracking ──────────────────────────────────────────────
   // Accumulates seconds spent on each page so the owner's analytics can
@@ -252,8 +266,30 @@ export default function ViewFilePage() {
   // as the user scrolls, so the header indicator is always correct.
   const changePage = (offset: number) => {
     const next = pageNumber + offset;
-    if (numPages && next > 0 && next <= numPages) {
-      pageRefs.current.get(next)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!numPages || next < 1 || next > numPages) return;
+    if (isMobilePaged) {
+      // Paged mode renders one page: bank its time and switch.
+      flushPageTime(pageNumber);
+      setPageNumber(next);
+      return;
+    }
+    pageRefs.current.get(next)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // "Start signing": jump to the first field still waiting for input.
+  const goToFirstUnfilledField = () => {
+    const target = allAgreementFields.find((f) => {
+      const v = fieldValues[f.id];
+      return !v || (typeof v === 'string' ? v.trim() === '' : !v.value);
+    }) ?? allAgreementFields[0];
+    if (!target) return;
+    if (isMobilePaged) {
+      if (target.page !== pageNumber) {
+        flushPageTime(pageNumber);
+        setPageNumber(target.page);
+      }
+    } else {
+      pageRefs.current.get(target.page)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
@@ -261,7 +297,8 @@ export default function ViewFilePage() {
   // most-visible page changes, bank the previous page's dwell time and
   // update the header indicator. Re-runs when numPages becomes known.
   useEffect(() => {
-    if (!numPages || step !== 'view') return;
+    // Paged mode has no stacked scroll to observe.
+    if (!numPages || step !== 'view' || isMobilePaged) return;
     const observer = new IntersectionObserver(
       (entries) => {
         // Pick the entry with the largest visible ratio.
@@ -283,7 +320,7 @@ export default function ViewFilePage() {
     // Observe all currently-registered page wrappers.
     pageRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [numPages, step]);
+  }, [numPages, step, isMobilePaged]);
 
   // Keep the page-number mirror in sync for the progress sender.
   useEffect(() => { pageNumberRef.current = pageNumber; }, [pageNumber]);
@@ -463,11 +500,12 @@ export default function ViewFilePage() {
       if (!res.ok || !json.ok) throw new Error(json.error || 'sign_failed');
 
       setIsSigningComplete(true);
-      toast({ title: 'Signed!', description: 'Your signature has been submitted.' });
+      setIsSuccessOpen(true);
 
-      // If this was a per-file agreement gate, return to the file (now unlocked).
+      // If this was a per-file agreement gate, return to the file (now
+      // unlocked) - give the success popup a moment to be read.
       if (nextUrl && nextUrl.startsWith('/')) {
-        setTimeout(() => router.push(nextUrl), 1000);
+        setTimeout(() => router.push(nextUrl), 2500);
       }
     } catch (err) {
       console.error('[agreement-view] sign failed:', err);
@@ -492,9 +530,9 @@ export default function ViewFilePage() {
       if (typeof fieldValue === 'object' && fieldValue.type === 'drawn') {
         displayValue = <img src={fieldValue.value} alt="signature" className="h-12 object-contain pointer-events-none" />;
       } else if (typeof fieldValue === 'object' && fieldValue.type === 'typed') {
-        displayValue = <div className="p-2 pointer-events-none"><span className="text-2xl font-signature">{fieldValue.value}</span></div>;
+        displayValue = <div className="px-1 pointer-events-none"><span className="text-2xl font-signature">{fieldValue.value}</span></div>;
       } else {
-        displayValue = <div className="p-2 pointer-events-none"><span className="text-base">{fieldValue as string}</span></div>;
+        displayValue = <div className="px-1 pointer-events-none"><span className="text-sm">{fieldValue as string}</span></div>;
       }
     } else if (editingField?.id === field.id) {
       displayValue = (
@@ -509,10 +547,11 @@ export default function ViewFilePage() {
         </div>
       );
     } else {
+      // DocSend-style compact tag: a small cyan box sitting ON the line.
       displayValue = (
-        <div className="flex items-center gap-2 p-2 border-2 border-primary bg-blue-100/80 rounded-md shadow-lg pointer-events-auto cursor-pointer">
-          <Icon className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary whitespace-nowrap">{fieldInfo?.name || 'Field'}...</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 border border-cyan-500 bg-cyan-100/90 rounded-[3px] pointer-events-auto cursor-pointer hover:bg-cyan-200/90">
+          <Icon className="h-3.5 w-3.5 text-cyan-800" />
+          <span className="text-xs font-medium text-cyan-900 whitespace-nowrap">{fieldInfo?.name || 'Field'}</span>
         </div>
       );
     }
@@ -521,7 +560,14 @@ export default function ViewFilePage() {
       <div
         key={field.id}
         className="absolute"
-        style={{ left: `${field.x}%`, top: `${field.y}%` }}
+        style={{
+          left: `${field.x}%`,
+          top: `${field.y}%`,
+          // Fields keep their proportion to the document on small screens
+          // (they were placed against the 820px desktop render).
+          transform: `scale(${fieldScale})`,
+          transformOrigin: 'top left',
+        }}
         onClick={() => handleFieldClick(field)}
       >
         {displayValue}
@@ -646,6 +692,24 @@ export default function ViewFilePage() {
         )}
       </header>
 
+      {/* DocSend-style request banner: tells the recipient a signature is
+          expected and jumps them to the first empty field. Hidden once all
+          fields are filled (the confirmation banner takes over) or signed. */}
+      {!isSigningComplete && hasPlacedSignature && !requiredFieldsFilled && (
+        <div className="flex-shrink-0 bg-blue-50 border-b border-blue-100 px-4 sm:px-8 py-3 z-10">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">eSignature required</p>
+              <p className="text-sm text-gray-700">You are requested to review and sign this document.</p>
+            </div>
+            <Button onClick={goToFirstUnfilledField} className="bg-gray-900 hover:bg-gray-800 text-white shrink-0">
+              <PenLine className="mr-2 h-4 w-4" />
+              Start signing
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Fallback signature - when the agreement has NO placed signature field,
           the recipient still needs a way to sign. Show a prompt + "Sign here". */}
       {!isSigningComplete && !hasPlacedSignature && !fallbackSigned && (
@@ -705,7 +769,10 @@ export default function ViewFilePage() {
           error={<FileWarning className="h-8 w-8 text-destructive" />}
           className="flex flex-col items-center gap-4"
         >
-          {Array.from({ length: numPages ?? 0 }, (_, i) => i + 1).map((p) => (
+          {(isMobilePaged
+            ? [Math.min(pageNumber, numPages ?? 1)]
+            : Array.from({ length: numPages ?? 0 }, (_, i) => i + 1)
+          ).map((p) => (
             <div
               key={p}
               data-page={p}
@@ -731,6 +798,25 @@ export default function ViewFilePage() {
 
       {/* (Done footer + completed dialog removed - the sticky confirmation
           banner with the consent checkbox now drives finalization.) */}
+
+      {/* Success ceremony: signed, sealed, copy on its way. */}
+      <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-green-50">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </span>
+            <DialogTitle className="text-xl">Document signed successfully</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              You have signed <strong>{file?.name}</strong>. A copy of the signed document will be
+              sent to <strong>{session.email}</strong> for your records.
+            </p>
+            <Button className="mt-2 w-full bg-gray-900 text-white hover:bg-gray-800" onClick={() => setIsSuccessOpen(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>
         <DialogContent>
