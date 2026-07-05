@@ -113,6 +113,18 @@ export function SharedFileView({
   const pageTimesRef = useRef<Record<string, number>>({});
   const totalPagesRef = useRef(0);
 
+  // Video engagement: full watch-throughs ('ended' events) and replays.
+  // A replay is a backward seek of more than 2s during playback; we record
+  // the second they jumped BACK TO ("replayed from 0:11"). A restart right
+  // after the video ended is not double-counted as a replay: that watch
+  // already counts in completedViews.
+  const videoStatsRef = useRef({
+    completedViews: 0,
+    replays: [] as number[],
+    lastTime: 0,
+    justEnded: false,
+  });
+
   useEffect(() => {
     if (!token) return;
     if (visibleSinceRef.current === null && document.visibilityState === 'visible') {
@@ -131,6 +143,12 @@ export function SharedFileView({
       os,
       pageViews: pageTimesRef.current,
       totalPages: totalPagesRef.current,
+      video: kind === 'video'
+        ? {
+            completedViews: videoStatsRef.current.completedViews,
+            replays: videoStatsRef.current.replays,
+          }
+        : undefined,
     });
     const beat = () => {
       fetch('/api/track/file-open', {
@@ -240,6 +258,26 @@ export function SharedFileView({
               controlsList={file.allowDownload ? undefined : 'nodownload'}
               playsInline
               className="max-h-full max-w-full"
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (!v.seeking) videoStatsRef.current.lastTime = v.currentTime;
+              }}
+              onSeeked={(e) => {
+                const v = e.currentTarget;
+                const s = videoStatsRef.current;
+                const target = v.currentTime;
+                if (s.justEnded && target < 2) {
+                  // Post-end restart: counted by completedViews, not a replay.
+                  s.justEnded = false;
+                } else if (target < s.lastTime - 2) {
+                  s.replays.push(Math.max(0, Math.round(target)));
+                }
+                s.lastTime = target;
+              }}
+              onEnded={() => {
+                videoStatsRef.current.completedViews += 1;
+                videoStatsRef.current.justEnded = true;
+              }}
             />
           </div>
         );

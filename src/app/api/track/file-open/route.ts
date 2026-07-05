@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     token?: string; visitId?: string; email?: string;
     durationSeconds?: number; device?: string; os?: string;
     pageViews?: Record<string, unknown>; totalPages?: number;
+    video?: { completedViews?: unknown; replays?: unknown };
   };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
 
@@ -74,6 +75,18 @@ export async function POST(req: NextRequest) {
       const n = Number(v);
       if (/^\d+$/.test(k) && Number.isFinite(n) && n >= 0) pageViews[k] = Math.min(24 * 3600, Math.round(n));
     }
+  }
+
+  // Video engagement (cumulative, like everything else in the beat).
+  let video: { completedViews: number; replays: number[] } | null = null;
+  if (body.video && typeof body.video === 'object') {
+    const completed = Math.max(0, Math.min(1000, Math.round(Number(body.video.completedViews) || 0)));
+    const replays = Array.isArray(body.video.replays)
+      ? (body.video.replays as unknown[])
+          .map((n) => Math.max(0, Math.min(24 * 3600, Math.round(Number(n) || 0))))
+          .slice(0, 200)
+      : [];
+    video = { completedViews: completed, replays };
   }
 
   // Approximate location from the edge headers (present on Vercel).
@@ -110,6 +123,7 @@ export async function POST(req: NextRequest) {
       mergedPv[k] = Math.max(Number(prevPv[k]) || 0, v);
     }
     const mergedSecs = Math.max(Number(prev.durationSeconds) || 0, durationSeconds);
+    const prevReplays = Array.isArray(prev.videoReplays) ? (prev.videoReplays as number[]) : [];
     visits[idx] = {
       ...prev,
       durationSeconds: mergedSecs,
@@ -119,6 +133,13 @@ export async function POST(req: NextRequest) {
       location: location || (prev.location as string) || '',
       viewPercentage: Math.max(Number(prev.viewPercentage) || 0, viewPercentage),
       pageViews: mergedPv,
+      ...(video
+        ? {
+            videoCompletedViews: Math.max(Number(prev.videoCompletedViews) || 0, video.completedViews),
+            // Beats are cumulative snapshots: the longer list is the newer one.
+            videoReplays: video.replays.length >= prevReplays.length ? video.replays : prevReplays,
+          }
+        : {}),
     };
   } else {
     const email = (link.recipient_email as string)
@@ -142,6 +163,7 @@ export async function POST(req: NextRequest) {
       signed: false,
       viewPercentage,
       pageViews,
+      ...(video ? { videoCompletedViews: video.completedViews, videoReplays: video.replays } : {}),
     });
   }
 

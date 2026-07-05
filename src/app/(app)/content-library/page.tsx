@@ -1486,6 +1486,26 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                               return items.length > 0 ? items : <span className="italic">No device details recorded for this visit.</span>;
                             })()}
                           </div>
+                          {(() => {
+                            // Video engagement (only present for video visits):
+                            // full watch-throughs and replays with the exact
+                            // second each replay started from.
+                            const vv = visit as unknown as { videoReplays?: unknown; videoCompletedViews?: unknown };
+                            const hasVideoData = Array.isArray(vv.videoReplays) || typeof vv.videoCompletedViews === 'number';
+                            if (!hasVideoData) return null;
+                            const replays = Array.isArray(vv.videoReplays) ? (vv.videoReplays as number[]) : [];
+                            const completed = Number(vv.videoCompletedViews) || 0;
+                            const fmtT = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+                            const parts: string[] = [];
+                            if (completed > 0) parts.push(`Watched fully ${completed} ${completed === 1 ? 'time' : 'times'}`);
+                            if (replays.length > 0) parts.push(`Replayed ${replays.length} ${replays.length === 1 ? 'time' : 'times'} (from ${replays.map(fmtT).join(', ')})`);
+                            return (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-12 mt-2">
+                                <FileVideo className="h-4 w-4" />
+                                {parts.length > 0 ? parts.join(' · ') : 'Video was not replayed.'}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
