@@ -593,7 +593,9 @@ export default function ViewFilePage() {
       }
     } catch (err) {
       console.error('[agreement-view] sign failed:', err);
-      toast({ variant: 'destructive', title: 'Could not submit', description: 'Please try again.' });
+      // Surface the server's reason so a failure is diagnosable, never silent.
+      const reason = err instanceof Error && err.message ? ` (${err.message})` : '';
+      toast({ variant: 'destructive', title: 'Could not submit', description: `Please try again${reason}.` });
     } finally {
       setIsFinalizing(false);
     }

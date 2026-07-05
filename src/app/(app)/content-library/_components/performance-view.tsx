@@ -12,7 +12,7 @@
  * the agreement signing page alike, so agreements get the same insight).
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { File } from '@/lib/folder-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
@@ -60,6 +60,10 @@ function PageThumb() {
 export function PerformanceView({ file }: PerformanceViewProps) {
   const { visits = [] } = file;
 
+  // The document's real page count (from the PDF itself once it loads), so
+  // EVERY page appears in Top Pages and the charts - unvisited ones at zero.
+  const [docPages, setDocPages] = useState(0);
+
   const coreMetrics = useMemo(() => {
     if (visits.length === 0) return { avgViewed: 0, totalVisits: 0 };
     const totalVisits = visits.length;
@@ -69,23 +73,32 @@ export function PerformanceView({ file }: PerformanceViewProps) {
 
   const topPages = useMemo(() => {
     const pageTimes: Record<string, { totalTime: number; visitCount: number }> = {};
+    let maxSeen = 0;
     visits.forEach((visit) => {
       Object.entries(visit.pageViews || {}).forEach(([page, time]) => {
         if (!/^\d+$/.test(page)) return;
         if (!pageTimes[page]) pageTimes[page] = { totalTime: 0, visitCount: 0 };
         pageTimes[page].totalTime += Number(time) || 0;
         pageTimes[page].visitCount += 1;
+        maxSeen = Math.max(maxSeen, parseInt(page, 10));
       });
     });
-    return Object.entries(pageTimes)
-      .map(([page, data]) => ({
-        page: parseInt(page, 10),
-        avgTime: data.totalTime / data.visitCount,
-        visits: data.visitCount,
-      }))
-      .sort((a, b) => b.avgTime - a.avgTime)
+    // Every page of the document participates - pages nobody reached rank
+    // at 00:00, which is itself the signal.
+    const lastPage = Math.max(maxSeen, docPages);
+    if (lastPage === 0) return [];
+    return Array.from({ length: lastPage }, (_, i) => i + 1)
+      .map((page) => {
+        const d = pageTimes[String(page)];
+        return {
+          page,
+          avgTime: d ? d.totalTime / d.visitCount : 0,
+          visits: d?.visitCount ?? 0,
+        };
+      })
+      .sort((a, b) => b.avgTime - a.avgTime || a.page - b.page)
       .slice(0, 3);
-  }, [visits]);
+  }, [visits, docPages]);
 
   const comparativeStats = useMemo(() => {
     // Per-page dwell across visits + each visit's farthest page.
@@ -103,7 +116,7 @@ export function PerformanceView({ file }: PerformanceViewProps) {
       if (maxPage > 0) maxPages.push(maxPage);
     });
 
-    const lastPage = Math.max(0, ...Object.keys(pageTime).map(Number));
+    const lastPage = Math.max(docPages, 0, ...Object.keys(pageTime).map(Number));
     if (lastPage === 0) return { timePerPage: [], dropoffReport: [] };
 
     // Every page from 1..last on the axis - a skipped page is real signal.
@@ -124,7 +137,7 @@ export function PerformanceView({ file }: PerformanceViewProps) {
     }));
 
     return { timePerPage, dropoffReport };
-  }, [visits]);
+  }, [visits, docPages]);
 
   const hasPageData = comparativeStats.timePerPage.length > 0;
 
@@ -155,11 +168,17 @@ export function PerformanceView({ file }: PerformanceViewProps) {
             <h4 className="mb-4 text-sm font-semibold text-muted-foreground">
               Top Pages <span className="font-normal">(by average time per page)</span>
             </h4>
-            {topPages.length > 0 ? (
-              file.contentUrl ? (
-                // One Document, several page thumbs: REAL miniatures of the
-                // pages that held attention, like DocSend.
-                <Document file={file.contentUrl} loading={null} error={null}>
+            {file.contentUrl ? (
+              // One Document, several page thumbs: REAL miniatures of the
+              // pages that held attention, like DocSend. Always rendered so
+              // the PDF's page count loads and pads the stats to ALL pages.
+              <Document
+                file={file.contentUrl}
+                onLoadSuccess={({ numPages }: { numPages: number }) => setDocPages(numPages)}
+                loading={null}
+                error={null}
+              >
+                {topPages.length > 0 ? (
                   <div className="flex flex-wrap gap-8">
                     {topPages.map((page) => (
                       <div key={page.page} className="flex items-center gap-3">
@@ -174,21 +193,26 @@ export function PerformanceView({ file }: PerformanceViewProps) {
                       </div>
                     ))}
                   </div>
-                </Document>
-              ) : (
-                <div className="flex flex-wrap gap-8">
-                  {topPages.map((page) => (
-                    <div key={page.page} className="flex items-center gap-3">
-                      <PageThumb />
-                      <div>
-                        <p className="text-lg font-bold">{fmtTime(page.avgTime)}</p>
-                        <p className="text-sm text-muted-foreground">Page: {page.page}</p>
-                        <p className="text-sm text-muted-foreground">Visits: {page.visits}</p>
-                      </div>
+                ) : (
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <FileText className="h-5 w-5" />
+                    Page data appears after the first visit with page activity.
+                  </div>
+                )}
+              </Document>
+            ) : topPages.length > 0 ? (
+              <div className="flex flex-wrap gap-8">
+                {topPages.map((page) => (
+                  <div key={page.page} className="flex items-center gap-3">
+                    <PageThumb />
+                    <div>
+                      <p className="text-lg font-bold">{fmtTime(page.avgTime)}</p>
+                      <p className="text-sm text-muted-foreground">Page: {page.page}</p>
+                      <p className="text-sm text-muted-foreground">Visits: {page.visits}</p>
                     </div>
-                  ))}
-                </div>
-              )
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <FileText className="h-5 w-5" />
