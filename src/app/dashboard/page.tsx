@@ -83,6 +83,31 @@ export default function Dashboard() {
     return () => { active = false; };
   }, []);
 
+  // Open custom offer for this user (created by the account manager). Users
+  // with an already-active plan never visit the plan page on their own, so
+  // the dashboard surfaces the offer with a banner.
+  const [pendingOfferInfo, setPendingOfferInfo] = useState<{ seats: number; priceUsd: number } | null>(null);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/deal-watch/my-offer', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const j = await res.json().catch(() => ({}));
+        if (active && res.ok && j.offer) {
+          setPendingOfferInfo({
+            seats: Number(j.offer.seats) || 1,
+            priceUsd: Math.round(Number(j.offer.price_usd)),
+          });
+        }
+      } catch { /* no banner */ }
+    })();
+    return () => { active = false; };
+  }, []);
+
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -289,6 +314,30 @@ export default function Dashboard() {
             Here's a summary of your workspace activity.
           </p>
         </div>
+
+        {/* Custom offer banner - the quote the account manager prepared. */}
+        {pendingOfferInfo && (
+          <div
+            className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#34A853] bg-white px-5 py-4"
+          >
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                A plan was prepared for you: Investor, {pendingOfferInfo.seats}{' '}
+                {pendingOfferInfo.seats > 1 ? 'seats' : 'seat'} at ${pendingOfferInfo.priceUsd}/mo
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Your account manager set this up after your conversation. One click to accept.
+              </p>
+            </div>
+            <button
+              className="btn-primary"
+              style={{ background: '#34A853' }}
+              onClick={() => router.push('/choose-role')}
+            >
+              View offer <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Re-engagement: who tried to open links while the plan was paused. */}
         <MissedVisitors />

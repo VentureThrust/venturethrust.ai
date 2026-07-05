@@ -286,6 +286,26 @@ export default function ChoosePlanPage() {
     })();
   }, [router]);
 
+  // OFFER WATCHER: a custom offer created while this page is already open
+  // appears within seconds, no refresh needed.
+  useEffect(() => {
+    if (!userId || offer) return;
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const res = await fetch('/api/deal-watch/my-offer', {
+          headers: { Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.offer) {
+          setOffer(j.offer as OfferRow);
+          setAudience('investors');
+        }
+      } catch { /* keep polling */ }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [userId, offer]);
+
   // ACTIVATION WATCHER: if the plan turns active while this page is open
   // (the manager clicked Activate after a demo call, or a webhook landed),
   // move the user straight into their dashboard - no refresh, no re-choosing.

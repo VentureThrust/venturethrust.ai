@@ -7,7 +7,7 @@
  * silently.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 const BLUE = '#4285F4';
@@ -39,6 +39,25 @@ export function ContactForm({
   });
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+
+  // Logged-in users should never retype what we already know: prefill the
+  // name and email from their session (only into still-empty fields).
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (!user) return;
+        const meta = (user.user_metadata ?? {}) as { full_name?: string };
+        setForm((f) => ({
+          ...f,
+          email: f.email || (user.email ?? ''),
+          name: f.name || (typeof meta.full_name === 'string' ? meta.full_name : ''),
+        }));
+      } catch { /* anonymous visitor - leave the form empty */ }
+    })();
+  }, []);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -76,7 +95,8 @@ export function ContactForm({
         </span>
         <h3 className="mt-4 text-lg font-semibold text-gray-900">Thanks, we have your message</h3>
         <p className="mt-1.5 text-sm text-gray-600">
-          We usually reply within one business day, at {form.email || 'your email'}.
+          Replies usually arrive within 5 minutes, and never later than 6 hours. We will write to{' '}
+          {form.email || 'your email'}.
         </p>
       </div>
     );
