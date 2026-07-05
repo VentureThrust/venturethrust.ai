@@ -1209,20 +1209,25 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
     }
   };
 
-  const handleDownloadSignedCopy = async (visit: Visit) => {
+  // Generates the SAME signed copy the signer received by email: field
+  // values stamped at their placed positions, a guaranteed signature block
+  // when nothing was placed, and the signer's email tiled as a watermark.
+  const downloadSignedCopy = async (signature: Signature | undefined) => {
     if (!file.contentUrl) { toast({ variant: 'destructive', title: 'Download failed' }); return; }
     try {
-      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
-      const signature = signatures.find(sig => sig.email === visit.email);
+      const { PDFDocument, rgb, StandardFonts, degrees } = await import('pdf-lib');
       const existingPdfBytes = await fetch(file.contentUrl).then(res => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const pages = pdfDoc.getPages();
+      const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      let anyStamped = false;
       if (file.agreementFields && signature?.fieldValues) {
         for (const field of file.agreementFields) {
           const page = pages[field.page - 1];
           if (!page) continue;
           const fieldValue = signature.fieldValues[field.id];
           if (!fieldValue) continue;
+          anyStamped = true;
           const x = (field.x / 100) * page.getWidth();
           const y = page.getHeight() - (field.y / 100) * page.getHeight();
           if (typeof fieldValue === 'object') {
@@ -1231,12 +1236,37 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
               const { width, height } = pngImage.scale(0.25);
               page.drawImage(pngImage, { x, y: y - height, width, height });
             } else if (fieldValue.type === 'typed' && fieldValue.value) {
-              const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-              page.drawText(fieldValue.value, { x, y: y - 18, font, size: 18, color: rgb(0, 0, 0) });
+              page.drawText(fieldValue.value, { x, y: y - 18, font: helv, size: 18, color: rgb(0, 0, 0) });
             }
           } else {
-            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-            page.drawText(String(fieldValue), { x, y: y - 14, font, size: 12, color: rgb(0, 0, 0) });
+            page.drawText(String(fieldValue), { x, y: y - 14, font: helv, size: 12, color: rgb(0, 0, 0) });
+          }
+        }
+      }
+      // Guaranteed signature block (matches the emailed copy) when the
+      // agreement had no placed fields or none were filled.
+      if (!anyStamped && signature) {
+        const oblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+        const last = pages[pages.length - 1];
+        const baseY = 46;
+        last.drawLine({ start: { x: 50, y: baseY + 40 }, end: { x: 260, y: baseY + 40 }, thickness: 0.8, color: rgb(0.45, 0.45, 0.45) });
+        last.drawText(signature.name || signature.email || 'Signer', { x: 52, y: baseY + 46, font: oblique, size: 16, color: rgb(0.05, 0.05, 0.05) });
+        last.drawText('Signed electronically', { x: 50, y: baseY + 26, font: helv, size: 8, color: rgb(0.45, 0.45, 0.45) });
+        last.drawText(`${signature.email}   ${signature.dateSigned ? format(new Date(signature.dateSigned), 'd MMM yyyy') : ''}`, {
+          x: 50, y: baseY + 14, font: helv, size: 9, color: rgb(0.25, 0.25, 0.25),
+        });
+      }
+      // Signer-email watermark tiling, same as the emailed copy.
+      if (signature?.email) {
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          for (let yy = -40; yy < height + 40; yy += 130) {
+            for (let xx = -40; xx < width + 40; xx += 220) {
+              page.drawText(signature.email, {
+                x: xx, y: yy, size: 9, font: helv,
+                color: rgb(0.6, 0.6, 0.6), opacity: 0.18, rotate: degrees(-30),
+              });
+            }
           }
         }
       }
@@ -1247,6 +1277,10 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
       a.download = `${file.name.replace('.pdf', '')}_signed.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     } catch (e) { console.error(e); toast({ variant: 'destructive', title: 'Download failed' }); }
+  };
+
+  const handleDownloadSignedCopy = async (visit: Visit) => {
+    await downloadSignedCopy(signatures.find(sig => sig.email === visit.email));
   };
 
   const pieData = (pct: number) => [{ value: pct, fill: '#3b82f6' }, { value: 100 - pct, fill: '#e5e7eb' }];
@@ -1788,7 +1822,15 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                           <div className="flex items-center gap-2"><LinkIcon className="h-4 w-4" />{sig.signedFrom}</div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><Download className="h-4 w-4" /></Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Download signed copy"
+                            onClick={() => downloadSignedCopy(sig)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
