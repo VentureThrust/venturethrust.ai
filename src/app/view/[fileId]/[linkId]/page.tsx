@@ -276,20 +276,33 @@ export default function ViewFilePage() {
     pageRefs.current.get(next)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // "Start signing": jump to the first field still waiting for input.
+  // "Start signing": open the first field that still needs the recipient's
+  // input - the signature first, then text fields. Navigating alone is not
+  // enough (they may already be ON that page, and the button must always
+  // visibly do something).
   const goToFirstUnfilledField = () => {
-    const target = allAgreementFields.find((f) => {
+    const isUnfilled = (f: PlacedField) => {
       const v = fieldValues[f.id];
       return !v || (typeof v === 'string' ? v.trim() === '' : !v.value);
-    }) ?? allAgreementFields[0];
+    };
+    const actionable = (f: PlacedField) =>
+      ['signature', 'initials', 'text', 'company', 'title'].includes(f.type);
+    const target =
+      allAgreementFields.find((f) => isUnfilled(f) && (f.type === 'signature' || f.type === 'initials'))
+      ?? allAgreementFields.find((f) => isUnfilled(f) && actionable(f))
+      ?? allAgreementFields.find(isUnfilled)
+      ?? allAgreementFields[0];
     if (!target) return;
     if (isMobilePaged) {
       if (target.page !== pageNumber) {
         flushPageTime(pageNumber);
         setPageNumber(target.page);
       }
+      setTimeout(() => handleFieldClick(target), 60);
     } else {
       pageRefs.current.get(target.page)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Let the scroll land, then open the field itself.
+      setTimeout(() => handleFieldClick(target), 400);
     }
   };
 
