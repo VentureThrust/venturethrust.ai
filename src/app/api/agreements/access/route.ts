@@ -117,22 +117,34 @@ export async function POST(req: NextRequest) {
 
   const links: ShareLinkRow[] = Array.isArray(file.links) ? (file.links as ShareLinkRow[]) : [];
   const link = links.find((l) => l.id === linkId);
+  let sharedLinkAccount: string | null = null;
   if (!link || link.enabled === false) {
-    // Not a public share link - allow if this is a per-file agreement GATE
-    // (the agreement is configured as a gate somewhere in file_permissions).
-    const { data: gateRow } = await supabase
-      .from('file_permissions')
-      .select('file_id')
-      .eq('agreement_file_id', fileId)
-      .limit(1)
+    // Not a public share link. Allow if this agreement arrived via a
+    // send-by-email share link (linkId is that share_links row id) ...
+    const { data: sl } = await supabase
+      .from('share_links')
+      .select('id, file_id, is_active, link_name, recipient_email')
+      .eq('id', linkId)
       .maybeSingle();
-    if (!gateRow) {
-      return NextResponse.json({ ok: false, error: 'disabled' }, { status: 403 });
+    if (sl && sl.is_active && sl.file_id === fileId) {
+      sharedLinkAccount = (sl.link_name as string) || (sl.recipient_email ? 'Email invite' : 'Shared link');
+    } else {
+      // ... or if this is a per-file agreement GATE (the agreement is
+      // configured as a gate somewhere in file_permissions).
+      const { data: gateRow } = await supabase
+        .from('file_permissions')
+        .select('file_id')
+        .eq('agreement_file_id', fileId)
+        .limit(1)
+        .maybeSingle();
+      if (!gateRow) {
+        return NextResponse.json({ ok: false, error: 'disabled' }, { status: 403 });
+      }
     }
   }
 
   const signed = action === 'signed';
-  const account = link?.account ?? 'Direct Link';
+  const account = link?.account ?? sharedLinkAccount ?? 'Direct Link';
 
   const nowIso = new Date().toISOString();
   const newVisit = {

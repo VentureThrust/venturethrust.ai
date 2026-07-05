@@ -176,7 +176,17 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.status === 'OK' && data.file) {
         logAccess(visitorEmail);
-        setFileVisitorEmail(visitorEmail || link.recipientEmail || null);
+        const effectiveEmail = visitorEmail || link.recipientEmail || null;
+        // Agreements open the SIGNING page (placed fields, e-sign flow),
+        // never the plain viewer. `st` carries the share token so the
+        // signing APIs can authorize this emailed link.
+        if ((data.file as { isAgreement?: boolean }).isAgreement) {
+          const qs = new URLSearchParams({ st: token });
+          if (effectiveEmail) qs.set('email', effectiveEmail);
+          router.replace(`/view/${(data.file as SharedFile).id}/${link.id}?${qs.toString()}`);
+          return;
+        }
+        setFileVisitorEmail(effectiveEmail);
         setFileView(data.file as SharedFile);
         setStep('file');
       } else if (res.ok && data.status === 'OK' && !data.file) {

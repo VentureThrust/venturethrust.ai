@@ -174,8 +174,12 @@ export default function ViewFilePage() {
     (async () => {
       try {
         const gateQS = searchParams.get('gate') === '1' ? '&gate=1' : '';
+        // Send-by-email arrivals carry the share token; it authorizes the
+        // load when this link isn't in the file's own links array.
+        const st = searchParams.get('st');
+        const stQS = st ? `&st=${encodeURIComponent(st)}` : '';
         const res = await fetch(
-          `/api/agreements/view?fileId=${encodeURIComponent(fileId)}&linkId=${encodeURIComponent(linkId)}${gateQS}`,
+          `/api/agreements/view?fileId=${encodeURIComponent(fileId)}&linkId=${encodeURIComponent(linkId)}${gateQS}${stQS}`,
           { cache: 'no-store' },
         );
         const json = await res.json();

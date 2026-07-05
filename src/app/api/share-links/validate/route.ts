@@ -122,12 +122,12 @@ export async function POST(req: NextRequest) {
   // never reaches an unauthorized visitor. NDA / signature stay client-side
   // gates (acceptance + name capture), matching the space flow.
   let file:
-    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean }
+    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean; isAgreement: boolean }
     | null = null;
   if (link.file_id) {
     const { data: fileRow } = await supabase
       .from('files')
-      .select('id, name, type, storage_path')
+      .select('id, name, type, storage_path, agreement_fields')
       .eq('id', link.file_id)
       .maybeSingle();
     if (fileRow?.storage_path) {
@@ -146,6 +146,9 @@ export async function POST(req: NextRequest) {
         url: signed?.signedUrl ?? '',
         watermarkText: wm,
         allowDownload: link.allow_download !== false,
+        // Agreements (placed signature/name/date fields) must open in the
+        // SIGNING experience, not the plain viewer - the client redirects.
+        isAgreement: Array.isArray(fileRow.agreement_fields) && fileRow.agreement_fields.length > 0,
       };
     }
   }

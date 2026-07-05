@@ -80,6 +80,10 @@ export async function GET(req: NextRequest) {
   // confirming this agreement is actually configured as a gate somewhere
   // in file_permissions - so arbitrary agreement ids can't be opened.
   const gate = req.nextUrl.searchParams.get('gate') === '1';
+  // Share-token mode: the agreement arrived via a send-by-email /shared
+  // link, so authorization comes from the share_links row, not the file's
+  // own links array.
+  const shareToken = (req.nextUrl.searchParams.get('st') ?? '').trim();
   let account: string | null = null;
 
   if (gate) {
@@ -92,6 +96,16 @@ export async function GET(req: NextRequest) {
     if (!gateRow) {
       return NextResponse.json({ ok: false, error: 'disabled' }, { status: 403 });
     }
+  } else if (shareToken) {
+    const { data: sl } = await supabase
+      .from('share_links')
+      .select('id, file_id, is_active, link_name, recipient_email')
+      .eq('token', shareToken)
+      .maybeSingle();
+    if (!sl || !sl.is_active || sl.file_id !== fileId) {
+      return NextResponse.json({ ok: false, error: 'disabled' }, { status: 403 });
+    }
+    account = (sl.link_name as string) || (sl.recipient_email ? 'Email invite' : 'Shared link');
   } else {
     const links: ShareLinkRow[] = Array.isArray(file.links) ? (file.links as ShareLinkRow[]) : [];
     const link = links.find((l) => l.id === linkId);
