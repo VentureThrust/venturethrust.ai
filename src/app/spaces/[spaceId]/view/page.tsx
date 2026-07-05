@@ -584,6 +584,37 @@ export default function SpaceViewPage() {
   // so the owner's sanity-check doesn't pollute analytics, the audit log
   // ("Anonymous visitor entered"), or visitor-count metrics.
   const isPreview = searchParams?.get('preview') === 'true';
+
+  // Share token this visitor arrived through (?via= from the gates flow).
+  // Stashed in sessionStorage so a refresh or an internal round trip that
+  // drops the query string keeps working.
+  const viaParam = searchParams?.get('via') ?? '';
+  const viaToken = useMemo(() => {
+    if (typeof window === 'undefined') return viaParam;
+    const key = `vt_view_via_${spaceId}`;
+    if (viaParam) {
+      try { sessionStorage.setItem(key, viaParam); } catch { /* private mode */ }
+      return viaParam;
+    }
+    try { return sessionStorage.getItem(key) ?? ''; } catch { return ''; }
+  }, [viaParam, spaceId]);
+
+  // All viewer data loads through /api/spaces/view-data (service role): RLS
+  // only knows owners/members, so direct client reads made shared rooms
+  // vanish for any OTHER logged-in user (invited investors saw "Space not
+  // found"). The route re-checks share access itself.
+  const fetchViewData = useCallback(async (extra?: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    const res = await fetch('/api/spaces/view-data', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ spaceId, token: viaToken || undefined, ...(extra ?? {}) }),
+    });
+    const json = await res.json().catch(() => null);
+    return { ok: res.ok, json };
+  }, [spaceId, viaToken]);
   const { toast } = useToast();
   const [inactive, setInactive] = useState(false);
 
@@ -897,7 +928,9 @@ export default function SpaceViewPage() {
     if (!spaceId) return;
     const load = async () => {
       setIsLoading(true);
-      const { data: spaceData, error: spaceError } = await supabase.from('spaces').select('id, title, name, description, cover_image, logo, watermark_text, expires_at').eq('id', spaceId).single();
+      const { ok: bundleOk, json: bundle } = await fetchViewData();
+      const spaceData = (bundleOk && bundle?.space ? bundle.space : null) as SpaceRow | null;
+      const spaceError = spaceData ? null : (bundle?.error ?? 'NOT_FOUND');
       // Hard expiration gate - if the owner set an expiration date and it's
       // already past, refuse to render the space at all. Surfaced as a
       // friendly "link expired" message via the `error` state.
@@ -931,65 +964,15 @@ export default function SpaceViewPage() {
 
       setSpace(spaceData as SpaceRow);
 
-      // Resolve cover image - handles three storage scenarios that visitors hit:
-      //  1. cover_image already a full https URL → use as-is
-      //  2. cover_image is a storage path → try getPublicUrl (works if bucket public)
-      //  3. fallback to signed URL (only works if bucket RLS allows anonymous SELECT)
-      const resolveStorageUrl = async (raw: string, bucket: string): Promise<string | null> => {
-        if (!raw) return null;
-        if (raw.startsWith('http')) return raw;
-        // Path stored - get a public URL (always returns something, may 404 if bucket private)
-        const pub = supabase.storage.from(bucket).getPublicUrl(raw);
-        if (pub.data?.publicUrl) return pub.data.publicUrl;
-        // Last-ditch signed URL
-        const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(raw, 86400);
-        return signed?.signedUrl ?? null;
-      };
+      // Cover, logo, folders and files all arrive in the same server bundle
+      // (fetched with the service role after the share-access check). The
+      // ALL-rows fetch is kept server-side: the is_visible cascade below
+      // needs hidden folders present to hide their descendants too.
+      setCoverImageUrl((bundle.coverUrl as string) || 'https://picsum.photos/seed/space-cover-3/1600/400');
+      if (bundle.logoUrl) setLogoUrl(bundle.logoUrl as string);
 
-      // ── Parallelize all secondary data fetches ─────────────────────────
-      // Previously: sequential awaits for cover URL → logo URL → folders →
-      // files. Each round-trip is ~150ms over the wire, so 4 sequential
-      // calls = ~600ms of waterfall before the page becomes usable.
-      // Running them in parallel cuts that to ~150ms (the slowest single
-      // call). Space data was already awaited above; everything below it
-      // depends only on `spaceData`, so they can all start at once.
-      const coverPromise = spaceData.cover_image
-        ? resolveStorageUrl(spaceData.cover_image, 'space-covers')
-        : Promise.resolve('https://picsum.photos/seed/space-cover-3/1600/400');
-      const logoPromise = spaceData.logo
-        ? resolveStorageUrl(spaceData.logo, 'space-logos')
-        : Promise.resolve(null);
-      // Fetch ALL folders + files - we can't apply the is_visible filter
-      // at query level because hidden-folder children would then look like
-      // orphans (no matching parent in the result set) and the buildTree
-      // logic below promotes orphans to root. Cascade is applied client-
-      // side after the fetch so descendants of a hidden folder are
-      // recursively hidden too.
-      const foldersPromise = supabase
-        .from('folders')
-        .select('*')
-        .eq('space_id', spaceId)
-        .order('position', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true });
-      const filesPromise = supabase
-        .from('files')
-        .select('*')
-        .eq('space_id', spaceId)
-        .order('position', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true });
-
-      const [coverUrl, logoResolved, foldersRes, filesRes] = await Promise.all([
-        coverPromise,
-        logoPromise,
-        foldersPromise,
-        filesPromise,
-      ]);
-
-      if (coverUrl) setCoverImageUrl(coverUrl);
-      if (logoResolved) setLogoUrl(logoResolved);
-
-      const allFiles = ((filesRes.data) || []) as FileRow[];
-      const allFolders = ((foldersRes.data) || []) as FolderRow[];
+      const allFiles = ((bundle.files) || []) as FileRow[];
+      const allFolders = ((bundle.folders) || []) as FolderRow[];
 
       // ── Cascade is_visible ──────────────────────────────────────────────
       // A folder is "effectively hidden" if its own is_visible is false OR
@@ -1030,7 +1013,7 @@ export default function SpaceViewPage() {
       setIsLoading(false);
     };
     load();
-  }, [spaceId]);
+  }, [spaceId, fetchViewData]);
 
   // ─── Core report generation ──────────────────────────────────────────────────
   // notifyTo: if provided, send email after done instead of redirecting
@@ -1174,15 +1157,14 @@ export default function SpaceViewPage() {
       }
     }
 
-    const { data } = await supabase.storage.from('vdr-files').createSignedUrl(file.storage_path, 3600);
-    if (!data?.signedUrl) { toast({ variant: 'destructive', title: 'Could not open file' }); setViewerLoading(false); return; }
+    // Signed URL comes from the server (visitors cannot sign storage URLs
+    // themselves under RLS); the view counter bumps there too, skipped
+    // during owner preview.
+    const { ok: signOk, json: signData } = await fetchViewData({ fileId: file.id, countView: !isPreview });
+    if (!signOk || !signData?.signedUrl) { toast({ variant: 'destructive', title: 'Could not open file' }); setViewerLoading(false); return; }
     if (activeSessionRef.current) await saveFileVisit(activeSessionRef.current);
     activeSessionRef.current = { file, openedAt: Date.now() };
-    // Skip view-counter bump during owner preview.
-    if (!isPreview) {
-      await supabase.from('files').update({ views: (file.views || 0) + 1 }).eq('id', file.id);
-    }
-    setViewerUrl(data.signedUrl);
+    setViewerUrl(signData.signedUrl as string);
     setViewerFile(file);
     setViewerLoading(false);
   };

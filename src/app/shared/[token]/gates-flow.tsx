@@ -136,8 +136,10 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
             JSON.stringify({ passed: true, email: recipient, spaceId: link.space_id })
           );
         }
+        // `via` carries the share token so the space viewer can load its
+        // data server-side regardless of who (if anyone) is logged in.
         logAccess(recipient).finally(() =>
-          router.replace(`/spaces/${link.space_id}/view`)
+          router.replace(`/spaces/${link.space_id}/view?via=${encodeURIComponent(token)}`)
         );
       }
     }
@@ -206,7 +208,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     }
     setStep('redirecting');
     logAccess(visitorEmail).finally(() =>
-      router.replace(`/spaces/${link.space_id}/view`)
+      router.replace(`/spaces/${link.space_id}/view?via=${encodeURIComponent(token)}`)
     );
   };
 
