@@ -130,6 +130,11 @@ export default function ViewFilePage() {
   // Signed-and-done popup (DocSend-style ceremony end).
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  // FIELD WIZARD (DocSend-style): after "Start signing", Previous/Next step
+  // through the placed fields in document order; the current one glows so
+  // the recipient always knows what to tap next.
+  const [wizardIndex, setWizardIndex] = useState<number | null>(null);
+
   // ── Per-page dwell tracking ──────────────────────────────────────────────
   // Accumulates seconds spent on each page so the owner's analytics can
   // show which page got the most attention. `pageTimesRef` is the running
@@ -276,34 +281,46 @@ export default function ViewFilePage() {
     pageRefs.current.get(next)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // "Start signing": open the first field that still needs the recipient's
-  // input - the signature first, then text fields. Navigating alone is not
-  // enough (they may already be ON that page, and the button must always
-  // visibly do something).
-  const goToFirstUnfilledField = () => {
-    const isUnfilled = (f: PlacedField) => {
-      const v = fieldValues[f.id];
-      return !v || (typeof v === 'string' ? v.trim() === '' : !v.value);
-    };
-    const actionable = (f: PlacedField) =>
-      ['signature', 'initials', 'text', 'company', 'title'].includes(f.type);
-    const target =
-      allAgreementFields.find((f) => isUnfilled(f) && (f.type === 'signature' || f.type === 'initials'))
-      ?? allAgreementFields.find((f) => isUnfilled(f) && actionable(f))
-      ?? allAgreementFields.find(isUnfilled)
-      ?? allAgreementFields[0];
-    if (!target) return;
+  // Fields in reading order: page, then top-to-bottom, then left-to-right.
+  const orderedFields = useMemo(
+    () => [...allAgreementFields].sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x),
+    [allAgreementFields],
+  );
+  const currentWizardField = wizardIndex !== null ? orderedFields[wizardIndex] ?? null : null;
+
+  const isFieldUnfilled = (f: PlacedField) => {
+    const v = fieldValues[f.id];
+    return !v || (typeof v === 'string' ? v.trim() === '' : !v.value);
+  };
+
+  const navigateToField = (f: PlacedField) => {
     if (isMobilePaged) {
-      if (target.page !== pageNumber) {
+      if (f.page !== pageNumber) {
         flushPageTime(pageNumber);
-        setPageNumber(target.page);
+        setPageNumber(f.page);
       }
-      setTimeout(() => handleFieldClick(target), 60);
     } else {
-      pageRefs.current.get(target.page)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Let the scroll land, then open the field itself.
-      setTimeout(() => handleFieldClick(target), 400);
+      pageRefs.current.get(f.page)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  };
+
+  // "Start signing": enter the wizard on the first field still waiting.
+  const goToFirstUnfilledField = () => {
+    if (orderedFields.length === 0) return;
+    const idx = orderedFields.findIndex(isFieldUnfilled);
+    const target = idx >= 0 ? idx : 0;
+    setWizardIndex(target);
+    navigateToField(orderedFields[target]);
+  };
+
+  // Previous/Next between fields (clamped, like DocSend).
+  const stepWizard = (dir: 1 | -1) => {
+    if (orderedFields.length === 0) return;
+    const next = wizardIndex === null
+      ? 0
+      : Math.min(orderedFields.length - 1, Math.max(0, wizardIndex + dir));
+    setWizardIndex(next);
+    navigateToField(orderedFields[next]);
   };
 
   // Track the currently-visible page via IntersectionObserver. When the
@@ -426,6 +443,11 @@ export default function ViewFilePage() {
 
   const handleFieldClick = (field: PlacedField) => {
     if (isSigningComplete) return;
+    // Keep the wizard pointer on whatever the recipient touches.
+    if (wizardIndex !== null) {
+      const idx = orderedFields.findIndex((f) => f.id === field.id);
+      if (idx >= 0) setWizardIndex(idx);
+    }
     if (fieldValues[field.id] && field.type !== 'signature' && field.type !== 'initials') return;
 
     if (field.type === 'signature' || field.type === 'initials') {
@@ -462,7 +484,17 @@ export default function ViewFilePage() {
 
   const handleConfirmAndSign = () => {
     if (signatureToConfirm && activeSignatureField) {
-      setFieldValues((prev) => ({ ...prev, [activeSignatureField.id]: signatureToConfirm }));
+      setFieldValues((prev) => {
+        const next = { ...prev, [activeSignatureField.id]: signatureToConfirm };
+        // DocSend touch: a typed signature also fills any still-empty Name
+        // fields - the recipient typed their name once, use it everywhere.
+        if (signatureToConfirm.type === 'typed') {
+          for (const f of allAgreementFields) {
+            if (f.type === 'name' && !next[f.id]) next[f.id] = signatureToConfirm.value;
+          }
+        }
+        return next;
+      });
     }
     setIsConfirmationDialogOpen(false);
     setSignatureToConfirm(null);
@@ -569,6 +601,8 @@ export default function ViewFilePage() {
       );
     }
 
+    const isCurrent = currentWizardField?.id === field.id && !isSigningComplete;
+
     return (
       <div
         key={field.id}
@@ -580,6 +614,14 @@ export default function ViewFilePage() {
           // (they were placed against the 820px desktop render).
           transform: `scale(${fieldScale})`,
           transformOrigin: 'top left',
+          // Wizard highlight: the field Previous/Next landed on glows.
+          ...(isCurrent
+            ? {
+                boxShadow: '0 0 0 3px #fbbf24, 0 0 12px rgba(251,191,36,0.55)',
+                borderRadius: 4,
+                zIndex: 10,
+              }
+            : {}),
         }}
         onClick={() => handleFieldClick(field)}
       >
@@ -710,15 +752,40 @@ export default function ViewFilePage() {
           fields are filled (the confirmation banner takes over) or signed. */}
       {!isSigningComplete && hasPlacedSignature && !requiredFieldsFilled && (
         <div className="flex-shrink-0 bg-blue-50 border-b border-blue-100 px-4 sm:px-8 py-3 z-10">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="max-w-5xl mx-auto flex flex-col gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900">eSignature required</p>
-              <p className="text-sm text-gray-700">You are requested to review and sign this document.</p>
+              <p className="text-sm text-gray-700">
+                {wizardIndex === null
+                  ? 'You are requested to review and sign this document.'
+                  : 'Tap the highlighted field to fill it, then move to the next one.'}
+              </p>
             </div>
-            <Button onClick={goToFirstUnfilledField} className="bg-gray-900 hover:bg-gray-800 text-white shrink-0">
-              <PenLine className="mr-2 h-4 w-4" />
-              Start signing
-            </Button>
+            {wizardIndex === null ? (
+              <Button onClick={goToFirstUnfilledField} className="bg-gray-900 hover:bg-gray-800 text-white sm:self-end sm:-mt-9">
+                <PenLine className="mr-2 h-4 w-4" />
+                Start signing
+              </Button>
+            ) : (
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => stepWizard(-1)}
+                  disabled={wizardIndex <= 0}
+                  className="flex-1 bg-gray-900 text-white hover:bg-gray-800 sm:flex-none sm:px-8"
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  onClick={() => stepWizard(1)}
+                  disabled={wizardIndex >= orderedFields.length - 1}
+                  className="flex-1 bg-gray-900 text-white hover:bg-gray-800 sm:flex-none sm:px-8"
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
