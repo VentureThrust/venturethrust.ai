@@ -451,13 +451,14 @@ export default function ViewFilePage() {
       const idx = orderedFields.findIndex((f) => f.id === field.id);
       if (idx >= 0) setWizardIndex(idx);
     }
-    if (fieldValues[field.id] && field.type !== 'signature' && field.type !== 'initials') return;
-
+    // Text-like fields stay editable after being filled: tapping one
+    // reopens the input with the current value. Only the auto-filled
+    // types (email, date) are not re-openable.
     if (field.type === 'signature' || field.type === 'initials') {
       setActiveSignatureField(field);
       setTypedSignature(session.name || '');
       setIsSignatureDialogOpen(true);
-    } else if (['text', 'company', 'title'].includes(field.type)) {
+    } else if (['text', 'company', 'title', 'name'].includes(field.type)) {
       setEditingField(field);
     }
   };
@@ -587,7 +588,11 @@ export default function ViewFilePage() {
         <div className="pointer-events-auto">
           <Input
             autoFocus
-            onBlur={() => setEditingField(null)}
+            onBlur={(e) => {
+              // Tapping outside SAVES what was typed (it used to discard it).
+              setFieldValues((prev) => ({ ...prev, [field.id]: e.target.value }));
+              setEditingField(null);
+            }}
             onKeyDown={handleTextInputSave}
             className="h-8 p-1"
             defaultValue={(fieldValues[field.id] as string) || ''}
