@@ -130,6 +130,9 @@ export default function ViewFilePage() {
   // Signed-and-done popup (DocSend-style ceremony end).
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  // Swipe-to-turn (paged mobile).
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+
   // FIELD WIZARD (DocSend-style): after "Start signing", Previous/Next step
   // through the placed fields in document order; the current one glows so
   // the recipient always knows what to tap next.
@@ -822,8 +825,16 @@ export default function ViewFilePage() {
                 />
                 <span className="text-sm text-gray-700 leading-snug">
                   I agree to use electronic records and signatures and to VentureThrust&apos;s{' '}
-                  <span className="underline">Terms of Service</span>. By signing, I confirm that I
-                  have reviewed and agree to the contents of this document.
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 underline hover:text-blue-800"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Terms of Service
+                  </a>
+                  . By signing, I confirm that I have reviewed and agree to the contents of this document.
                 </span>
               </label>
               <Button
@@ -838,10 +849,54 @@ export default function ViewFilePage() {
         </div>
       )}
 
+      {/* Floating side arrows (paged mobile): turn pages from the middle of
+          the screen, like the deck viewer. Swiping works too. */}
+      {isMobilePaged && (numPages ?? 0) > 1 && (
+        <>
+          <button
+            aria-label="Previous page"
+            disabled={pageNumber <= 1}
+            onClick={() => changePage(-1)}
+            className="fixed left-1.5 top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white shadow-lg backdrop-blur-sm disabled:opacity-25"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            aria-label="Next page"
+            disabled={pageNumber >= (numPages ?? 1)}
+            onClick={() => changePage(1)}
+            className="fixed right-1.5 top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white shadow-lg backdrop-blur-sm disabled:opacity-25"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
+
       {/* All pages rendered stacked in a single scroll container - scrolling
           moves through the document (not just chevron nav). Each page wraps
-          a canvas + its own field overlay. */}
-      <main className="flex-1 overflow-auto flex flex-col items-center py-4 gap-4">
+          a canvas + its own field overlay. On paged mobile, a horizontal
+          swipe turns the page. */}
+      <main
+        className="flex-1 overflow-auto flex flex-col items-center py-4 gap-4"
+        onTouchStart={(e) => {
+          if (!isMobilePaged) return;
+          const t = e.touches[0];
+          swipeStartRef.current = { x: t.clientX, y: t.clientY };
+        }}
+        onTouchEnd={(e) => {
+          if (!isMobilePaged) return;
+          const s = swipeStartRef.current;
+          swipeStartRef.current = null;
+          if (!s) return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - s.x;
+          const dy = t.clientY - s.y;
+          // Deliberate horizontal swipe only - vertical scrolls stay scrolls.
+          if (Math.abs(dx) > 60 && Math.abs(dx) > 1.8 * Math.abs(dy)) {
+            changePage(dx < 0 ? 1 : -1);
+          }
+        }}
+      >
         <Document
           file={file.contentUrl}
           onLoadSuccess={onDocumentLoadSuccess}
