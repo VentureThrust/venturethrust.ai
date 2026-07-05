@@ -18,7 +18,9 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import {
   Loader2, Type, ChevronLeft, ChevronRight, FileWarning,
   Link2Off, ClipboardCheck, CheckCircle2, PenLine,
+  LayoutGrid, ZoomIn, ZoomOut, Maximize, Minimize, Download, Printer,
 } from 'lucide-react';
+import { LogoMark } from '@/components/layout/logo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -115,9 +117,29 @@ export default function ViewFilePage() {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+  // DocSend-style viewer chrome: zoom, fullscreen, select-page grid.
+  const [zoom, setZoom] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  };
+
+  // Rendered page width = responsive fit x zoom.
+  const zoomedWidth = Math.round(pageWidth * zoom);
+
   // Fields were placed relative to the desktop page; scale them with it so
-  // they keep the same proportion to the document on every screen.
-  const fieldScale = pageWidth / 820;
+  // they keep the same proportion to the document at every size and zoom.
+  const fieldScale = zoomedWidth / 820;
 
   // PHONES: one page at a time (chevrons to move), like the deck viewer.
   // Small screens showing several stacked pages read as a zoomed mess and
@@ -304,6 +326,19 @@ export default function ViewFilePage() {
       }
     } else {
       pageRefs.current.get(f.page)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Jump straight to a page (select-page grid).
+  const jumpToPage = (p: number) => {
+    if (!numPages || p < 1 || p > numPages) return;
+    if (isMobilePaged) {
+      if (p !== pageNumber) {
+        flushPageTime(pageNumber);
+        setPageNumber(p);
+      }
+    } else {
+      pageRefs.current.get(p)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -740,17 +775,86 @@ export default function ViewFilePage() {
   // ── Render: document + signature fields ──────────────────────────────────
   return (
     <div className="flex flex-col h-screen bg-gray-200">
-      <header className="flex-shrink-0 bg-white shadow-sm p-2 flex justify-between items-center z-20">
-        <h2 className="text-lg font-semibold truncate px-4">{file.name}</h2>
+      {/* DocSend-style dark toolbar: brand, page indicator, select-page grid,
+          fullscreen, zoom, download and print. */}
+      <header className="flex-shrink-0 bg-gray-950 text-white px-3 sm:px-4 py-2 flex items-center justify-between gap-2 z-20">
+        <div className="flex min-w-0 items-center gap-2">
+          <LogoMark className="h-5 w-auto shrink-0 text-white" />
+          <span className="hidden sm:inline text-base font-medium tracking-tight">VentureThrust</span>
+          <span className="ml-1 hidden max-w-[240px] truncate text-sm text-gray-400 md:block" title={file.name}>
+            {file.name}
+          </span>
+        </div>
         {numPages && (
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="ghost" size="icon" disabled={pageNumber <= 1} onClick={() => changePage(-1)}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span>{pageNumber} / {numPages}</span>
-            <Button variant="ghost" size="icon" disabled={pageNumber >= numPages} onClick={() => changePage(1)}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <button
+              className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 disabled:opacity-30 sm:grid"
+              disabled={pageNumber <= 1}
+              onClick={() => changePage(-1)}
+              title="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="px-1 text-sm tabular-nums">{pageNumber} / {numPages}</span>
+            <button
+              className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 disabled:opacity-30 sm:grid"
+              disabled={pageNumber >= numPages}
+              onClick={() => changePage(1)}
+              title="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              className="grid h-8 w-8 place-items-center rounded hover:bg-white/10"
+              onClick={() => setIsPagePickerOpen(true)}
+              title="Select page"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 sm:grid"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            >
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </button>
+            <button
+              className="grid h-8 w-8 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
+              onClick={() => setZoom((z) => Math.min(2, +(z + 0.2).toFixed(1)))}
+              disabled={zoom >= 2}
+              title="Zoom in"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <button
+              className="grid h-8 w-8 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
+              onClick={() => setZoom((z) => Math.max(0.6, +(z - 0.2).toFixed(1)))}
+              disabled={zoom <= 0.6}
+              title="Zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            {file.contentUrl && (
+              <>
+                <a
+                  href={file.contentUrl}
+                  download={file.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 sm:grid"
+                  title="Download"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+                <button
+                  className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 sm:grid"
+                  onClick={() => window.open(file.contentUrl!, '_blank')}
+                  title="Print"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </div>
         )}
       </header>
@@ -922,7 +1026,7 @@ export default function ViewFilePage() {
               }}
               className="relative shadow-lg bg-white"
             >
-              <Page pageNumber={p} width={pageWidth} renderTextLayer={false} />
+              <Page pageNumber={p} width={zoomedWidth} renderTextLayer={false} />
               <div className="absolute inset-0">
                 {(file.agreementFields ?? [])
                   .filter((field) => field.page === p)
@@ -938,6 +1042,40 @@ export default function ViewFilePage() {
 
       {/* (Done footer + completed dialog removed - the sticky confirmation
           banner with the consent checkbox now drives finalization.) */}
+
+      {/* Select page: real thumbnails of every page, click to jump. */}
+      <Dialog open={isPagePickerOpen} onOpenChange={setIsPagePickerOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">Select page</DialogTitle>
+          </DialogHeader>
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {numPages ?? 0} {numPages === 1 ? 'page' : 'pages'}
+          </p>
+          <div className="max-h-[60vh] overflow-auto p-1">
+            <Document
+              file={file.contentUrl}
+              loading={<div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+              error={<p className="py-10 text-center text-sm text-muted-foreground">Could not load previews.</p>}
+            >
+              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4">
+                {Array.from({ length: numPages ?? 0 }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { jumpToPage(p); setIsPagePickerOpen(false); }}
+                    className={`overflow-hidden rounded-md border-2 bg-white transition-colors ${
+                      p === pageNumber ? 'border-[#4285F4]' : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <Page pageNumber={p} width={130} renderTextLayer={false} />
+                    <span className="block py-1 text-center text-sm text-gray-700">{p}</span>
+                  </button>
+                ))}
+              </div>
+            </Document>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Success ceremony: signed, sealed, copy on its way. */}
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>

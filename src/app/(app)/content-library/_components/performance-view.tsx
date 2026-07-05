@@ -16,6 +16,8 @@ import { useMemo } from 'react';
 import type { File } from '@/lib/folder-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
+// Real page thumbnails (pdfjs via CDN shim) - same component as the viewers.
+import { Document, Page } from '@/components/pdf-shim';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, TooltipProps,
 } from 'recharts';
@@ -154,18 +156,39 @@ export function PerformanceView({ file }: PerformanceViewProps) {
               Top Pages <span className="font-normal">(by average time per page)</span>
             </h4>
             {topPages.length > 0 ? (
-              <div className="flex flex-wrap gap-8">
-                {topPages.map((page) => (
-                  <div key={page.page} className="flex items-center gap-3">
-                    <PageThumb />
-                    <div>
-                      <p className="text-lg font-bold">{fmtTime(page.avgTime)}</p>
-                      <p className="text-sm text-muted-foreground">Page: {page.page}</p>
-                      <p className="text-sm text-muted-foreground">Visits: {page.visits}</p>
-                    </div>
+              file.contentUrl ? (
+                // One Document, several page thumbs: REAL miniatures of the
+                // pages that held attention, like DocSend.
+                <Document file={file.contentUrl} loading={null} error={null}>
+                  <div className="flex flex-wrap gap-8">
+                    {topPages.map((page) => (
+                      <div key={page.page} className="flex items-center gap-3">
+                        <div className="shrink-0 overflow-hidden rounded-sm border border-gray-200 shadow-sm">
+                          <Page pageNumber={page.page} width={56} renderTextLayer={false} />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold">{fmtTime(page.avgTime)}</p>
+                          <p className="text-sm text-muted-foreground">Page: {page.page}</p>
+                          <p className="text-sm text-muted-foreground">Visits: {page.visits}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </Document>
+              ) : (
+                <div className="flex flex-wrap gap-8">
+                  {topPages.map((page) => (
+                    <div key={page.page} className="flex items-center gap-3">
+                      <PageThumb />
+                      <div>
+                        <p className="text-lg font-bold">{fmtTime(page.avgTime)}</p>
+                        <p className="text-sm text-muted-foreground">Page: {page.page}</p>
+                        <p className="text-sm text-muted-foreground">Visits: {page.visits}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <FileText className="h-5 w-5" />
