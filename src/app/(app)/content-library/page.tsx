@@ -45,6 +45,7 @@ import {
   Layers,
   ExternalLink,
   Send,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SendByEmailDialog } from './send-by-email-dialog';
@@ -1841,6 +1842,7 @@ function ContentLibraryPageComponent() {
 
   const [isCreateLinkOpen, setIsCreateLinkOpen] = useState(false);
   const [createLinkFile, setCreateLinkFile] = useState<File | null>(null);
+  const [sendEmailFile, setSendEmailFile] = useState<File | null>(null);
   const [lastCreatedLink, setLastCreatedLink] = useState<ShareLink | null>(null);
   const [isCopyLinkDialogOpen, setIsCopyLinkDialogOpen] = useState(false);
 
@@ -2058,6 +2060,10 @@ function ContentLibraryPageComponent() {
   }, []);
   const openCreateLink = useCallback((file: File) => {
     setTimeout(() => { setCreateLinkFile(file); setIsCreateLinkOpen(true); }, 0);
+  }, []);
+  // Straight from the row's three-dot menu, no need to open the file first.
+  const openSendByEmail = useCallback((file: File) => {
+    setTimeout(() => setSendEmailFile(file), 0);
   }, []);
   const handleLinkCreated = useCallback((link: ShareLink) => {
     setIsCreateLinkOpen(false);
@@ -2690,6 +2696,7 @@ function ContentLibraryPageComponent() {
                                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                     <DropdownMenuItem onClick={() => handlePreviewFile(file)}><Eye className="mr-2 h-4 w-4" />Preview</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => openCreateLink(file)}><Users className="mr-2 h-4 w-4" />Share</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openSendByEmail(file)}><Mail className="mr-2 h-4 w-4" />Send by email</DropdownMenuItem>
                                     <DropdownMenuItem><PenSquare className="mr-2 h-4 w-4" />Rename</DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-destructive" onClick={() => openDeleteFileDialog(file)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
@@ -2756,6 +2763,14 @@ function ContentLibraryPageComponent() {
           link={lastCreatedLink}
           open={isCopyLinkDialogOpen}
           onOpenChange={setIsCopyLinkDialogOpen}
+        />
+      )}
+
+      {sendEmailFile && (
+        <SendByEmailDialog
+          fileId={sendEmailFile.id}
+          open={!!sendEmailFile}
+          onOpenChange={(open) => { if (!open) setSendEmailFile(null); }}
         />
       )}
 

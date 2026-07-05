@@ -26,6 +26,7 @@ import { useEffect, useState } from 'react';
 import { Download, FileWarning, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PdfViewer from '@/components/PdfViewer';
+import { FileWatchlistButton } from '@/components/file-watchlist-button';
 
 export interface SharedFile {
   id: string;
@@ -185,16 +186,20 @@ export function SharedFileView({ file }: { file: SharedFile }) {
     <div className="relative flex h-screen w-full flex-col bg-gray-900">
       <header className="flex items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3 text-white">
         <span className="truncate text-sm font-medium">{file.name}</span>
-        {file.allowDownload ? (
-          <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="secondary">
-              <Download className="mr-2 h-4 w-4" />
-              Download
-            </Button>
-          </a>
-        ) : (
-          <span className="text-xs text-gray-400">Downloads disabled</span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Investor plan accounts only; everyone else sees nothing. */}
+          <FileWatchlistButton fileId={file.id} startupName={file.name} />
+          {file.allowDownload ? (
+            <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="secondary">
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400">Downloads disabled</span>
+          )}
+        </div>
       </header>
 
       <div className="relative flex-1 overflow-hidden">

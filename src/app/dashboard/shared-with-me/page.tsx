@@ -66,7 +66,7 @@ type WatchRow = {
 };
 
 type ExistsState = 'idle' | 'checking' | 'yes' | 'no' | 'self';
-type TabKey = 'new' | 'opened' | 'watchlist';
+type TabKey = 'all' | 'pending' | 'opened' | 'watchlist';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,9 +78,10 @@ export default function SharedWithMePage() {
   const [myEmail, setMyEmail] = useState<string | null>(null);
   const [spaces, setSpaces] = useState<SharedSpace[]>([]);
   const [watchRows, setWatchRows] = useState<WatchRow[]>([]);
+  const [isInvestor, setIsInvestor] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<TabKey>('new');
+  const [tab, setTab] = useState<TabKey>('all');
 
   // ── Invite-a-founder dialog ──
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -150,28 +151,32 @@ export default function SharedWithMePage() {
     }
   };
 
-  const loadShared = useCallback(async () => {
-    setIsLoading(true);
+  const loadShared = useCallback(async (silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const email = authData?.user?.email ?? null;
-      if (!email) { setIsLoading(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      const email = user?.email ?? null;
+      if (!email || !user) { setIsLoading(false); return; }
       setMyEmail(email);
 
-      const { data: { session } } = await supabase.auth.getSession();
       try {
         const res = await fetch('/api/shared-with-me', {
           headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
         });
         const json = await res.json().catch(() => ({ ok: false }));
         if (json.ok && Array.isArray(json.spaces)) setSpaces(json.spaces as SharedSpace[]);
-      } catch { /* leave spaces empty on failure */ }
+      } catch { /* leave spaces as they were on failure */ }
 
       try {
-        const { data: wl } = await supabase
-          .from('dw_watchlist')
-          .select('id, startup_name, space_id, manager_id, created_at')
-          .order('created_at', { ascending: false });
+        const [{ data: prof }, { data: wl }] = await Promise.all([
+          supabase.from('profiles').select('is_investor').eq('id', user.id).maybeSingle(),
+          supabase
+            .from('dw_watchlist')
+            .select('id, startup_name, space_id, manager_id, created_at')
+            .order('created_at', { ascending: false }),
+        ]);
+        setIsInvestor((prof as { is_investor?: boolean } | null)?.is_investor === true);
         setWatchRows((wl ?? []) as WatchRow[]);
       } catch { /* table missing - watchlist tab stays empty */ }
     } finally {
@@ -180,6 +185,15 @@ export default function SharedWithMePage() {
   }, []);
 
   useEffect(() => { loadShared(); }, [loadShared]);
+
+  // LIVE: newly sent decks/rooms appear without a refresh. Silent re-fetch
+  // every 12 seconds while the page is open (and on tab refocus).
+  useEffect(() => {
+    const timer = setInterval(() => { void loadShared(true); }, 12_000);
+    const onFocus = () => { void loadShared(true); };
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(timer); window.removeEventListener('focus', onFocus); };
+  }, [loadShared]);
 
   // ── Search + tab filtering ────────────────────────────────────────────────
   const filteredSpaces = useMemo(() => {
@@ -252,11 +266,18 @@ export default function SharedWithMePage() {
       <span className="hidden w-36 shrink-0 text-sm text-muted-foreground sm:block">
         {formatDistanceToNow(new Date(item.lastAccessedAt), { addSuffix: true })}
       </span>
-      <span className="hidden w-28 shrink-0 sm:block">
+      <span className="hidden w-28 shrink-0 lg:block">
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
           item.invited ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'
         }`}>
           {item.invited ? 'Invited' : 'Sent by email'}
+        </span>
+      </span>
+      <span className="w-24 shrink-0">
+        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+          item.unopened ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
+        }`}>
+          {item.unopened ? 'Pending' : 'Opened'}
         </span>
       </span>
       <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 group-hover:text-[#4285F4]" />
@@ -269,7 +290,8 @@ export default function SharedWithMePage() {
       <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</span>
       <span className="hidden w-56 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:block">From</span>
       <span className="hidden w-36 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:block">Received</span>
-      <span className="hidden w-28 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:block">Via</span>
+      <span className="hidden w-28 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:block">Via</span>
+      <span className="w-24 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
       <span className="w-4 shrink-0" />
     </div>
   );
@@ -283,9 +305,11 @@ export default function SharedWithMePage() {
   );
 
   const tabs: Array<{ key: TabKey; label: string; count: number }> = [
-    { key: 'new', label: 'Shared with me', count: newItems.length },
+    { key: 'all', label: 'All', count: filteredSpaces.length },
+    { key: 'pending', label: 'Pending', count: newItems.length },
     { key: 'opened', label: 'Opened', count: openedItems.length },
-    { key: 'watchlist', label: 'Watchlist', count: filteredWatch.length },
+    // Watchlist is an Investor plan feature; everyone else keeps 3 tabs.
+    ...(isInvestor ? [{ key: 'watchlist' as TabKey, label: 'Watchlist', count: filteredWatch.length }] : []),
   ];
 
   return (
@@ -346,14 +370,31 @@ export default function SharedWithMePage() {
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : tab === 'new' ? (
+      ) : tab === 'all' ? (
+        filteredSpaces.length === 0
+          ? emptyBlock(
+              <Inbox className="h-10 w-10 text-gray-300" />,
+              search ? 'Nothing matches your search' : 'Nothing shared with you yet',
+              search
+                ? 'Try a different keyword or clear the search.'
+                : 'When a founder shares a data room or a deck with you, it appears here the moment they send it.'
+            )
+          : (
+            <div>
+              {columnHeader}
+              <div className="divide-y divide-gray-200 border-b border-gray-200">
+                {filteredSpaces.map((s) => <SharedRow key={s.spaceId} item={s} />)}
+              </div>
+            </div>
+          )
+      ) : tab === 'pending' ? (
         newItems.length === 0
           ? emptyBlock(
               <Inbox className="h-10 w-10 text-gray-300" />,
               search ? 'Nothing matches your search' : 'You are all caught up',
               search
                 ? 'Try a different keyword or clear the search.'
-                : 'New data rooms and documents shared with you will appear here until you open them.'
+                : 'Pitch decks and data rooms you have not opened yet will wait for you here.'
             )
           : (
             <div>
