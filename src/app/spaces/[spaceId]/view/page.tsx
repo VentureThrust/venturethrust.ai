@@ -102,6 +102,8 @@ export type FileVisitEntry = {
 type ActiveFileSession = {
   file: FileRow;
   openedAt: number;
+  /** Eyes-on-screen milliseconds accumulated while the tab was visible. */
+  activeMs: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -649,6 +651,32 @@ export default function SpaceViewPage() {
 
   const activeSessionRef = useRef<ActiveFileSession | null>(null);
 
+  // Eyes-on-screen accounting for the space viewer: the stopwatch pauses
+  // while the tab is hidden and resumes on return, so a deck left open in
+  // a background tab records nothing (same rule as emailed file links).
+  const visibleSinceRef = useRef<number | null>(null);
+  const activeSecondsOf = useCallback((session: ActiveFileSession) => {
+    const live = visibleSinceRef.current ? Date.now() - visibleSinceRef.current : 0;
+    return Math.floor((session.activeMs + live) / 1000);
+  }, []);
+  useEffect(() => {
+    visibleSinceRef.current = document.visibilityState === 'visible' ? Date.now() : null;
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        if (visibleSinceRef.current !== null) {
+          if (activeSessionRef.current) {
+            activeSessionRef.current.activeMs += Date.now() - visibleSinceRef.current;
+          }
+          visibleSinceRef.current = null;
+        }
+      } else if (visibleSinceRef.current === null) {
+        visibleSinceRef.current = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   const visitorEmail = useMemo(() => {
     if (typeof window === 'undefined') return null;
     for (let i = 0; i < sessionStorage.length; i++) {
@@ -789,7 +817,8 @@ export default function SpaceViewPage() {
     // bloat the file.visits array (which drives the analytics file-by-file
     // breakdown).
     if (isPreview) return;
-    const timeSpent = Math.max(1, Math.floor((Date.now() - session.openedAt) / 1000));
+    // Only time the visitor actually had the tab on screen.
+    const timeSpent = Math.max(1, activeSecondsOf(session));
     // Written via the service-role track endpoint: RLS blocks visitors from
     // updating files.visits directly. keepalive lets the request survive the
     // tab closing (beforeunload), so long viewing sessions are not lost.
@@ -811,7 +840,7 @@ export default function SpaceViewPage() {
     } catch (err) {
       console.warn('[file-visit] write failed:', err);
     }
-  }, [visitorEmail, isPreview, spaceId]);
+  }, [visitorEmail, isPreview, spaceId, activeSecondsOf]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -885,7 +914,7 @@ export default function SpaceViewPage() {
           if (!id) return;
           const cur = activeSessionRef.current?.file;
           const totalSec = activeSessionRef.current
-            ? Math.floor((Date.now() - activeSessionRef.current.openedAt) / 1000)
+            ? activeSecondsOf(activeSessionRef.current)
             : 0;
           fetch('/api/track/session', {
             method: 'POST',
@@ -1163,7 +1192,9 @@ export default function SpaceViewPage() {
     const { ok: signOk, json: signData } = await fetchViewData({ fileId: file.id, countView: !isPreview });
     if (!signOk || !signData?.signedUrl) { toast({ variant: 'destructive', title: 'Could not open file' }); setViewerLoading(false); return; }
     if (activeSessionRef.current) await saveFileVisit(activeSessionRef.current);
-    activeSessionRef.current = { file, openedAt: Date.now() };
+    activeSessionRef.current = { file, openedAt: Date.now(), activeMs: 0 };
+    // Fresh file, fresh stopwatch (only if the tab is actually visible).
+    visibleSinceRef.current = document.visibilityState === 'visible' ? Date.now() : null;
     setViewerUrl(signData.signedUrl as string);
     setViewerFile(file);
     setViewerLoading(false);
