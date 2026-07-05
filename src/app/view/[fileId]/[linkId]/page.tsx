@@ -104,6 +104,17 @@ export default function ViewFilePage() {
   // PDF state
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
+  // Responsive page width: 820px on desktop, shrink to fit on phones.
+  // Fields are positioned in % of the page, so they scale along with it -
+  // a fixed 820 made phones show a zoomed, horizontally cut-off document
+  // with the signature fields pushed off screen.
+  const [pageWidth, setPageWidth] = useState(820);
+  useEffect(() => {
+    const compute = () => setPageWidth(Math.min(820, window.innerWidth - 24));
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
 
   // ── Per-page dwell tracking ──────────────────────────────────────────────
   // Accumulates seconds spent on each page so the owner's analytics can
@@ -704,7 +715,7 @@ export default function ViewFilePage() {
               }}
               className="relative shadow-lg bg-white"
             >
-              <Page pageNumber={p} width={820} renderTextLayer={false} />
+              <Page pageNumber={p} width={pageWidth} renderTextLayer={false} />
               <div className="absolute inset-0">
                 {(file.agreementFields ?? [])
                   .filter((field) => field.page === p)
