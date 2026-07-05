@@ -113,17 +113,31 @@ export function SharedFileView({
   const pageTimesRef = useRef<Record<string, number>>({});
   const totalPagesRef = useRef(0);
 
-  // Video engagement: full watch-throughs ('ended' events) and replays.
-  // A replay is a backward seek of more than 2s during playback; we record
-  // the second they jumped BACK TO ("replayed from 0:11"). A restart right
-  // after the video ended is not double-counted as a replay: that watch
-  // already counts in completedViews.
+  // Video engagement: full watch-throughs ('ended' events), replays (a
+  // backward seek of more than 2s, recording the second they jumped BACK
+  // TO), and the chronological WATCH SEGMENTS - each continuous stretch
+  // actually played, e.g. 0:00→0:30 then 0:11→0:30 tells the owner the
+  // viewer rewound at 0:30 and rewatched from 0:11. A restart right after
+  // the video ended is not double-counted as a replay: that watch already
+  // counts in completedViews.
   const videoStatsRef = useRef({
     completedViews: 0,
     replays: [] as number[],
+    segments: [] as Array<[number, number]>,
+    segStart: null as number | null,
+    durationSec: 0,
+    maxPos: 0,
     lastTime: 0,
     justEnded: false,
   });
+  // Close the currently playing stretch at `endPos` (ignore blips under 1s).
+  const closeVideoSegment = (endPos: number) => {
+    const s = videoStatsRef.current;
+    if (s.segStart !== null && endPos > s.segStart + 1 && s.segments.length < 100) {
+      s.segments.push([Math.round(s.segStart), Math.round(endPos)]);
+    }
+    s.segStart = null;
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -144,10 +158,22 @@ export function SharedFileView({
       pageViews: pageTimesRef.current,
       totalPages: totalPagesRef.current,
       video: kind === 'video'
-        ? {
-            completedViews: videoStatsRef.current.completedViews,
-            replays: videoStatsRef.current.replays,
-          }
+        ? (() => {
+            const s = videoStatsRef.current;
+            // Cumulative snapshot: closed segments plus the live one (its
+            // end keeps advancing beat by beat while they watch).
+            const segments = [...s.segments];
+            if (s.segStart !== null && s.lastTime > s.segStart + 1 && segments.length < 100) {
+              segments.push([Math.round(s.segStart), Math.round(s.lastTime)]);
+            }
+            return {
+              completedViews: s.completedViews,
+              replays: s.replays,
+              segments,
+              durationSec: Math.round(s.durationSec),
+              maxPos: Math.round(s.maxPos),
+            };
+          })()
         : undefined,
     });
     const beat = () => {
@@ -258,14 +284,32 @@ export function SharedFileView({
               controlsList={file.allowDownload ? undefined : 'nodownload'}
               playsInline
               className="max-h-full max-w-full"
+              onLoadedMetadata={(e) => {
+                const d = e.currentTarget.duration;
+                if (Number.isFinite(d)) videoStatsRef.current.durationSec = d;
+              }}
+              onPlay={(e) => {
+                const s = videoStatsRef.current;
+                if (s.segStart === null) s.segStart = e.currentTarget.currentTime;
+              }}
+              onPause={(e) => {
+                closeVideoSegment(e.currentTarget.currentTime);
+              }}
               onTimeUpdate={(e) => {
                 const v = e.currentTarget;
-                if (!v.seeking) videoStatsRef.current.lastTime = v.currentTime;
+                if (!v.seeking) {
+                  videoStatsRef.current.lastTime = v.currentTime;
+                  if (v.currentTime > videoStatsRef.current.maxPos) {
+                    videoStatsRef.current.maxPos = v.currentTime;
+                  }
+                }
               }}
               onSeeked={(e) => {
                 const v = e.currentTarget;
                 const s = videoStatsRef.current;
                 const target = v.currentTime;
+                // The stretch watched before the jump ends where they left.
+                closeVideoSegment(s.lastTime);
                 if (s.justEnded && target < 2) {
                   // Post-end restart: counted by completedViews, not a replay.
                   s.justEnded = false;
@@ -273,8 +317,10 @@ export function SharedFileView({
                   s.replays.push(Math.max(0, Math.round(target)));
                 }
                 s.lastTime = target;
+                if (!v.paused) s.segStart = target;
               }}
-              onEnded={() => {
+              onEnded={(e) => {
+                closeVideoSegment(e.currentTarget.duration || videoStatsRef.current.lastTime);
                 videoStatsRef.current.completedViews += 1;
                 videoStatsRef.current.justEnded = true;
               }}

@@ -1488,21 +1488,47 @@ function DocumentDetailView({ file, onPreview }: { file: File; onPreview: (file:
                           </div>
                           {(() => {
                             // Video engagement (only present for video visits):
-                            // full watch-throughs and replays with the exact
-                            // second each replay started from.
-                            const vv = visit as unknown as { videoReplays?: unknown; videoCompletedViews?: unknown };
+                            // full watch-throughs, replays with the second each
+                            // one restarted from, and the chronological watch
+                            // history (every continuous stretch they played).
+                            const vv = visit as unknown as {
+                              videoReplays?: unknown; videoCompletedViews?: unknown;
+                              videoSegments?: unknown; videoDurationSec?: unknown; videoMaxPos?: unknown;
+                            };
                             const hasVideoData = Array.isArray(vv.videoReplays) || typeof vv.videoCompletedViews === 'number';
                             if (!hasVideoData) return null;
                             const replays = Array.isArray(vv.videoReplays) ? (vv.videoReplays as number[]) : [];
                             const completed = Number(vv.videoCompletedViews) || 0;
+                            const segments = Array.isArray(vv.videoSegments) ? (vv.videoSegments as Array<[number, number]>) : [];
+                            const durationSec = Number(vv.videoDurationSec) || 0;
+                            const maxPos = Number(vv.videoMaxPos) || 0;
                             const fmtT = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
                             const parts: string[] = [];
                             if (completed > 0) parts.push(`Watched fully ${completed} ${completed === 1 ? 'time' : 'times'}`);
                             if (replays.length > 0) parts.push(`Replayed ${replays.length} ${replays.length === 1 ? 'time' : 'times'} (from ${replays.map(fmtT).join(', ')})`);
+                            if (completed === 0 && maxPos > 0 && durationSec > 0) {
+                              parts.push(`Reached ${fmtT(maxPos)} of ${fmtT(durationSec)}`);
+                            }
+                            const shownSegs = segments.slice(0, 8);
                             return (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-12 mt-2">
-                                <FileVideo className="h-4 w-4" />
-                                {parts.length > 0 ? parts.join(' · ') : 'Video was not replayed.'}
+                              <div className="flex flex-col gap-1.5 pl-12 mt-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                  <FileVideo className="h-4 w-4 shrink-0" />
+                                  {parts.length > 0 ? parts.join(' · ') : 'Video was not replayed.'}
+                                </div>
+                                {shownSegs.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-1.5 pl-6">
+                                    <span className="text-xs font-medium text-gray-500">Watch history:</span>
+                                    {shownSegs.map(([a, b], i) => (
+                                      <span key={i} className="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700">
+                                        {fmtT(a)} → {fmtT(b)}
+                                      </span>
+                                    ))}
+                                    {segments.length > shownSegs.length && (
+                                      <span className="text-xs text-gray-500">+{segments.length - shownSegs.length} more</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}

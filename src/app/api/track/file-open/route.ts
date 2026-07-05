@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
     token?: string; visitId?: string; email?: string;
     durationSeconds?: number; device?: string; os?: string;
     pageViews?: Record<string, unknown>; totalPages?: number;
-    video?: { completedViews?: unknown; replays?: unknown };
+    video?: {
+      completedViews?: unknown; replays?: unknown;
+      segments?: unknown; durationSec?: unknown; maxPos?: unknown;
+    };
   };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
 
@@ -78,15 +81,33 @@ export async function POST(req: NextRequest) {
   }
 
   // Video engagement (cumulative, like everything else in the beat).
-  let video: { completedViews: number; replays: number[] } | null = null;
+  const clampSec = (n: unknown) => Math.max(0, Math.min(24 * 3600, Math.round(Number(n) || 0)));
+  let video: {
+    completedViews: number; replays: number[];
+    segments: Array<[number, number]>; durationSec: number; maxPos: number;
+  } | null = null;
   if (body.video && typeof body.video === 'object') {
     const completed = Math.max(0, Math.min(1000, Math.round(Number(body.video.completedViews) || 0)));
     const replays = Array.isArray(body.video.replays)
-      ? (body.video.replays as unknown[])
-          .map((n) => Math.max(0, Math.min(24 * 3600, Math.round(Number(n) || 0))))
-          .slice(0, 200)
+      ? (body.video.replays as unknown[]).map(clampSec).slice(0, 200)
       : [];
-    video = { completedViews: completed, replays };
+    // Watch segments: chronological [from, to] pairs of what actually played.
+    const segments: Array<[number, number]> = [];
+    if (Array.isArray(body.video.segments)) {
+      for (const seg of (body.video.segments as unknown[]).slice(0, 100)) {
+        if (!Array.isArray(seg) || seg.length !== 2) continue;
+        const a = clampSec(seg[0]);
+        const b = clampSec(seg[1]);
+        if (b > a) segments.push([a, b]);
+      }
+    }
+    video = {
+      completedViews: completed,
+      replays,
+      segments,
+      durationSec: clampSec(body.video.durationSec),
+      maxPos: clampSec(body.video.maxPos),
+    };
   }
 
   // Approximate location from the edge headers (present on Vercel).
@@ -109,9 +130,13 @@ export async function POST(req: NextRequest) {
     : [];
 
   const pagesSeen = Object.keys(pageViews).length;
-  const viewPercentage = totalPages > 0
-    ? Math.min(100, Math.round((pagesSeen / totalPages) * 100))
-    : 0;
+  // PDFs: pages seen out of total. Videos: farthest point reached out of
+  // the video's length - so the % pie is meaningful for both.
+  const viewPercentage = video && video.durationSec > 0
+    ? Math.min(100, Math.round((video.maxPos / video.durationSec) * 100))
+    : totalPages > 0
+      ? Math.min(100, Math.round((pagesSeen / totalPages) * 100))
+      : 0;
 
   const idx = visits.findIndex((v) => v.id === visitId);
   if (idx >= 0) {
@@ -134,11 +159,18 @@ export async function POST(req: NextRequest) {
       viewPercentage: Math.max(Number(prev.viewPercentage) || 0, viewPercentage),
       pageViews: mergedPv,
       ...(video
-        ? {
-            videoCompletedViews: Math.max(Number(prev.videoCompletedViews) || 0, video.completedViews),
-            // Beats are cumulative snapshots: the longer list is the newer one.
-            videoReplays: video.replays.length >= prevReplays.length ? video.replays : prevReplays,
-          }
+        ? (() => {
+            const prevSegs = Array.isArray(prev.videoSegments)
+              ? (prev.videoSegments as Array<[number, number]>) : [];
+            return {
+              videoCompletedViews: Math.max(Number(prev.videoCompletedViews) || 0, video.completedViews),
+              // Beats are cumulative snapshots: the longer list is the newer one.
+              videoReplays: video.replays.length >= prevReplays.length ? video.replays : prevReplays,
+              videoSegments: video.segments.length >= prevSegs.length ? video.segments : prevSegs,
+              videoDurationSec: Math.max(Number(prev.videoDurationSec) || 0, video.durationSec),
+              videoMaxPos: Math.max(Number(prev.videoMaxPos) || 0, video.maxPos),
+            };
+          })()
         : {}),
     };
   } else {
@@ -163,7 +195,15 @@ export async function POST(req: NextRequest) {
       signed: false,
       viewPercentage,
       pageViews,
-      ...(video ? { videoCompletedViews: video.completedViews, videoReplays: video.replays } : {}),
+      ...(video
+        ? {
+            videoCompletedViews: video.completedViews,
+            videoReplays: video.replays,
+            videoSegments: video.segments,
+            videoDurationSec: video.durationSec,
+            videoMaxPos: video.maxPos,
+          }
+        : {}),
     });
   }
 
