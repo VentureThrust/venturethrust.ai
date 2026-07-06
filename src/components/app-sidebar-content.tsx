@@ -36,6 +36,7 @@ import {
   Star,
   Headset,
   Radar,
+  History,
 } from 'lucide-react';
 import { DW_MANAGER_EMAIL } from '@/lib/deal-watch';
 import Image from 'next/image';
@@ -681,6 +682,22 @@ export function AppSidebarContent({
           </SidebarMenuItem>
 
           <div className="border-t border-gray-200" />
+
+          <SidebarMenuItem>
+            <Link href="/audit-log" className="w-full" passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/audit-log')}
+                tooltip="Audit Log"
+                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <History className="h-6 w-6 shrink-0" />
+                  <span className="text-base">Audit Log</span>
+                </div>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
 
           <SidebarMenuItem>
             <Link href="/dashboard/shared-with-me" className="w-full" passHref>
