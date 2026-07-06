@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { DW_MANAGER_INFO } from '@/lib/deal-watch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { SupportDialog } from '@/components/support-dialog';
 import { Loader2, Send, Mail, Phone, MessageCircle } from 'lucide-react';
 
 const TEXTAREA_CLASS =
@@ -20,7 +21,7 @@ export default function AccountManagerPage() {
   const { toast } = useToast();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [talkBusy, setTalkBusy] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const send = async () => {
     if (!message.trim() || sending) return;
@@ -55,33 +56,9 @@ export default function AccountManagerPage() {
     }
   };
 
-  // One-tap "talk to me now" ping: notifies the manager instantly
-  // (in-app alert + email) so he can reach out right away.
-  const talkNow = async () => {
-    if (talkBusy) return;
-    setTalkBusy(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/deal-watch/message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ message: 'I would like to talk to you now. Please reach out.' }),
-      });
-      if (res.ok) {
-        toast({
-          title: 'Your manager has been notified',
-          description: `${DW_MANAGER_INFO.name.split(' ')[0]} will reach out to you right away.`,
-        });
-      } else {
-        toast({ variant: 'destructive', title: 'Could not notify. Please try again.' });
-      }
-    } finally {
-      setTalkBusy(false);
-    }
-  };
+  // One tap opens a LIVE chat with the manager. Connecting the chat
+  // notifies him instantly (bell alert + email on his side), and replies
+  // stream back here in real time.
 
   return (
     <div className="flex w-full flex-col">
@@ -119,14 +96,12 @@ export default function AccountManagerPage() {
           </div>
         </div>
         <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
-          <Button onClick={talkNow} disabled={talkBusy} className="bg-gray-900 text-white hover:bg-gray-800">
-            {talkBusy
-              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              : <MessageCircle className="mr-2 h-4 w-4" />}
+          <Button onClick={() => setIsChatOpen(true)} className="bg-gray-900 text-white hover:bg-gray-800">
+            <MessageCircle className="mr-2 h-4 w-4" />
             Talk to manager
           </Button>
           <span className="text-xs text-muted-foreground">
-            One tap notifies your manager to reach out right away.
+            Opens a live chat. Your manager is notified the moment you connect.
           </span>
         </div>
       </div>
@@ -158,6 +133,15 @@ export default function AccountManagerPage() {
         Your manager reviews every update from startups on your watchlist and only pings you when
         something genuinely matters, so your inbox stays quiet.
       </p>
+
+      {/* Live chat with the manager (direct to human, no AI step). */}
+      <SupportDialog
+        open={isChatOpen}
+        onOpenChange={setIsChatOpen}
+        directHuman
+        heading="Your account manager"
+        agentLabel={DW_MANAGER_INFO.name.split(' ')[0]}
+      />
     </div>
   );
 }

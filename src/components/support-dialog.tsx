@@ -31,9 +31,18 @@ const SUGGESTIONS = ['How do I share a data room?', 'Can I see who viewed my doc
 export function SupportDialog({
   open,
   onOpenChange,
+  directHuman = false,
+  heading,
+  agentLabel,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** Skip the AI assistant and connect straight to a live human chat. */
+  directHuman?: boolean;
+  /** Dialog title override (e.g. "Your account manager"). */
+  heading?: string;
+  /** Label shown over the human's replies (default "Support"). */
+  agentLabel?: string;
 }) {
   const [mode, setMode] = useState<'ai' | 'contact' | 'live'>('ai');
   const [handoffError, setHandoffError] = useState<string | null>(null);
@@ -147,6 +156,16 @@ export function SupportDialog({
     setThinking(false);
   };
 
+  // Direct-to-human mode (Talk to manager): connect the live chat the moment
+  // the dialog opens, no AI step. The escalate route already notifies the
+  // admin by bell alert and email.
+  useEffect(() => {
+    if (!open || !directHuman) return;
+    if (mode === 'live' || convId || escalating) return;
+    escalate('Account manager chat: the investor tapped Talk to manager.', []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, directHuman]);
+
   const escalate = async (summary: string, transcript: ChatMsg[]) => {
     if (escalating) return;
     setEscalating(true);
@@ -217,23 +236,47 @@ export function SupportDialog({
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) setTimeout(reset, 200);
+        // Manager chats survive a close: reopening resumes the conversation.
+        if (!o && !directHuman) setTimeout(reset, 200);
       }}
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="mb-1 flex items-center gap-2">
             <LifeBuoy className="h-5 w-5 text-gray-700" />
-            <DialogTitle>Support</DialogTitle>
+            <DialogTitle>{heading ?? 'Support'}</DialogTitle>
           </div>
           <DialogDescription>
             {mode === 'live'
-              ? 'You are connected to support. Replies appear here live, and we also email you.'
-              : 'We are here 24/7. Ask the assistant for an instant answer, or message the team.'}
+              ? `You are connected. Replies from ${agentLabel ?? 'support'} appear here live, and we also email you.`
+              : directHuman
+                ? 'Connecting you to a live chat...'
+                : 'We are here 24/7. Ask the assistant for an instant answer, or message the team.'}
           </DialogDescription>
         </DialogHeader>
 
-        {mode === 'live' ? (
+        {directHuman && mode !== 'live' ? (
+          <div className="flex h-60 flex-col items-center justify-center gap-3">
+            {handoffError ? (
+              <>
+                <p className="max-w-xs text-center text-sm text-muted-foreground">{handoffError}</p>
+                <Button
+                  onClick={() => escalate('Account manager chat: the investor tapped Talk to manager.', [])}
+                  disabled={escalating}
+                  className="bg-gray-900 text-white hover:bg-gray-800"
+                >
+                  {escalating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Try again
+                </Button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Opening your chat...</p>
+              </>
+            )}
+          </div>
+        ) : mode === 'live' ? (
           <div className="flex flex-col">
             <div ref={liveScrollRef} className="h-80 space-y-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/60 p-3">
               <div className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
@@ -252,7 +295,7 @@ export function SupportDialog({
                   <div key={m.id} className={mine ? 'flex justify-end' : 'flex flex-col items-start'}>
                     {!mine && (
                       <span className="mb-0.5 ml-1 text-[11px] font-medium text-muted-foreground">
-                        {m.sender === 'owner' ? 'Support' : 'Assistant'}
+                        {m.sender === 'owner' ? (agentLabel ?? 'Support') : 'Assistant'}
                       </span>
                     )}
                     <div
