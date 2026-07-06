@@ -157,6 +157,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   const [editingSubtitleColor, setEditingSubtitleColor] = useState('#000000');
 
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [newSpaceTitle, setNewSpaceTitle] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
@@ -423,19 +424,29 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
     router.push('/spaces');
   };
 
-  const handleDuplicateSpace = () => {
-    if (!space || !newSpaceTitle) return;
-    const newSpaceId = addSpace({
-      title: newSpaceTitle,
-      description: space.description,
-      files: space.files,
-      isEnabled: space.isEnabled,
-      coverImage: space.coverImage,
-      logo: space.logo,
-    });
-    toast({ title: 'Space duplicated', description: `"${newSpaceTitle}" has been created.` });
-    setIsDuplicateDialogOpen(false);
-    router.push(`/spaces/${newSpaceId}/edit`);
+  const handleDuplicateSpace = async () => {
+    if (!space || !newSpaceTitle || isDuplicating) return;
+    setIsDuplicating(true);
+    try {
+      // addSpace is async: without the await the route got a Promise and
+      // navigated to /spaces/[object Promise]/edit ("Space not found").
+      const newSpaceId = await addSpace({
+        title: newSpaceTitle,
+        description: space.description,
+        files: space.files,
+        isEnabled: space.isEnabled,
+        coverImage: space.coverImage,
+        logo: space.logo,
+      });
+      toast({ title: 'Space duplicated', description: `"${newSpaceTitle}" has been created.` });
+      setIsDuplicateDialogOpen(false);
+      router.push(`/spaces/${newSpaceId}/edit`);
+    } catch (e) {
+      console.error('[duplicate-space] failed:', e);
+      toast({ variant: 'destructive', title: 'Could not duplicate', description: 'Please try again.' });
+    } finally {
+      setIsDuplicating(false);
+    }
   };
 
   const handleTitleSave = () => {
@@ -948,8 +959,11 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
             <Input id="new-space-title" value={newSpaceTitle} onChange={(e) => setNewSpaceTitle(e.target.value)} autoFocus />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleDuplicateSpace}>Duplicate</Button>
+            <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)} disabled={isDuplicating}>Cancel</Button>
+            <Button onClick={handleDuplicateSpace} disabled={isDuplicating}>
+              {isDuplicating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDuplicating ? 'Duplicating...' : 'Duplicate'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
