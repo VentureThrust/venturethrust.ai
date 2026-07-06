@@ -15,8 +15,6 @@ import {
   Copy as CopyIcon,
   BarChart2,
   Info,
-  Mail,
-  Zap,
   MessageSquare,
   Search,
   Bell,
@@ -171,6 +169,178 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
   const [resendEmail, setResendEmail] = useState<string | null>(null);
 
   const spaceId = params.spaceId as string;
+
+  // ── Space options menu: real actions ──────────────────────────────────
+  const [isDownloadingSpace, setIsDownloadingSpace] = useState(false);
+  // null = column not migrated yet (treated as ON, the default behaviour).
+  const [questionsEnabled, setQuestionsEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!spaceId) return;
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('spaces')
+        .select('questions_enabled')
+        .eq('id', spaceId)
+        .maybeSingle();
+      if (!active || error) return; // pre-migration DB: leave null
+      setQuestionsEnabled((data as { questions_enabled?: boolean } | null)?.questions_enabled !== false);
+    })();
+    return () => { active = false; };
+  }, [spaceId]);
+
+  const sanitizeName = (n: unknown) => String(n || 'file').replace(/[\\/:*?"<>|]/g, '_');
+
+  const downloadCsv = (filename: string, headers: string[], rows: Array<Array<string | number>>) => {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(esc).join(','), ...rows.map((r) => r.map(esc).join(','))].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  // Download space: every file, zipped, preserving the folder structure.
+  const handleDownloadSpace = async () => {
+    if (isDownloadingSpace) return;
+    setIsDownloadingSpace(true);
+    toast({ title: 'Preparing download', description: 'Collecting the files. Large spaces can take a minute.' });
+    try {
+      const [{ data: files }, { data: folders }] = await Promise.all([
+        supabase.from('files').select('id, name, storage_path, folder_id').eq('space_id', spaceId),
+        supabase.from('folders').select('id, name, parent_id').eq('space_id', spaceId),
+      ]);
+      const fileRows = (files ?? []).filter((f) => f.storage_path);
+      if (fileRows.length === 0) {
+        toast({ title: 'Nothing to download', description: 'This space has no files yet.' });
+        return;
+      }
+      const byId = new Map((folders ?? []).map((f) => [f.id as string, f]));
+      const pathOf = (folderId: string | null): string => {
+        const parts: string[] = [];
+        let cur = folderId ? byId.get(folderId) : undefined;
+        let guard = 0;
+        while (cur && guard++ < 20) {
+          parts.unshift(sanitizeName(cur.name));
+          cur = cur.parent_id ? byId.get(cur.parent_id as string) : undefined;
+        }
+        return parts.length ? parts.join('/') + '/' : '';
+      };
+      const { data: signed } = await supabase.storage
+        .from('documents')
+        .createSignedUrls(fileRows.map((f) => f.storage_path as string), 3600);
+      const urlByPath = new Map(
+        (signed ?? []).filter((s) => s.signedUrl && s.path).map((s) => [s.path as string, s.signedUrl as string]),
+      );
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      let added = 0;
+      for (const f of fileRows) {
+        const url = urlByPath.get(f.storage_path as string);
+        if (!url) continue;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          zip.file(pathOf((f.folder_id as string | null) ?? null) + sanitizeName(f.name), await res.blob());
+          added++;
+        } catch { /* skip unfetchable file, keep the rest */ }
+      }
+      if (added === 0) {
+        toast({ variant: 'destructive', title: 'Download failed', description: 'No files could be fetched.' });
+        return;
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `space-${spaceId.slice(0, 8)}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      toast({ title: 'Space downloaded', description: `${added} ${added === 1 ? 'file' : 'files'} zipped.` });
+    } catch (e) {
+      console.error('[download-space] failed:', e);
+      toast({ variant: 'destructive', title: 'Download failed', description: 'Please try again.' });
+    } finally {
+      setIsDownloadingSpace(false);
+    }
+  };
+
+  // Export visits: every viewer session of this space as a CSV.
+  const handleExportVisits = async () => {
+    const { data, error } = await supabase
+      .from('viewer_sessions')
+      .select('*')
+      .eq('space_id', spaceId)
+      .order('started_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+      toast({ title: 'No visits yet', description: 'Visits appear here after someone opens the space.' });
+      return;
+    }
+    const rows = (data as Array<Record<string, unknown>>).map((v) => [
+      String(v.visitor_email ?? 'Anonymous'),
+      String(v.device ?? ''),
+      String(v.started_at ?? ''),
+      String(v.last_heartbeat ?? v.ended_at ?? ''),
+      String(v.total_seconds ?? v.duration_seconds ?? ''),
+      String(v.current_file_name ?? ''),
+    ]);
+    downloadCsv(
+      `visits-${spaceId.slice(0, 8)}.csv`,
+      ['Visitor email', 'Device', 'Started at', 'Last active', 'Total seconds', 'Last file viewed'],
+      rows,
+    );
+    toast({ title: 'Visits exported', description: `${data.length} ${data.length === 1 ? 'session' : 'sessions'} in the CSV.` });
+  };
+
+  // Download index: the space's structure (folders + files) as a CSV.
+  const handleDownloadIndex = async () => {
+    const [{ data: folders }, { data: files }] = await Promise.all([
+      supabase.from('folders').select('id, name, parent_id, created_at').eq('space_id', spaceId),
+      supabase.from('files').select('id, name, folder_id, type, created_at').eq('space_id', spaceId),
+    ]);
+    if ((folders ?? []).length === 0 && (files ?? []).length === 0) {
+      toast({ title: 'Nothing to index', description: 'This space has no content yet.' });
+      return;
+    }
+    const byId = new Map((folders ?? []).map((f) => [f.id as string, f]));
+    const pathOf = (folderId: string | null): string => {
+      const parts: string[] = [];
+      let cur = folderId ? byId.get(folderId) : undefined;
+      let guard = 0;
+      while (cur && guard++ < 20) {
+        parts.unshift(String(cur.name ?? ''));
+        cur = cur.parent_id ? byId.get(cur.parent_id as string) : undefined;
+      }
+      return parts.join(' / ');
+    };
+    const rows: Array<Array<string | number>> = [];
+    let i = 1;
+    for (const f of folders ?? []) {
+      rows.push([i++, 'Folder', String(f.name ?? ''), pathOf(f.parent_id as string | null), String(f.created_at ?? '')]);
+    }
+    for (const f of files ?? []) {
+      rows.push([i++, String(f.type ?? 'File'), String(f.name ?? ''), pathOf(f.folder_id as string | null), String(f.created_at ?? '')]);
+    }
+    downloadCsv(`index-${spaceId.slice(0, 8)}.csv`, ['#', 'Type', 'Name', 'Location', 'Created'], rows);
+    toast({ title: 'Index downloaded' });
+  };
+
+  // Toggle visitor questions for this space (needs the questions_enabled
+  // column; the toast says which migration to run if it is missing).
+  const handleToggleQuestions = async () => {
+    const next = questionsEnabled === false;
+    const { error } = await supabase.from('spaces').update({ questions_enabled: next }).eq('id', spaceId);
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not update',
+        description: 'Run sql/spaces_questions_toggle.sql in Supabase once, then try again.',
+      });
+      return;
+    }
+    setQuestionsEnabled(next);
+    toast({ title: next ? 'Visitor questions turned on' : 'Visitor questions turned off' });
+  };
 
   useEffect(() => {
     if (spaceId) {
@@ -581,32 +751,36 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
                             <div className="flex-1 space-y-1">
                               <DropdownMenuGroup>
                                 <DropdownMenuLabel>Manage space</DropdownMenuLabel>
-                                <DropdownMenuItem><Download className="mr-2 h-4 w-4" /><span>Download space</span></DropdownMenuItem>
+                                <DropdownMenuItem onSelect={handleDownloadSpace} disabled={isDownloadingSpace}>
+                                  {isDownloadingSpace
+                                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    : <Download className="mr-2 h-4 w-4" />}
+                                  <span>{isDownloadingSpace ? 'Preparing zip...' : 'Download space'}</span>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setIsDuplicateDialogOpen(true)}><CopyIcon className="mr-2 h-4 w-4" /><span>Duplicate space</span></DropdownMenuItem>
                               </DropdownMenuGroup>
                               <DropdownMenuSeparator />
                               <DropdownMenuGroup>
                                 <DropdownMenuLabel>Visitor Q&amp;A</DropdownMenuLabel>
-                                <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" /><span>Turn off visitor questions</span></DropdownMenuItem>
+                                <DropdownMenuItem onSelect={handleToggleQuestions}>
+                                  <div className="flex w-full items-center justify-between">
+                                    <div className="flex items-center">
+                                      <MessageSquare className="mr-2 h-4 w-4" />
+                                      <span>{questionsEnabled === false ? 'Turn on visitor questions' : 'Turn off visitor questions'}</span>
+                                    </div>
+                                    <Badge variant="outline" className={questionsEnabled === false ? 'text-muted-foreground' : 'border-green-200 text-green-700'}>
+                                      {questionsEnabled === false ? 'OFF' : 'ON'}
+                                    </Badge>
+                                  </div>
+                                </DropdownMenuItem>
                               </DropdownMenuGroup>
                             </div>
                             <div className="flex-1 space-y-1">
                               <DropdownMenuGroup>
                                 <DropdownMenuLabel>Insights and reporting</DropdownMenuLabel>
-                                <DropdownMenuItem><BarChart2 className="mr-2 h-4 w-4" /><span>Export visits</span></DropdownMenuItem>
-                                <DropdownMenuItem><Download className="mr-2 h-4 w-4" /><span>Download index</span></DropdownMenuItem>
+                                <DropdownMenuItem onSelect={handleExportVisits}><BarChart2 className="mr-2 h-4 w-4" /><span>Export visits</span></DropdownMenuItem>
+                                <DropdownMenuItem onSelect={handleDownloadIndex}><Download className="mr-2 h-4 w-4" /><span>Download index</span></DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => setIsAboutDialogOpen(true)}><Info className="mr-2 h-4 w-4" /><span>About this space</span></DropdownMenuItem>
-                              </DropdownMenuGroup>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuGroup>
-                                <DropdownMenuLabel>Notify visitors</DropdownMenuLabel>
-                                <DropdownMenuItem>
-                                  <div className="flex justify-between items-center w-full">
-                                    <div className="flex items-center"><Zap className="mr-2 h-4 w-4" /><span>Automate updates</span></div>
-                                    <Badge variant="outline" className="text-muted-foreground">OFF</Badge>
-                                  </div>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem><Mail className="mr-2 h-4 w-4" /><span>Send update email</span></DropdownMenuItem>
                               </DropdownMenuGroup>
                             </div>
                           </div>

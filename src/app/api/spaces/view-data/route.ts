@@ -151,11 +151,26 @@ export async function POST(req: NextRequest) {
     resolveStorageUrl(space.logo as string | null, 'space-logos'),
   ]);
 
+  // Visitor questions toggle, best-effort: on pre-migration databases the
+  // column does not exist and questions stay ON (the historic behaviour).
+  let questionsEnabled = true;
+  try {
+    const { data: qrow, error: qerr } = await admin
+      .from('spaces')
+      .select('questions_enabled')
+      .eq('id', spaceId)
+      .maybeSingle();
+    if (!qerr && (qrow as { questions_enabled?: boolean } | null)?.questions_enabled === false) {
+      questionsEnabled = false;
+    }
+  } catch { /* default on */ }
+
   return NextResponse.json({
     space,
     folders: foldersRes.data ?? [],
     files: filesRes.data ?? [],
     coverUrl,
     logoUrl,
+    questionsEnabled,
   });
 }

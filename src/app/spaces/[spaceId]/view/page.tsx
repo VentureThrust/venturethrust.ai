@@ -587,6 +587,9 @@ export default function SpaceViewPage() {
   // ("Anonymous visitor entered"), or visitor-count metrics.
   const isPreview = searchParams?.get('preview') === 'true';
 
+  // Whether the owner allows visitor questions on this space (default on).
+  const [questionsAllowed, setQuestionsAllowed] = useState(true);
+
   // Share token this visitor arrived through (?via= from the gates flow).
   // Stashed in sessionStorage so a refresh or an internal round trip that
   // drops the query string keeps working.
@@ -992,6 +995,8 @@ export default function SpaceViewPage() {
       }
 
       setSpace(spaceData as SpaceRow);
+      // Owner can switch visitor questions off per space.
+      setQuestionsAllowed(bundle.questionsEnabled !== false);
 
       // Cover, logo, folders and files all arrive in the same server bundle
       // (fetched with the service role after the share-access check). The
@@ -1387,7 +1392,7 @@ export default function SpaceViewPage() {
           allowDownload={ALLOW_DOWNLOAD}
           onPageView={handlePageView}
           onPlaybackEvent={handlePlaybackEvent}
-          onAskQuestion={() => setIsQuestionDialogOpen(true)}
+          onAskQuestion={questionsAllowed ? () => setIsQuestionDialogOpen(true) : undefined}
           watermarkText={resolvedWatermark}
         />
       )}
@@ -1515,10 +1520,12 @@ export default function SpaceViewPage() {
                 </div>
                 {renderReportButton()}
                 <WatchlistButton />
-                <Button variant="default" onClick={() => setIsQuestionDialogOpen(true)}>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Ask a question
-                </Button>
+                {questionsAllowed && (
+                  <Button variant="default" onClick={() => setIsQuestionDialogOpen(true)}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Ask a question
+                  </Button>
+                )}
               </div>
             </div>
 
