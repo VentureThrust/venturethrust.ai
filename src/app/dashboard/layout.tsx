@@ -24,6 +24,7 @@ import { AuthSyncGuard } from '@/components/auth-sync-guard';
 import { NavigationLoader } from '@/components/NavigationLoader';
 import { ModalLockWatchdog } from '@/components/modal-lock-watchdog';
 import { NotificationBell } from '@/components/notification-bell';
+import { AccountManagerButton } from '@/components/account-manager-button';
 import { WelcomeBackPopup } from '@/components/welcome-back-popup';
 import { SharedWithYouPopup } from '@/components/shared-with-you-popup';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
@@ -55,6 +56,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <WorkspaceSwitcher />
+            <AccountManagerButton />
             <NotificationBell />
             <UserNav />
           </div>

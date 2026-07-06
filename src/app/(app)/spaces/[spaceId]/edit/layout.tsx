@@ -77,6 +77,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UserNav } from '@/components/user-nav';
 import { NotificationBell } from '@/components/notification-bell';
+import { AccountManagerButton } from '@/components/account-manager-button';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -561,6 +562,7 @@ export default function SpaceEditLayout({ children }: { children: React.ReactNod
               />
             </div>
             <WorkspaceSwitcher />
+            <AccountManagerButton />
             <NotificationBell />
             <UserNav />
           </div>

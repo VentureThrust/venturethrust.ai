@@ -739,22 +739,7 @@ export function AppSidebarContent({
                 </Link>
               </SidebarMenuItem>
 
-              <div className="border-t border-gray-200" />
-              <SidebarMenuItem>
-                <Link href="/account-manager" className="w-full" passHref>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive('/account-manager')}
-                    tooltip="Account Manager"
-                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Headset className="h-6 w-6 shrink-0" />
-                      <span className="text-base">Account Manager</span>
-                    </div>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
+              {/* Account Manager moved to the top header, next to the bell. */}
             </>
           )}
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Mail } from 'lucide-react';
 import { NotificationBell } from '@/components/notification-bell';
+import { AccountManagerButton } from '@/components/account-manager-button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -185,6 +186,7 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
+        <AccountManagerButton />
         <NotificationBell />
 
         <UserDropdown firstName={user.firstName} />
