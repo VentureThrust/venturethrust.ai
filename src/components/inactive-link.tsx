@@ -3,18 +3,19 @@
 /**
  * Shown when a share link is inactive (disabled, expired, or the owner's plan
  * lapsed) - works for both space links (pass `token`) and single-file agreement
- * links (pass `fileId`). We never reveal the reason. Flow:
- *   1. Capture the visitor's email (tracked, so the owner can see who tried).
- *   2. Neutral "this link is inactive" with two actions:
- *        - Request reactivation  (one click, emails the owner)
- *        - Send a message        (name + message, emails the owner)
- * All actions POST to /api/share-links/contact-owner.
+ * links (pass `fileId`). We never reveal the reason.
+ *
+ * The visitor is NEVER asked for their email up front: the message comes
+ * first. If they are logged in we detect their address from the session and
+ * use it for tracking and for the contact actions; if they are anonymous the
+ * email is asked only inside the action they choose (the owner has to know
+ * who to reply to). Actions POST to /api/share-links/contact-owner.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import {
   AlertTriangle,
-  MailCheck,
   RefreshCw,
   MessageSquare,
   Loader2,
@@ -25,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Step = 'email' | 'options' | 'message' | 'sent';
+type Step = 'options' | 'reactivate' | 'message' | 'sent';
 
 export function InactiveLink({
   token,
@@ -36,39 +37,78 @@ export function InactiveLink({
   fileId?: string;
   spaceId?: string;
 }) {
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('options');
   const [email, setEmail] = useState('');
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sentKind, setSentKind] = useState<'reactivate' | 'message'>('reactivate');
+  const tracked = useRef(false);
 
-  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const effectiveEmail = (sessionEmail ?? email).trim();
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(effectiveEmail);
 
   async function post(action: string, extra: Record<string, unknown> = {}) {
     const res = await fetch('/api/share-links/contact-owner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, fileId, spaceId, action, email: email.trim(), ...extra }),
+      body: JSON.stringify({ token, fileId, spaceId, action, email: effectiveEmail, ...extra }),
     });
     return res.ok;
   }
 
-  async function submitEmail(e: React.FormEvent) {
+  // Logged-in visitors are identified silently: their session email powers
+  // the visit tracking and prefills the contact actions. No prompt.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const addr = session?.user?.email ?? null;
+        if (!active || !addr) return;
+        setSessionEmail(addr);
+        if (!tracked.current) {
+          tracked.current = true;
+          fetch('/api/share-links/contact-owner', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, fileId, spaceId, action: 'visit', email: addr }),
+          }).catch(() => {});
+        }
+      } catch {
+        /* anonymous visitor */
+      }
+    })();
+    return () => { active = false; };
+  }, [token, fileId, spaceId]);
+
+  async function requestReactivation() {
+    // Anonymous visitor: we need an address the sender can reply to.
+    if (!validEmail) {
+      setError('');
+      setStep('reactivate');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const ok = await post('reactivate');
+    setLoading(false);
+    if (ok) {
+      setSentKind('reactivate');
+      setStep('sent');
+    } else {
+      setError('Could not send right now. Please try again.');
+    }
+  }
+
+  async function submitReactivate(e: React.FormEvent) {
     e.preventDefault();
     if (!validEmail) {
       setError('Please enter a valid email address.');
       return;
     }
-    setError('');
-    setLoading(true);
-    await post('visit').catch(() => {}); // best-effort tracking
-    setLoading(false);
-    setStep('options');
-  }
-
-  async function requestReactivation() {
     setError('');
     setLoading(true);
     const ok = await post('reactivate');
@@ -83,6 +123,10 @@ export function InactiveLink({
 
   async function submitMessage(e: React.FormEvent) {
     e.preventDefault();
+    if (!validEmail) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     if (!message.trim()) {
       setError('Please write a short message.');
       return;
@@ -102,54 +146,15 @@ export function InactiveLink({
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md border-0 shadow-xl">
-        {step === 'email' && (
-          <>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-2 w-fit rounded-full bg-muted p-4 text-muted-foreground">
-                <MailCheck className="h-7 w-7" />
-              </div>
-              <CardTitle className="text-2xl">Enter your email to continue</CardTitle>
-              <CardDescription className="text-base">
-                Tell us where to reach you, then you can open this shared link.
-              </CardDescription>
-            </CardHeader>
-            <div className="px-6 pb-6">
-              <form onSubmit={submitEmail} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="h-11"
-                  />
-                </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="h-11 w-full bg-[#4285F4] text-white hover:bg-[#3367d6]"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continue'}
-                </Button>
-              </form>
-            </div>
-          </>
-        )}
-
         {step === 'options' && (
           <>
             <CardHeader className="text-center">
               <div className="mx-auto mb-2 w-fit rounded-full bg-amber-50 p-4 text-amber-600">
                 <AlertTriangle className="h-7 w-7" />
               </div>
-              <CardTitle className="text-2xl">This link is inactive</CardTitle>
+              <CardTitle className="text-2xl">This link is no longer active</CardTitle>
               <CardDescription className="text-base">
-                It is currently unavailable. You can ask the sender to reactivate it, or send them a
-                message.
+                Please ask the sender to reactivate this link or resend you the documents.
               </CardDescription>
             </CardHeader>
             <div className="space-y-3 px-6 pb-6">
@@ -176,7 +181,60 @@ export function InactiveLink({
               >
                 <MessageSquare className="h-4 w-4" /> Send a message
               </Button>
+              {sessionEmail && (
+                <p className="text-center text-xs text-muted-foreground">
+                  The sender will see your request came from {sessionEmail}.
+                </p>
+              )}
               {error && <p className="text-center text-sm text-red-600">{error}</p>}
+            </div>
+          </>
+        )}
+
+        {step === 'reactivate' && (
+          <>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Request reactivation</CardTitle>
+              <CardDescription className="text-base">
+                Where can the sender reach you once the link is active again?
+              </CardDescription>
+            </CardHeader>
+            <div className="px-6 pb-6">
+              <form onSubmit={submitReactivate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="react-email">Email</Label>
+                  <Input
+                    id="react-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="h-11"
+                  />
+                </div>
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setError('');
+                      setStep('options');
+                    }}
+                    className="h-11"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="h-11 flex-1 bg-[#4285F4] text-white hover:bg-[#3367d6]"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send request'}
+                  </Button>
+                </div>
+              </form>
             </div>
           </>
         )}
@@ -186,11 +244,25 @@ export function InactiveLink({
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Send a message</CardTitle>
               <CardDescription className="text-base">
-                We will pass this to the sender, along with your email.
+                We will pass this to the sender so they can reply to you.
               </CardDescription>
             </CardHeader>
             <div className="px-6 pb-6">
               <form onSubmit={submitMessage} className="space-y-4">
+                {!sessionEmail && (
+                  <div className="space-y-2">
+                    <Label htmlFor="msg-email">Email</Label>
+                    <Input
+                      id="msg-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="h-11"
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="name">
                     Name <span className="text-muted-foreground">(optional)</span>

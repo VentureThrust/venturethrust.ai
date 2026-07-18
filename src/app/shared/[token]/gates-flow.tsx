@@ -55,7 +55,7 @@ interface GatesFlowProps {
   token: string;
 }
 
-type Step = 'email' | 'password' | 'blocked' | 'nda' | 'signature' | 'redirecting' | 'file';
+type Step = 'detecting' | 'email' | 'password' | 'blocked' | 'nda' | 'signature' | 'redirecting' | 'file';
 
 const DEFAULT_NDA_TEXT = `This Non-Disclosure Agreement ("Agreement") governs your access to the confidential information contained within this shared space.
 
@@ -106,7 +106,11 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     ? 'signature'
     : 'redirecting';
 
-  const [step, setStep] = useState<Step>(firstStep);
+  // Email gate: never show it to a logged-in visitor. We start in a silent
+  // 'detecting' state, read the Supabase session, and if an email is there we
+  // validate it server-side exactly like a typed one (allow/block list still
+  // runs). Only anonymous visitors ever see the email form.
+  const [step, setStep] = useState<Step>(firstStep === 'email' ? 'detecting' : firstStep);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [ndaAccepted, setNdaAccepted] = useState(false);
@@ -122,6 +126,54 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   useEffect(() => {
     if (ranInitial.current) return;
     ranInitial.current = true;
+    if (firstStep === 'email') {
+      // Logged-in visitors skip the email form: their session email goes
+      // through the same server validation as a typed one.
+      (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const sessionEmail = session?.user?.email ?? null;
+          if (!sessionEmail) {
+            setStep('email');
+            return;
+          }
+          const res = await fetch('/api/share-links/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ link_id: link.id, email: sessionEmail }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.status === 'OK') {
+            sessionStorage.setItem(
+              SESSION_KEY,
+              JSON.stringify({ email: sessionEmail, spaceId: link.space_id })
+            );
+            setEmail(sessionEmail);
+            advanceFromEmailPassword(sessionEmail);
+            return;
+          }
+          if (data.error === 'PASSWORD_REQUIRED') {
+            sessionStorage.setItem(
+              SESSION_KEY,
+              JSON.stringify({ email: sessionEmail, spaceId: link.space_id })
+            );
+            setEmail(sessionEmail);
+            setStep('password');
+            return;
+          }
+          if (data.error === 'BLOCKED') {
+            setStep('blocked');
+            return;
+          }
+          // Anything else (owner inactive, transient error): fall back to
+          // the manual email form so the visitor is never stuck.
+          setStep('email');
+        } catch {
+          setStep('email');
+        }
+      })();
+      return;
+    }
     if (firstStep === 'redirecting') {
       // Send-by-email links carry the recipient's address: attribute the
       // visit to it and stamp the session so the space view logs the right
@@ -360,12 +412,12 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
     return <SharedFileView file={fileView} token={token} visitorEmail={fileVisitorEmail} />;
   }
 
-  if (step === 'redirecting') {
+  if (step === 'redirecting' || step === 'detecting') {
     return (
       <GateLayout>
         <CardHeader className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <CardDescription>Opening space…</CardDescription>
+          <CardDescription>{step === 'detecting' ? 'Opening…' : 'Opening space…'}</CardDescription>
         </CardHeader>
       </GateLayout>
     );
