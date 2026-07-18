@@ -9,8 +9,13 @@
  *   fileId?: string,           // watching a single shared deck
  *   startupName?: string,
  *   assign?: boolean,          // assign to account manager now
- *   autoAssignRemember?: boolean // persist "always assign, don't ask again"
+ *   autoAssignRemember?: boolean, // persist "always assign, don't ask again"
+ *   note?: string,             // optional note for the account manager
+ *   quarterlyReport?: boolean  // opt in/out of quarterly reports for THIS startup
  * }
+ *
+ * Calling again for an already-watched startup updates note/quarterlyReport,
+ * so the Watchlist page uses this same endpoint to toggle the quarterly flag.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -42,6 +47,9 @@ export async function POST(req: NextRequest) {
   const assign = body.assign === true;
   const autoAssignRemember =
     typeof body.autoAssignRemember === 'boolean' ? body.autoAssignRemember : null;
+  const note = typeof body.note === 'string' ? body.note.trim().slice(0, 1000) : null;
+  const quarterlyReport =
+    typeof body.quarterlyReport === 'boolean' ? body.quarterlyReport : null;
 
   if (!spaceId && !fileId) {
     return NextResponse.json({ error: 'TARGET_REQUIRED' }, { status: 400 });
@@ -65,8 +73,12 @@ export async function POST(req: NextRequest) {
   const { data: existing } = await match.maybeSingle();
 
   if (existing) {
-    if (assign && !existing.manager_id) {
-      await dwAdmin.from('dw_watchlist').update({ manager_id: managerId }).eq('id', existing.id);
+    const patch: Record<string, unknown> = {};
+    if (assign && !existing.manager_id) patch.manager_id = managerId;
+    if (note !== null && note !== '') patch.note = note;
+    if (quarterlyReport !== null) patch.quarterly_report = quarterlyReport;
+    if (Object.keys(patch).length > 0) {
+      await dwAdmin.from('dw_watchlist').update(patch).eq('id', existing.id);
     }
   } else {
     const { error } = await dwAdmin.from('dw_watchlist').insert({
@@ -76,6 +88,8 @@ export async function POST(req: NextRequest) {
       file_id: fileId,
       startup_name: startupName,
       manager_id: managerId,
+      note: note || null,
+      quarterly_report: quarterlyReport === true,
     });
     if (error) {
       console.error('[deal-watch/watch] insert failed:', error);
@@ -87,12 +101,18 @@ export async function POST(req: NextRequest) {
     await dwAdmin.from('profiles').update({ dw_auto_assign: autoAssignRemember }).eq('id', caller.id);
   }
 
-  if (assign) {
+  // Notify only when this call actually assigns the manager (not on
+  // note/quarterly updates to an already-assigned row).
+  if (assign && (!existing || !existing.manager_id)) {
+    const extras = [
+      quarterlyReport === true ? 'They asked for a quarterly report on this startup.' : '',
+      note ? `Their note: "${note}"` : '',
+    ].filter(Boolean).join(' ');
     await dwNotifyManager({
       managerId: await dwManagerId(),
       alertType: 'dw_assigned',
       subject: `Deal Watch: ${caller.email} assigned you ${startupName ?? 'a startup'}`,
-      message: `Investor ${caller.email} assigned "${startupName ?? 'a startup'}" to you on Deal Watch. You will be notified when the founder updates their documents.`,
+      message: `Investor ${caller.email} assigned "${startupName ?? 'a startup'}" to you on Deal Watch. You will be notified when the founder updates their documents.${extras ? ' ' + extras : ''}`,
     });
   }
 

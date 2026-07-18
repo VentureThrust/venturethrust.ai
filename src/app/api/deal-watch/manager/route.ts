@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const [{ data: watchRows }, { data: eventRows }] = await Promise.all([
     dwAdmin
       .from('dw_watchlist')
-      .select('id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, created_at')
+      .select('id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, note, quarterly_report, created_at')
       .order('created_at', { ascending: false })
       .limit(200),
     dwAdmin
@@ -69,6 +69,8 @@ export async function GET(req: NextRequest) {
       investorEmail: emailById.get(r.investor_id as string) ?? 'Unknown investor',
       founderEmail: emailById.get(r.founder_id as string) ?? '',
       assigned: !!r.manager_id,
+      note: r.note ?? null,
+      quarterlyReport: r.quarterly_report === true,
       spaceId: r.space_id,
       fileId: r.file_id,
       createdAt: r.created_at,

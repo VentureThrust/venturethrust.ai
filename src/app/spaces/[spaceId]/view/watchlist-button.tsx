@@ -4,10 +4,10 @@
  * WatchlistButton - "Add to Watchlist" on the shared space view.
  *
  * Rendered ONLY for logged-in Investor plan accounts (everyone else sees
- * nothing at all). Clicking asks whether to assign the startup to the
- * investor's account manager, with a remembered "always assign" choice
- * (profiles.dw_auto_assign). Fully self-contained: resolves the space id from
- * the route and the startup name from the spaces row.
+ * nothing at all). Clicking opens one dialog: an optional note for the
+ * account manager plus an opt-in checkbox for quarterly reports on this
+ * startup. Adding always assigns the account manager; the default promise
+ * is silence until the startup opens a round.
  */
 
 import { useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -33,10 +34,10 @@ export function WatchlistButton() {
 
   const [visible, setVisible] = useState(false);
   const [watched, setWatched] = useState(false);
-  const [autoAssign, setAutoAssign] = useState<boolean | null>(null);
   const [startupName, setStartupName] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [note, setNote] = useState('');
+  const [quarterly, setQuarterly] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -49,12 +50,11 @@ export function WatchlistButton() {
         if (!uid) return;
         const { data: prof } = await supabase
           .from('profiles')
-          .select('is_investor, dw_auto_assign')
+          .select('is_investor')
           .eq('id', uid)
           .maybeSingle();
         if (!active || (prof as { is_investor?: boolean } | null)?.is_investor !== true) return;
         setVisible(true);
-        setAutoAssign((prof as { dw_auto_assign?: boolean | null })?.dw_auto_assign ?? null);
 
         const [{ data: watchRow }, { data: spaceRow }] = await Promise.all([
           supabase
@@ -76,7 +76,7 @@ export function WatchlistButton() {
     return () => { active = false; };
   }, [spaceId]);
 
-  const submit = async (assign: boolean, rememberChoice: boolean | null) => {
+  const submit = async () => {
     setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,8 +89,9 @@ export function WatchlistButton() {
         body: JSON.stringify({
           spaceId,
           startupName: startupName || undefined,
-          assign,
-          autoAssignRemember: rememberChoice,
+          assign: true,
+          note: note.trim() || undefined,
+          quarterlyReport: quarterly,
         }),
       });
       if (res.ok) {
@@ -98,9 +99,9 @@ export function WatchlistButton() {
         setDialogOpen(false);
         toast({
           title: 'Added to your watchlist',
-          description: assign
-            ? 'Your account manager will follow every update from this startup.'
-            : undefined,
+          description: quarterly
+            ? 'Your account manager will watch it and send you a quarterly report.'
+            : 'You will hear from us the day this startup opens a round.',
         });
       } else {
         toast({ variant: 'destructive', title: 'Could not add to watchlist. Try again.' });
@@ -117,15 +118,7 @@ export function WatchlistButton() {
       <Button
         variant="outline"
         disabled={watched}
-        onClick={() => {
-          if (watched) return;
-          // Remembered "always assign": skip the dialog entirely.
-          if (autoAssign === true) {
-            void submit(true, null);
-          } else {
-            setDialogOpen(true);
-          }
-        }}
+        onClick={() => { if (!watched) setDialogOpen(true); }}
       >
         <Star className={`h-4 w-4 mr-2 ${watched ? 'fill-current' : ''}`} />
         {watched ? 'On your watchlist' : 'Add to Watchlist'}
@@ -134,35 +127,46 @@ export function WatchlistButton() {
       <Dialog open={dialogOpen} onOpenChange={(o) => { if (!busy) setDialogOpen(o); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign to your account manager?</DialogTitle>
+            <DialogTitle>{startupName ? `Watch ${startupName}` : 'Add to your watchlist'}</DialogTitle>
             <DialogDescription>
-              Your account manager will follow every update
-              {startupName ? ` from ${startupName}` : ' from this startup'} and tell you when
-              something genuinely matters. You will not receive automatic notifications.
+              We will alert you the day this startup opens a round, with the progress it made
+              since you passed. Nothing else, unless you ask.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="dw-note" className="text-sm font-medium">
+              Note for your account manager <span className="font-normal text-muted-foreground">(optional)</span>
+            </label>
+            <Textarea
+              id="dw-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              placeholder="Example: Passed because it was too early. I want to see paying customers and a full time team."
+            />
+          </div>
+
           <div className="flex items-start gap-2 py-1">
             <Checkbox
-              id="dw-remember"
-              checked={remember}
-              onCheckedChange={(c) => setRemember(Boolean(c))}
+              id="dw-quarterly"
+              checked={quarterly}
+              onCheckedChange={(c) => setQuarterly(Boolean(c))}
               className="mt-0.5"
             />
-            <label htmlFor="dw-remember" className="cursor-pointer text-sm">
-              Always assign new watchlist startups to my manager. Don&apos;t ask me again.
+            <label htmlFor="dw-quarterly" className="cursor-pointer text-sm">
+              Also send me a quarterly report on this startup
             </label>
           </div>
+
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => submit(false, remember ? false : null)}
-            >
-              Just watch
+            <Button variant="outline" disabled={busy} onClick={() => setDialogOpen(false)}>
+              Cancel
             </Button>
-            <Button disabled={busy} onClick={() => submit(true, remember ? true : null)}>
+            <Button disabled={busy} onClick={submit}>
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Assign to manager
+              Add to watchlist
             </Button>
           </DialogFooter>
         </DialogContent>

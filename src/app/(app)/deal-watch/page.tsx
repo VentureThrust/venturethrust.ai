@@ -36,6 +36,8 @@ type Assignment = {
   investorEmail: string;
   founderEmail: string;
   assigned: boolean;
+  note: string | null;
+  quarterlyReport: boolean;
   spaceId: string | null;
   fileId: string | null;
   createdAt: string;
@@ -386,14 +388,26 @@ export default function DealWatchPage() {
                     {' • '}
                     {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
                   </p>
+                  {a.note && (
+                    <p className="mt-1 border-l-2 border-gray-200 pl-2 text-xs italic text-gray-600">
+                      &ldquo;{a.note}&rdquo;
+                    </p>
+                  )}
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    a.assigned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {a.assigned ? 'Assigned to you' : 'Watch only'}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  {a.quarterlyReport && (
+                    <span className="rounded-full bg-[#F0F5FF] px-2.5 py-1 text-xs font-semibold text-[#4285F4]">
+                      Quarterly requested
+                    </span>
+                  )}
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      a.assigned ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {a.assigned ? 'Assigned to you' : 'Watch only'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
