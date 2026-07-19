@@ -129,7 +129,7 @@ export function WatchlistButton() {
           <DialogHeader>
             <DialogTitle>{startupName ? `Watch ${startupName}` : 'Add to your watchlist'}</DialogTitle>
             <DialogDescription>
-              We will alert you the day this startup opens a round, with the progress it made
+              We will alert you the moment this startup hits a real milestone, with what changed
               since you passed. Nothing else, unless you ask.
             </DialogDescription>
           </DialogHeader>

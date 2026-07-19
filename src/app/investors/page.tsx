@@ -13,6 +13,7 @@ import type { Metadata } from 'next';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
+import { DealWatchWalkthrough } from '@/components/landing/deal-watch-walkthrough';
 import { ArrowRight } from 'lucide-react';
 
 const BLUE = '#4285F4';
@@ -65,6 +66,11 @@ export default function InvestorsPage() {
         <p className="mt-4 text-sm text-gray-400">
           From $149 a month, ₹12,499 in India. Your account manager is set up personally.
         </p>
+      </section>
+
+      {/* ── What it looks like from your seat ────────────────────────────── */}
+      <section className="container mx-auto max-w-5xl px-6 pb-20">
+        <DealWatchWalkthrough />
       </section>
 
       {/* ── The cost of a miss, in three facts ───────────────────────────── */}
