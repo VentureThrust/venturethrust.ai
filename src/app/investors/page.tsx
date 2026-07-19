@@ -44,8 +44,8 @@ export default function InvestorsPage() {
           We don&apos;t let investors miss the next big startup.
         </h1>
         <p className="mt-4 max-w-2xl text-xl leading-relaxed text-gray-600">
-          The startups you saw and said not now to keep growing, quietly. Deal Watch keeps them
-          on your watchlist and shows you one is rising before the market knows.
+          Somewhere in the decks you already saw is your next big deal. Deal Watch watches
+          them all for you, and shows you the moment one starts rising, before the market knows.
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <Button
@@ -63,9 +63,6 @@ export default function InvestorsPage() {
             <Link href="#how-it-works">See how it works</Link>
           </Button>
         </div>
-        <p className="mt-4 text-sm text-gray-400">
-          From $149 a month, ₹12,499 in India. Your account manager is set up personally.
-        </p>
       </section>
 
       {/* ── What it looks like from your seat ────────────────────────────── */}
