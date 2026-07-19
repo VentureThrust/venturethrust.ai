@@ -319,6 +319,13 @@ export default function LandingPage() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   We set up your watchlist and account manager personally.
                 </p>
+                <Link
+                  href="/investors"
+                  className="mt-3 inline-flex items-center text-sm font-medium text-[#4285F4] hover:underline"
+                >
+                  Learn more about Deal Watch
+                  <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           </div>

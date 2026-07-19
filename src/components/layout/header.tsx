@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { Logo } from './logo';
 import { FeaturesMenu } from './features-menu';
+import { SolutionsMenu } from './solutions-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { ContactSalesDialog } from '@/components/contact-sales-dialog';
@@ -27,6 +28,7 @@ export function Header() {
           <Logo />
           <nav className="hidden md:flex items-center gap-6">
             <FeaturesMenu />
+            <SolutionsMenu />
             {navLinks
               .filter((link) => link.label !== 'Features')
               .map((link) => (
@@ -79,6 +81,20 @@ export function Header() {
                    </SheetClose>
                 </div>
                 <nav className="flex flex-col gap-4 p-4">
+                  <Link
+                    href="/investors"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-base font-medium text-foreground rounded-md p-2 hover:bg-muted"
+                  >
+                    For investors
+                  </Link>
+                  <Link
+                    href="/"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-base font-medium text-foreground rounded-md p-2 hover:bg-muted"
+                  >
+                    For startups
+                  </Link>
                   {navLinks.map((link) => (
                     <Link
                       key={link.href}
