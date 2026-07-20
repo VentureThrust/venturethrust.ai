@@ -32,6 +32,76 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** A CSS mock of the actual Deal Watch priority brief PDF: navy
+ *  confidential bands, crimson round banner, serif type, the
+ *  since-your-pass table, and the closing line. */
+function ReportMock() {
+  const rows = [
+    ['Monthly recurring revenue', '₹4.2 L', '₹11.8 L', '+181%'],
+    ['Repeat order rate', '34%', '61%', '+27 pts'],
+    ['Customer acquisition cost', '₹9,400', '₹5,100', 'down 46%'],
+    ['Chains under annual contract', '0', '3', '+3'],
+  ];
+  return (
+    <div className="overflow-hidden rounded-md border border-gray-300 bg-white font-serif shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)]">
+      <div className="bg-[#0F2440] py-1.5 text-center text-[8px] font-semibold tracking-[0.5em] text-[#C9A227]">
+        CONFIDENTIAL
+      </div>
+      <div className="px-5 pb-5 pt-4">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#0F2440]">
+          Deal Watch
+        </p>
+        <p className="mt-1 text-[17px] font-bold text-[#0F2440]">
+          Priority Brief · BeanBridge
+        </p>
+        <p className="text-[9.5px] italic text-gray-500">
+          Prepared for the watching investor · 16 Jul 2026
+        </p>
+        <div className="mt-3 bg-[#8B1A1A] px-3 py-1.5">
+          <p className="text-[10px] font-semibold text-white">
+            The milestone you were waiting for has happened.
+          </p>
+        </div>
+        <div className="mt-3 bg-[#F5F1E6] px-3 py-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#0F2440]">
+            Growth since your pass
+          </p>
+        </div>
+        <table className="mt-2 w-full text-[9.5px]">
+          <thead>
+            <tr className="border-b border-gray-300 text-left text-[8px] uppercase tracking-wider text-gray-500">
+              <th className="py-1 font-semibold">Metric</th>
+              <th className="py-1 text-right font-semibold">Your pass</th>
+              <th className="py-1 text-right font-semibold">Today</th>
+              <th className="py-1 text-right font-semibold">Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r[0]} className="border-b border-gray-100">
+                <td className="py-1.5 text-gray-800">{r[0]}</td>
+                <td className="py-1.5 text-right text-gray-500">{r[1]}</td>
+                <td className="py-1.5 text-right font-bold text-[#0F2440]">{r[2]}</td>
+                <td className="py-1.5 text-right font-semibold text-green-800">{r[3]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 text-[8.5px] italic text-gray-500">
+          All figures verified against the company&apos;s live documents. The arithmetic behind
+          every number is shown inside.
+        </p>
+        <p className="mt-3 border-t border-gray-200 pt-2 text-center text-[10px] font-bold text-[#0F2440]">
+          We explain. You decide.
+        </p>
+      </div>
+      <div className="bg-[#0F2440] py-1.5 text-center text-[8px] font-semibold tracking-[0.5em] text-[#C9A227]">
+        CONFIDENTIAL
+      </div>
+    </div>
+  );
+}
+
 export default function InvestorsPage() {
   return (
     <div className="bg-white text-gray-900">
@@ -151,13 +221,14 @@ export default function InvestorsPage() {
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <section id="how-it-works" className="scroll-mt-20 border-t border-gray-200 py-20 sm:py-24">
-        <div className="container mx-auto max-w-4xl px-6">
+        <div className="container mx-auto max-w-6xl px-6">
           <Eyebrow>How it works</Eyebrow>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
             Pin it. Forget it. We take it from there.
           </h2>
 
-          <div className="mt-12">
+          <div className="mt-12 grid items-start gap-14 lg:grid-cols-[1fr_380px]">
+          <div>
             {[
               {
                 n: '01',
@@ -185,6 +256,13 @@ export default function InvestorsPage() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mx-auto w-full max-w-sm lg:mx-0 lg:pt-2">
+            <ReportMock />
+            <p className="mt-3 text-center text-xs text-gray-400">
+              The brief, as it lands. Sample with fictional numbers.
+            </p>
+          </div>
           </div>
         </div>
       </section>
