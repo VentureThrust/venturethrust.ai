@@ -108,9 +108,8 @@ export default function InvestorsPage() {
             Misses hurt more than losses
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-600">
-            A loss costs you one check. A miss costs you the deal that would have paid for every
-            loss you ever took. Investors know this, and it still keeps happening, for three
-            reasons nobody has fixed.
+            A loss costs one check. A miss costs the deal that pays for everything. It keeps
+            happening for three reasons.
           </p>
 
           <div className="mt-12">
@@ -118,17 +117,17 @@ export default function InvestorsPage() {
               {
                 n: '01',
                 h: 'Deal flow has outgrown any one person',
-                b: 'Founders now pitch hundreds of investors from day one. You see hundreds of decks a year and invest in a handful. The interesting rest get a note, a bookmark, a good intention. Then the next hundred arrive.',
+                b: 'You see hundreds of decks a year and invest in a handful. The interesting rest get a bookmark. Then the next hundred arrive.',
               },
               {
                 n: '02',
                 h: 'The timing trap',
-                b: 'You check on a startup on Sunday. Nothing new. They sign their biggest customer on Monday. You do not look again for months, because you just looked. Progress almost never happens on the day you check.',
+                b: 'You check on Sunday. Nothing. They sign their biggest customer on Monday. You do not look again for months.',
               },
               {
                 n: '03',
                 h: 'Nobody watches after the no',
-                b: 'The moment you pass, every system you have moves on with you. So the first time you hear the name again is the funding announcement, when the price has already moved and the allocation is already gone.',
+                b: 'You pass, and every system you have moves on with you. The next time you hear the name is the funding announcement. Too late.',
               },
             ].map((r) => (
               <div key={r.n} className="flex gap-6 border-t border-gray-200 py-8 sm:gap-10">
@@ -144,9 +143,8 @@ export default function InvestorsPage() {
           </div>
 
           <p className="border-t border-gray-200 pt-8 text-[15px] leading-relaxed text-gray-600">
-            Bessemer Venture Partners publish their misses openly and call it the Anti-Portfolio:
-            Airbnb, Apple, Facebook, Tesla. Every investor has one. It grows in silence, one
-            reasonable pass at a time.
+            Bessemer publish their misses and call it the Anti-Portfolio: Airbnb, Apple, Facebook,
+            Tesla. Every investor has one. It grows one reasonable pass at a time.
           </p>
         </div>
       </section>
@@ -164,17 +162,17 @@ export default function InvestorsPage() {
               {
                 n: '01',
                 h: 'Pin the ones where your no means not now',
-                b: 'On any deck or data room a founder shares with you, one click adds the startup to your private watchlist. Leave a note about what would change your mind: paying customers, a real team, a signed enterprise contract. That note drives everything we send you later.',
+                b: 'One click on any deck shared with you. Add a note on what would change your mind: paying customers, a real team, a signed contract. That note drives everything we send you.',
               },
               {
                 n: '02',
                 h: 'Three layers watch, so you never have to',
-                b: 'Software catches every update the startup makes to its documents, the day it happens. AI reads exactly what changed. Then a human account manager, a named person you can call, confirms whether it genuinely matters. Most updates die right there, which is the point.',
+                b: 'Software catches every update, the day it happens. AI reads what changed. A named human confirms it matters. Most updates die right there. That is the point.',
               },
               {
                 n: '03',
                 h: 'One brief, the day it matters',
-                b: 'When a watched startup hits a real milestone, a revenue jump, a marquee customer, a round opening, you get a short brief: what changed since your pass, with verified numbers and the arithmetic shown. Before the market knows. What you do with it is entirely up to you.',
+                b: 'A revenue jump, a marquee customer, a round opening: you get a short brief on what changed since your pass, with verified numbers. Before the market knows.',
               },
             ].map((r) => (
               <div key={r.n} className="flex gap-6 border-t border-gray-200 py-8 sm:gap-10">
@@ -199,26 +197,26 @@ export default function InvestorsPage() {
             Silence is part of the product
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-600">
-            You are busy, and your attention is the most expensive thing you own. So Deal Watch is
-            built around not wasting it.
+            Your attention is the most expensive thing you own. Deal Watch is built around not
+            wasting it.
           </p>
           <div className="mt-10 divide-y divide-gray-200">
             {[
               [
                 'Zero automated notifications',
-                'No digests, no weekly emails, no activity feeds. If you hear from us, a human decided it was worth your time.',
+                'No digests, no weekly emails, no feeds. If you hear from us, a human decided it was worth your time.',
               ],
               [
                 'Quarterly reports only where you ask',
-                'Want a regular pulse on one specific startup? Turn on its quarterly report: a short table, charts, and a six line summary. Everything else stays quiet.',
+                'Turn on a quarterly report for any single startup: a short table, charts, a six line summary. Everything else stays quiet.',
               ],
               [
                 'We never say invest',
-                'Every brief shows what changed and shows the arithmetic behind every number. Then it ends the same way, every time: We explain. You decide.',
+                'Every brief shows what changed, with the arithmetic. It always ends the same way: We explain. You decide.',
               ],
               [
                 'Watching is private',
-                'Founders never see who has them on a watchlist. Your interest, your timing, and your notes are yours alone.',
+                'Founders never see who has them on a watchlist. Your interest and your timing are yours alone.',
               ],
             ].map(([h, b]) => (
               <div key={h} className="grid gap-2 py-6 sm:grid-cols-[240px_1fr] sm:gap-10">
@@ -240,15 +238,12 @@ export default function InvestorsPage() {
                 The cost of an analyst, without the analyst
               </h2>
               <p className="mt-4 text-[15px] leading-relaxed text-gray-600">
-                Keeping one junior analyst on deal tracking costs lakhs a year, and they can still
-                only look at one startup at a time. Deal Watch does the standing watch with
-                software and AI, and spends human judgment only on the moments that deserve it.
-                That is why it costs a fraction of one hire.
+                An analyst costs lakhs a year and looks at one startup at a time. Deal Watch keeps
+                a standing watch on all of them, for a fraction of one hire.
               </p>
               <p className="mt-4 text-[15px] leading-relaxed text-gray-600">
-                It also saves the habit nobody admits to: the hours spent re-checking LinkedIn and
-                old inboxes, looking for news about startups you almost backed, on days when
-                nothing happened.
+                It also ends the habit nobody admits to: re-checking LinkedIn for startups you
+                almost backed, on days when nothing happened.
               </p>
             </div>
             <div className="lg:pl-14">
@@ -257,14 +252,13 @@ export default function InvestorsPage() {
                 One caught miss pays for everything
               </h2>
               <p className="mt-4 text-[15px] leading-relaxed text-gray-600">
-                Venture returns follow a power law: one deal returns more than the rest of the
-                portfolio combined. A $50,000 early check in Amazon would be worth billions today.
-                The expensive mistake in this business has never been the bad investment. It is
-                the good one you watched walk past.
+                One deal returns more than the rest combined. A $50,000 early check in Amazon
+                would be worth billions today. The expensive mistake is never the bad investment.
+                It is the good one that walked past.
               </p>
               <p className="mt-4 text-[15px] leading-relaxed text-gray-600">
-                If Deal Watch converts one miss into one meeting taken at the right time, in your
-                entire career, it has paid for itself many hundred times over.
+                One miss converted into one well timed meeting pays for Deal Watch many hundred
+                times over.
               </p>
             </div>
           </div>
@@ -282,19 +276,19 @@ export default function InvestorsPage() {
             {[
               [
                 'Will I still have misses?',
-                'Yes, and anyone who promises otherwise is lying to you. A smoke detector does not promise your house will never burn. It promises you will not sleep through the fire. With Deal Watch, every miss becomes a decision you made with the facts on time, never a deal you simply never heard about again.',
+                'Yes. Anyone promising zero misses is lying. A smoke detector does not stop fires. It stops you sleeping through one. Every miss becomes a decision you made with the facts, on time.',
               ],
               [
                 'How is this different from keeping my own analyst?',
-                'Your analyst looks at a startup once, when you ask. Deal Watch watches continuously: software catches every document update, AI reads what changed, and a human confirms it matters. A standing watch on your whole list, for less than a fraction of one salary.',
+                'An analyst looks once, when you ask. Deal Watch watches continuously: software catches updates, AI reads changes, a human confirms. For a fraction of one salary.',
               ],
               [
                 'Are you trying to influence my decisions?',
-                'We deliver verified facts at the right time, and we show the arithmetic behind every number. When growth looks temporary, the brief says so plainly. We never say invest. We explain. You decide.',
+                'We deliver verified facts and show the arithmetic. When growth looks temporary, we say so. We never say invest. We explain. You decide.',
               ],
               [
                 'What if a startup I watch gets worse, not better?',
-                'Then that is what we report. The watch runs both ways: our briefs separate temporary spikes from durable progress, and deterioration is flagged just like growth. You are paying for the truth, not for good news.',
+                'Then that is what we report. Deterioration is flagged just like growth. You pay for the truth, not good news.',
               ],
               [
                 'Will founders know I am watching them?',
@@ -322,7 +316,7 @@ export default function InvestorsPage() {
           </h2>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-600">
             Somewhere in the decks you have already seen is the one you will be asked about in ten
-            years. Put it on a watchlist today, and be the first to know when it moves.
+            years. Watch it.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button
