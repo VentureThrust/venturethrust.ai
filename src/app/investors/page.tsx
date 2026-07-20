@@ -14,7 +14,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { DealWatchWalkthrough } from '@/components/landing/deal-watch-walkthrough';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Star, FileText, Sparkles, UserCheck, Mail } from 'lucide-react';
 
 const BLUE = '#4285F4';
 
@@ -32,72 +32,88 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A CSS mock of the actual Deal Watch priority brief PDF: navy
- *  confidential bands, crimson round banner, serif type, the
- *  since-your-pass table, and the closing line. */
-function ReportMock() {
-  const rows = [
-    ['Monthly recurring revenue', '₹4.2 L', '₹11.8 L', '+181%'],
-    ['Repeat order rate', '34%', '61%', '+27 pts'],
-    ['Customer acquisition cost', '₹9,400', '₹5,100', 'down 46%'],
-    ['Chains under annual contract', '0', '3', '+3'],
+/** One watched startup as a timeline: the pin, months of silence, then
+ *  the three layers firing one after another, ending in the brief.
+ *  Mirrors the three steps it sits beside. */
+function WatchTimeline() {
+  const events: {
+    icon: React.ComponentType<{ className?: string }>;
+    when: string;
+    title: string;
+    sub: string;
+    accent?: boolean;
+  }[] = [
+    {
+      icon: Star,
+      when: 'Mar 14',
+      title: 'You pin BeanBridge',
+      sub: 'Your note: too early. Want paying customers.',
+    },
+    {
+      icon: FileText,
+      when: 'Jul 16, 09:41',
+      title: 'BeanBridge updates its documents',
+      sub: 'Software catches it the same minute.',
+    },
+    {
+      icon: Sparkles,
+      when: 'Jul 16, 09:42',
+      title: 'AI reads what changed',
+      sub: 'Revenue page rewritten: ₹4.2 L is now ₹11.8 L.',
+    },
+    {
+      icon: UserCheck,
+      when: 'Jul 16, 11:05',
+      title: 'Your account manager confirms',
+      sub: 'This is the milestone from your note.',
+    },
+    {
+      icon: Mail,
+      when: 'Jul 16, 11:20',
+      title: 'The brief lands with you',
+      sub: 'Before the news, before everyone else.',
+      accent: true,
+    },
   ];
   return (
-    <div className="overflow-hidden rounded-md border border-gray-300 bg-white font-serif shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)]">
-      <div className="bg-[#0F2440] py-1.5 text-center text-[8px] font-semibold tracking-[0.5em] text-[#C9A227]">
-        CONFIDENTIAL
-      </div>
-      <div className="px-5 pb-5 pt-4">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#0F2440]">
-          Deal Watch
-        </p>
-        <p className="mt-1 text-[17px] font-bold text-[#0F2440]">
-          Priority Brief · BeanBridge
-        </p>
-        <p className="text-[9.5px] italic text-gray-500">
-          Prepared for the watching investor · 16 Jul 2026
-        </p>
-        <div className="mt-3 bg-[#8B1A1A] px-3 py-1.5">
-          <p className="text-[10px] font-semibold text-white">
-            The milestone you were waiting for has happened.
-          </p>
+    <div>
+      {events.map((e, i) => (
+        <div key={e.title}>
+          {i === 1 && (
+            <div className="flex gap-4">
+              <div className="flex w-9 justify-center">
+                <div className="h-10 border-l border-dashed border-gray-300" />
+              </div>
+              <p className="self-center text-xs italic text-gray-400">
+                124 days of silence. Nothing worth your time.
+              </p>
+            </div>
+          )}
+          <div className="flex gap-4">
+            <div className="flex flex-col items-center">
+              <span
+                className={
+                  'grid h-9 w-9 shrink-0 place-items-center rounded-full ' +
+                  (e.accent ? 'text-white' : 'bg-[#F0F5FF]')
+                }
+                style={e.accent ? { background: '#8B1A1A' } : { color: BLUE }}
+              >
+                <e.icon className="h-4 w-4" />
+              </span>
+              {i < events.length - 1 && <div className="w-px flex-1 bg-gray-200" />}
+            </div>
+            <div className={i < events.length - 1 ? 'pb-7' : ''}>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                {e.when}
+              </p>
+              <p className={'text-[15px] font-semibold ' + (e.accent ? 'text-[#8B1A1A]' : 'text-gray-900')}>
+                {e.title}
+              </p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-gray-500">{e.sub}</p>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 bg-[#F5F1E6] px-3 py-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#0F2440]">
-            Growth since your pass
-          </p>
-        </div>
-        <table className="mt-2 w-full text-[9.5px]">
-          <thead>
-            <tr className="border-b border-gray-300 text-left text-[8px] uppercase tracking-wider text-gray-500">
-              <th className="py-1 font-semibold">Metric</th>
-              <th className="py-1 text-right font-semibold">Your pass</th>
-              <th className="py-1 text-right font-semibold">Today</th>
-              <th className="py-1 text-right font-semibold">Change</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r[0]} className="border-b border-gray-100">
-                <td className="py-1.5 text-gray-800">{r[0]}</td>
-                <td className="py-1.5 text-right text-gray-500">{r[1]}</td>
-                <td className="py-1.5 text-right font-bold text-[#0F2440]">{r[2]}</td>
-                <td className="py-1.5 text-right font-semibold text-green-800">{r[3]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 text-[8.5px] italic text-gray-500">
-          All figures verified against the company&apos;s live documents. The arithmetic behind
-          every number is shown inside.
-        </p>
-        <p className="mt-3 border-t border-gray-200 pt-2 text-center text-[10px] font-bold text-[#0F2440]">
-          We explain. You decide.
-        </p>
-      </div>
-      <div className="bg-[#0F2440] py-1.5 text-center text-[8px] font-semibold tracking-[0.5em] text-[#C9A227]">
-        CONFIDENTIAL
-      </div>
+      ))}
     </div>
   );
 }
@@ -257,10 +273,10 @@ export default function InvestorsPage() {
               </div>
             ))}
           </div>
-          <div className="mx-auto w-full max-w-sm lg:mx-0 lg:pt-2">
-            <ReportMock />
-            <p className="mt-3 text-center text-xs text-gray-400">
-              The brief, as it lands. Sample with fictional numbers.
+          <div className="mx-auto w-full max-w-sm lg:mx-0 lg:pt-4">
+            <WatchTimeline />
+            <p className="mt-6 text-xs text-gray-400">
+              One watched startup, as it actually happens. Fictional numbers.
             </p>
           </div>
           </div>
