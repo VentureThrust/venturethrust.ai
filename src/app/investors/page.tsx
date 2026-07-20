@@ -44,8 +44,8 @@ export default function InvestorsPage() {
           We don&apos;t let investors miss the next big startup.
         </h1>
         <p className="mt-4 max-w-2xl text-xl leading-relaxed text-gray-600">
-          Somewhere in the decks you already saw is your next big deal. Deal Watch watches
-          them all for you, and shows you the moment one starts rising, before the market knows.
+          When your no means not now, put that startup on your watchlist. The moment it starts
+          doing well, we tell you. Before the news, before everyone else.
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <Button
