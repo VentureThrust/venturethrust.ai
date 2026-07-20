@@ -41,7 +41,9 @@ export default function InvestorsPage() {
       <section className="container mx-auto max-w-4xl px-6 pb-20 pt-20 sm:pt-28">
         <Eyebrow>Deal Watch, for investors</Eyebrow>
         <h1 className="mt-4 text-4xl font-bold leading-[1.12] tracking-tight text-gray-900 sm:text-5xl">
-          We don&apos;t let investors miss the next big startup.
+          The next unicorn already pitched you.
+          <br />
+          We make sure you don&apos;t miss it twice.
         </h1>
         <p className="mt-4 max-w-2xl text-xl leading-relaxed text-gray-600">
           When your no means not now, put that startup on your watchlist. The moment it starts
