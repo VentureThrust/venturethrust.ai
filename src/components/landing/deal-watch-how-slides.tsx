@@ -179,22 +179,18 @@ function BriefSlide() {
 
 export function DealWatchHowSlides() {
   const [step, setStep] = useState(0);
-  const [paused, setPaused] = useState(false);
 
+  // Always cycle every 6 seconds. Clicking a step jumps to it and, because
+  // `step` is a dependency, restarts the 6s countdown from that slide.
   useEffect(() => {
-    if (paused) return;
-    const id = window.setTimeout(() => setStep((s) => (s + 1) % STEPS.length), 4000);
+    const id = window.setTimeout(() => setStep((s) => (s + 1) % STEPS.length), 6000);
     return () => window.clearTimeout(id);
-  }, [step, paused]);
+  }, [step]);
 
   const slides = [<PinSlide key="p" />, <LayersSlide key="l" />, <BriefSlide key="b" />];
 
   return (
-    <div
-      className="grid items-start gap-10 lg:grid-cols-[1fr_440px] lg:gap-16"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div className="grid items-start gap-10 lg:grid-cols-[1fr_440px] lg:gap-16">
       <div>
         {STEPS.map((r, i) => (
           <button
