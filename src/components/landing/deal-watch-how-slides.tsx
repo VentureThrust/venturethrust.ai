@@ -192,47 +192,41 @@ export function DealWatchHowSlides() {
   return (
     <div className="grid items-start gap-10 lg:grid-cols-[1fr_440px] lg:gap-16">
       <div>
+        <style>{'@keyframes dwSlideProgress { from { width: 0% } to { width: 100% } }'}</style>
         {STEPS.map((r, i) => (
-          <button
-            key={r.n}
-            type="button"
-            onClick={() => setStep(i)}
-            className={cn(
-              'flex w-full gap-6 border-t border-gray-200 py-8 text-left transition-opacity sm:gap-10',
-              i === step ? 'opacity-100' : 'opacity-40 hover:opacity-70',
-            )}
-          >
-            <p className="w-10 shrink-0 pt-0.5 text-sm font-semibold" style={{ color: BLUE }}>
-              {r.n}
-            </p>
-            <span>
-              <span className="block text-lg font-semibold text-gray-900">{r.h}</span>
-              <span className="mt-2 block max-w-2xl text-[15px] leading-relaxed text-gray-600">
-                {r.b}
-              </span>
-            </span>
-          </button>
-        ))}
-        {/* Video-style progress: past bars full, the active one fills over 6s */}
-        <div className="flex gap-1.5 border-t border-gray-200 pt-6">
-          <style>{'@keyframes dwSlideProgress { from { width: 0% } to { width: 100% } }'}</style>
-          {STEPS.map((_, i) => (
-            <span key={i} className="h-1 w-12 overflow-hidden rounded-full bg-gray-200">
-              {i === step ? (
+          <div key={r.n}>
+            {/* The divider above each step doubles as its loading line: the
+                active step's fills left to right over the 6s slide interval. */}
+            <div className="h-[3px] w-full overflow-hidden bg-gray-200">
+              {i === step && (
                 <span
                   key={`fill-${step}`}
-                  className="block h-full rounded-full"
+                  className="block h-full"
                   style={{ background: BLUE, animation: 'dwSlideProgress 6s linear forwards' }}
                 />
-              ) : (
-                <span
-                  className="block h-full rounded-full"
-                  style={{ background: i < step ? BLUE : 'transparent' }}
-                />
               )}
-            </span>
-          ))}
-        </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep(i)}
+              className={cn(
+                'flex w-full gap-6 py-8 text-left transition-opacity sm:gap-10',
+                i === step ? 'opacity-100' : 'opacity-40 hover:opacity-70',
+              )}
+            >
+              <p className="w-10 shrink-0 pt-0.5 text-sm font-semibold" style={{ color: BLUE }}>
+                {r.n}
+              </p>
+              <span>
+                <span className="block text-lg font-semibold text-gray-900">{r.h}</span>
+                <span className="mt-2 block max-w-2xl text-[15px] leading-relaxed text-gray-600">
+                  {r.b}
+                </span>
+              </span>
+            </button>
+          </div>
+        ))}
+        <div className="h-px w-full bg-gray-200" />
       </div>
       <div className="h-[440px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
         <div key={step} className="h-full animate-in fade-in-0 duration-300">
