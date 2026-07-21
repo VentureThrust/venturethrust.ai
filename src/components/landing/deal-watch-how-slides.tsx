@@ -213,13 +213,24 @@ export function DealWatchHowSlides() {
             </span>
           </button>
         ))}
+        {/* Video-style progress: past bars full, the active one fills over 6s */}
         <div className="flex gap-1.5 border-t border-gray-200 pt-6">
+          <style>{'@keyframes dwSlideProgress { from { width: 0% } to { width: 100% } }'}</style>
           {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className="h-1 w-8 rounded-full transition-colors"
-              style={{ background: i === step ? BLUE : '#E5E7EB' }}
-            />
+            <span key={i} className="h-1 w-12 overflow-hidden rounded-full bg-gray-200">
+              {i === step ? (
+                <span
+                  key={`fill-${step}`}
+                  className="block h-full rounded-full"
+                  style={{ background: BLUE, animation: 'dwSlideProgress 6s linear forwards' }}
+                />
+              ) : (
+                <span
+                  className="block h-full rounded-full"
+                  style={{ background: i < step ? BLUE : 'transparent' }}
+                />
+              )}
+            </span>
           ))}
         </div>
       </div>
