@@ -14,7 +14,8 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { DealWatchWalkthrough } from '@/components/landing/deal-watch-walkthrough';
-import { ArrowRight, Star, FileText, Sparkles, UserCheck, Mail } from 'lucide-react';
+import { DealWatchHowSlides } from '@/components/landing/deal-watch-how-slides';
+import { ArrowRight } from 'lucide-react';
 
 const BLUE = '#4285F4';
 
@@ -29,92 +30,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: BLUE }}>
       {children}
     </p>
-  );
-}
-
-/** One watched startup as a timeline: the pin, months of silence, then
- *  the three layers firing one after another, ending in the brief.
- *  Mirrors the three steps it sits beside. */
-function WatchTimeline() {
-  const events: {
-    icon: React.ComponentType<{ className?: string }>;
-    when: string;
-    title: string;
-    sub: string;
-    accent?: boolean;
-  }[] = [
-    {
-      icon: Star,
-      when: 'Mar 14',
-      title: 'You pin BeanBridge',
-      sub: 'Your note: too early. Want paying customers.',
-    },
-    {
-      icon: FileText,
-      when: 'Jul 16, 09:41',
-      title: 'BeanBridge updates its documents',
-      sub: 'Software catches it the same minute.',
-    },
-    {
-      icon: Sparkles,
-      when: 'Jul 16, 09:42',
-      title: 'AI reads what changed',
-      sub: 'Revenue page rewritten: ₹4.2 L is now ₹11.8 L.',
-    },
-    {
-      icon: UserCheck,
-      when: 'Jul 16, 11:05',
-      title: 'Your account manager confirms',
-      sub: 'This is the milestone from your note.',
-    },
-    {
-      icon: Mail,
-      when: 'Jul 16, 11:20',
-      title: 'The brief lands with you',
-      sub: 'Before the news, before everyone else.',
-      accent: true,
-    },
-  ];
-  return (
-    <div>
-      {events.map((e, i) => (
-        <div key={e.title}>
-          {i === 1 && (
-            <div className="flex gap-4">
-              <div className="flex w-9 justify-center">
-                <div className="h-10 border-l border-dashed border-gray-300" />
-              </div>
-              <p className="self-center text-xs italic text-gray-400">
-                124 days of silence. Nothing worth your time.
-              </p>
-            </div>
-          )}
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <span
-                className={
-                  'grid h-9 w-9 shrink-0 place-items-center rounded-full ' +
-                  (e.accent ? 'text-white' : 'bg-[#F0F5FF]')
-                }
-                style={e.accent ? { background: '#8B1A1A' } : { color: BLUE }}
-              >
-                <e.icon className="h-4 w-4" />
-              </span>
-              {i < events.length - 1 && <div className="w-px flex-1 bg-gray-200" />}
-            </div>
-            <div className={i < events.length - 1 ? 'pb-7' : ''}>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                {e.when}
-              </p>
-              <p className={'text-[15px] font-semibold ' + (e.accent ? 'text-[#8B1A1A]' : 'text-gray-900')}>
-                {e.title}
-              </p>
-              <p className="mt-0.5 text-[13px] leading-relaxed text-gray-500">{e.sub}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -243,42 +158,8 @@ export default function InvestorsPage() {
             Pin it. Forget it. We take it from there.
           </h2>
 
-          <div className="mt-12 grid items-start gap-14 lg:grid-cols-[1fr_380px]">
-          <div>
-            {[
-              {
-                n: '01',
-                h: 'Pin the ones where your no means not now',
-                b: 'One click on any deck shared with you. Add a note on what would change your mind: paying customers, a real team, a signed contract. That note drives everything we send you.',
-              },
-              {
-                n: '02',
-                h: 'Three layers watch, so you never have to',
-                b: 'Software catches every update, the day it happens. AI reads what changed. A named human confirms it matters. Most updates die right there. That is the point.',
-              },
-              {
-                n: '03',
-                h: 'One brief, the day it matters',
-                b: 'A revenue jump, a marquee customer, a round opening: you get a short brief on what changed since your pass, with verified numbers. Before the market knows.',
-              },
-            ].map((r) => (
-              <div key={r.n} className="flex gap-6 border-t border-gray-200 py-8 sm:gap-10">
-                <p className="w-10 shrink-0 pt-0.5 text-sm font-semibold" style={{ color: BLUE }}>
-                  {r.n}
-                </p>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{r.h}</h3>
-                  <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-gray-600">{r.b}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mx-auto w-full max-w-sm lg:mx-0 lg:pt-4">
-            <WatchTimeline />
-            <p className="mt-6 text-xs text-gray-400">
-              One watched startup, as it actually happens. Fictional numbers.
-            </p>
-          </div>
+          <div className="mt-12">
+            <DealWatchHowSlides />
           </div>
         </div>
       </section>
