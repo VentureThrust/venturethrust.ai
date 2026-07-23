@@ -19,6 +19,7 @@ export const metadata = {
   title: 'About us · VentureThrust',
   description:
     'Why we built VentureThrust: a secure data room that helps teams share documents, see who is engaged, and close deals.',
+  alternates: { canonical: '/about' },
 };
 
 const BLUE = '#4285F4';

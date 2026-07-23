@@ -10,6 +10,7 @@ export const metadata = {
   title: 'Features · VentureThrust',
   description:
     'Secure links, page-level analytics, NDAs and e-signatures, dynamic watermarks, file requests, and a full audit trail. Everything you need to share documents and close the deal.',
+  alternates: { canonical: '/features' },
 };
 
 const BLUE = '#4285F4';

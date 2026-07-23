@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 export const metadata = {
   title: 'Terms of Service · VentureThrust',
   description: 'The terms that govern your use of VentureThrust.',
+  alternates: { canonical: '/terms' },
 };
 
 const LAST_UPDATED = '11 June 2026';

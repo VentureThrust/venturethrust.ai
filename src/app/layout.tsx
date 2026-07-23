@@ -50,25 +50,58 @@ export const metadata: Metadata = {
       'Share documents with one secure link and see exactly who opened them and what they read. The affordable DocSend alternative for fundraising, sales, and M&A.',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'VentureThrust · Secure Data Room to Share & Track Documents',
     description:
       'Share documents with one secure link and see exactly who opened them and what they read. The affordable DocSend alternative.',
   },
+  alternates: { canonical: '/' },
   robots: { index: true, follow: true },
 };
 
-// Structured data so Google can render a richer result for the product.
+// Structured data so search engines and AI assistants can understand the
+// product: the organization, the app, and both sides of the pricing
+// (founder data room plans from $12, Deal Watch investor plans from $149).
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'VentureThrust',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  url: 'https://www.venturethrust.com',
-  description:
-    'A secure virtual data room to share documents and see exactly who opened them and which pages they read.',
-  offers: { '@type': 'Offer', price: '12', priceCurrency: 'USD' },
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://www.venturethrust.com/#org',
+      name: 'VentureThrust',
+      url: 'https://www.venturethrust.com',
+      logo: 'https://www.venturethrust.com/logo.svg',
+      email: 'info@venturethrust.com',
+      description:
+        'VentureThrust makes secure data rooms for founders and Deal Watch, a watchlist service that alerts investors the moment a startup they passed on hits a real milestone.',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://www.venturethrust.com/#app',
+      name: 'VentureThrust',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: 'https://www.venturethrust.com',
+      publisher: { '@id': 'https://www.venturethrust.com/#org' },
+      description:
+        'A secure virtual data room to share documents and see exactly who opened them and which pages they read, plus Deal Watch: investors pin the startups they passed on and get one brief the moment one starts doing well.',
+      offers: {
+        '@type': 'AggregateOffer',
+        lowPrice: '12',
+        highPrice: '149',
+        priceCurrency: 'USD',
+        offerCount: '4',
+      },
+      featureList: [
+        'Secure data rooms with one-link sharing',
+        'Page-level document analytics',
+        'NDA and e-signatures',
+        'Dynamic watermarks and access controls',
+        'File requests and audit trail',
+        'Deal Watch investor watchlist with human account manager',
+      ],
+    },
+  ],
 };
 
 export default function RootLayout({

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 export const metadata = {
   title: 'Privacy Policy · VentureThrust',
   description: 'How VentureThrust collects, uses, and protects your information.',
+  alternates: { canonical: '/privacy' },
 };
 
 const LAST_UPDATED = '11 June 2026';

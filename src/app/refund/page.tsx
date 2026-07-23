@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 export const metadata = {
   title: 'Refund Policy · VentureThrust',
   description: 'How refunds, cancellations, and the free trial work on VentureThrust.',
+  alternates: { canonical: '/refund' },
 };
 
 const LAST_UPDATED = '12 June 2026';

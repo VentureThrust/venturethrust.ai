@@ -23,6 +23,93 @@ export const metadata: Metadata = {
   title: 'Deal Watch for investors | VentureThrust',
   description:
     'We watch the startups you passed on and show you they are rising before the market knows. One brief when it matters. Silence the rest of the time.',
+  alternates: { canonical: '/investors' },
+  openGraph: {
+    type: 'website',
+    url: 'https://www.venturethrust.com/investors',
+    siteName: 'VentureThrust',
+    title: 'Deal Watch: the next unicorn already pitched you',
+    description:
+      'When your no means not now, put that startup on your watchlist. The moment it starts doing well, we tell you. Before the news, before everyone else.',
+  },
+};
+
+// Structured data: the Deal Watch service with its real pricing, and the
+// page's FAQ so search engines and AI assistants can answer from it directly.
+const investorsJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Service',
+      '@id': 'https://www.venturethrust.com/investors#dealwatch',
+      name: 'Deal Watch',
+      serviceType: 'Startup watchlist and deal monitoring for investors',
+      provider: { '@id': 'https://www.venturethrust.com/#org' },
+      url: 'https://www.venturethrust.com/investors',
+      description:
+        'Investors pin the startups they passed on. Software catches every document update, AI reads what changed, and a human account manager confirms it matters. One brief the moment a startup hits a real milestone, before the market knows.',
+      offers: {
+        '@type': 'Offer',
+        price: '149',
+        priceCurrency: 'USD',
+        description: 'From $149 a month (₹12,499 in India), sized by how many startups you watch.',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': 'https://www.venturethrust.com/investors#faq',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Will I still have misses?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. Anyone promising zero misses is lying. A smoke detector does not stop fires. It stops you sleeping through one. Every miss becomes a decision you made with the facts, on time.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How is Deal Watch different from keeping my own analyst?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'An analyst looks once, when you ask. Deal Watch watches continuously: software catches updates, AI reads changes, a human confirms. For a fraction of one salary.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Does Deal Watch influence investment decisions?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'We deliver verified facts and show the arithmetic. When growth looks temporary, we say so. We never say invest. We explain. You decide.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What if a startup I watch gets worse, not better?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Then that is what we report. Deterioration is flagged just like growth. You pay for the truth, not good news.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Will founders know I am watching them?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. Watching is completely private. Founders never see who has them on a watchlist.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What does Deal Watch cost?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'From $149 a month, ₹12,499 in India, sized by how many startups you watch. The founders you invite join free, always. Cancel any time.',
+          },
+        },
+      ],
+    },
+  ],
 };
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -36,6 +123,10 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export default function InvestorsPage() {
   return (
     <div className="bg-white text-gray-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(investorsJsonLd) }}
+      />
       <Header />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
