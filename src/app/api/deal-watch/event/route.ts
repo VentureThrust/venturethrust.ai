@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
-import { dwAdmin, dwCaller, dwManagerId, dwNotifyManager } from '@/lib/deal-watch-server';
+import { dwAdmin, dwCaller, dwManagerId, dwNotifyManager, notifyAdmin } from '@/lib/deal-watch-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
     ? body.eventType
     : null;
   if (!eventType) return NextResponse.json({ error: 'BAD_EVENT' }, { status: 400 });
+
+  // Owner notification: every upload on the platform, watched or not. This is
+  // site activity monitoring, separate from Deal Watch, so it runs before the
+  // watchlist check below.
+  if (eventType !== 'file_deleted') {
+    const verbNow = eventType === 'file_added' ? 'uploaded' : 'updated';
+    await notifyAdmin({
+      subject: `File ${verbNow}: ${caller.email}`,
+      lines: [
+        `${caller.email} ${verbNow} "${fileName}".`,
+        `Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`,
+        'They are active on the site right now.',
+      ],
+    });
+  }
 
   // Watched? Only founders someone is watching (with a manager assigned)
   // produce events - everyone else is a silent no-op.

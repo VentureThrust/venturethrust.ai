@@ -24,6 +24,24 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+/** Once per browser session, ping the server so it can email the owner if this
+ *  is a newly created account. The server holds the real "already announced"
+ *  flag; this guard just avoids repeating the call on every auth event. */
+let signupAnnounced = false;
+async function announceSignupOnce(accessToken?: string) {
+  if (signupAnnounced || !accessToken) return;
+  signupAnnounced = true;
+  try {
+    await fetch('/api/notify/new-user', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      keepalive: true,
+    });
+  } catch {
+    /* notifications must never affect the app */
+  }
+}
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +109,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const displayName = fullName || emailPrefix;
 
       if (!active) return;
+
+      // Tell the owner about a brand new account, once. The API decides
+      // whether this account has been announced already; a repeat sign-in is a
+      // no-op. Fire-and-forget: never blocks or breaks the app.
+      void announceSignupOnce(session.access_token);
+
       setUser({
         email: session.user.email ?? '',
         name: displayName,

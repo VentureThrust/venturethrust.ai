@@ -40,6 +40,44 @@ export async function dwManagerId(): Promise<string | null> {
   return (data?.id as string) ?? null;
 }
 
+/**
+ * Best-effort plain email to the site owner (admin) about platform activity:
+ * new signups, file uploads, and similar. Independent of Deal Watch framing.
+ * Never throws.
+ */
+export async function notifyAdmin(opts: { subject: string; lines: string[] }): Promise<void> {
+  try {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    if (!smtpHost || !smtpUser || !smtpPass) return;
+    // @ts-ignore - nodemailer ships no bundled types
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+    const fromAddr = process.env.SMTP_FROM ?? `VentureThrust <${smtpUser}>`;
+    const to = process.env.ADMIN_NOTIFY_EMAIL ?? DW_MANAGER_EMAIL;
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    await transporter.sendMail({
+      from: fromAddr,
+      to,
+      subject: opts.subject,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a2e">
+          <h2 style="font-weight:600">VentureThrust</h2>
+          ${opts.lines.map((l) => `<p style="margin:6px 0">${esc(l)}</p>`).join('')}
+        </div>`,
+    });
+  } catch (e) {
+    console.warn('[notify-admin] email failed:', e);
+  }
+}
+
 /** Best-effort in-app alert + email to the account manager. Never throws. */
 export async function dwNotifyManager(opts: {
   managerId: string | null;

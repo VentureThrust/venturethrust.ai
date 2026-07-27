@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
 import { resolveUserTierId, limitsForTier } from '@/lib/plan-limits';
+import { notifyAdmin } from '@/lib/deal-watch-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -201,6 +202,16 @@ export async function POST(req: NextRequest) {
     message: `${uploaderName} (${uploaderEmail}) uploaded ${accepted} file${accepted !== 1 ? 's' : ''} for "${reqRow.title}".`,
   });
   if (alertErr) console.warn('alert insert failed:', alertErr.message);
+
+  // Email the site owner too: an outside upload is site activity worth knowing
+  // about the moment it happens, not on the next dashboard visit.
+  await notifyAdmin({
+    subject: `File request upload: ${uploaderEmail}`,
+    lines: [
+      `${uploaderName} (${uploaderEmail}) uploaded ${accepted} file${accepted !== 1 ? 's' : ''} for "${reqRow.title}".`,
+      `Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`,
+    ],
+  });
 
   return NextResponse.json({ ok: true, uploaded: accepted });
 }
