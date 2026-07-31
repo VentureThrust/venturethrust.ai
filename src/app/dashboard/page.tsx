@@ -14,6 +14,7 @@ import { UpcomingFeatureDialog } from '@/components/upcoming-feature-dialog';
 import { ProductTour, type TourStep } from '@/components/product-tour';
 import { MissedVisitors } from '@/components/missed-visitors';
 import { InvestorWelcome } from '@/components/investor-welcome';
+import { InvestorDashboard } from '@/components/investor-dashboard';
 
 // Guided first-run tour: spotlights the real nav items so a new user learns
 // what each part of the workspace does. Shows once, then never again.
@@ -156,16 +157,30 @@ export default function Dashboard() {
 
   if (loading || !user) return null;
 
+  // Investor plan: a completely different dashboard. They bought Deal Watch,
+  // so they land on their watchlist and briefs, never on "My Data Room".
+  // Wait for the flag to resolve so the founder view never flashes first.
+  if (isInvestorAccount === null) return null;
+  if (isInvestorAccount === true) {
+    return (
+      <>
+        <InvestorDashboard firstName={user.firstName} />
+        <InvestorWelcome />
+      </>
+    );
+  }
+
   const vdrLocked = user.plan === 'ai_only';
   const aiLocked = user.plan === 'vdr_only';
   const isVdrOnly = user.plan === 'vdr_only';
   const isAiOnly = user.plan === 'ai_only';
   const isBoth = user.plan === 'vdr_ai';
 
-  // AI Due Diligence is an investor-plan feature. Founders never see the
-  // card; when it is hidden the Data Room panel takes the full width.
-  // Kept strictly === true so it never flashes while the flag is resolving.
-  const showAiCard = isInvestorAccount === true;
+  // AI Due Diligence was the one investor-only card on this page. Investor
+  // accounts now render their own dashboard and return above, so only
+  // founders reach here and the card never shows. The Data Room panel
+  // therefore always takes the full width.
+  const showAiCard = false;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -591,10 +606,9 @@ export default function Dashboard() {
       </div>
 
       <UpcomingFeatureDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} featureName="AI Due Diligence" />
-      {/* Exactly ONE onboarding overlay, never both (they blocked each other):
-          founders get the guided tour, investors get the welcome popup. */}
-      {isInvestorAccount === false && <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />}
-      {isInvestorAccount === true && <InvestorWelcome />}
+      {/* Investors returned above with their own dashboard, so only the
+          founder tour can reach this point. */}
+      <ProductTour tourKey="welcome" steps={DASHBOARD_TOUR} />
     </>
   );
 }

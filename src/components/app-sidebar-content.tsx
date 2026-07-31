@@ -563,6 +563,66 @@ export function AppSidebarContent({
   }
 
   // ─── Main sidebar (non-space view) ───────────────────────────────────────────
+
+  // One nav row. Keeps the eight items below readable instead of eight copies
+  // of the same twelve lines of markup.
+  const NavRow = ({
+    href, icon: Icon, label, exact = false, badge = null,
+  }: {
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    exact?: boolean;
+    badge?: React.ReactNode;
+  }) => (
+    <SidebarMenuItem>
+      <Link href={href} className="w-full" passHref>
+        <SidebarMenuButton
+          asChild
+          isActive={isActive(href, exact)}
+          tooltip={label}
+          className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <Icon className="h-6 w-6 shrink-0" />
+            <span className="text-base">{label}</span>
+            {badge}
+          </div>
+        </SidebarMenuButton>
+      </Link>
+    </SidebarMenuItem>
+  );
+
+  const Divider = () => <div className="border-t border-gray-200" />;
+
+  const sharedBadge = sharedUnopened > 0 ? (
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white animate-red-dot-blink">
+      {sharedUnopened}
+    </span>
+  ) : null;
+
+  const fileReqBadge = fileRequestCount > 0 ? (
+    <SidebarMenuBadge>{fileRequestCount}</SidebarMenuBadge>
+  ) : null;
+
+  // The founder-side document tools. For an investor these are secondary, so
+  // they collapse into one group instead of pushing Deal Watch off the screen.
+  const documentTools = (
+    <>
+      <NavRow href="/content-library" icon={FolderIcon} label="Content Library" />
+      <Divider />
+      <NavRow href="/spaces" icon={Package} label="Spaces" />
+      <Divider />
+      <NavRow href="/agreements" icon={FileLock} label="Agreements" />
+      <Divider />
+      <NavRow href="/file-requests" icon={FileUp} label="File Requests" badge={fileReqBadge} />
+      <Divider />
+      <NavRow href="/analytics" icon={BarChart2} label="Analytics" />
+      <Divider />
+      <NavRow href="/audit-log" icon={History} label="Audit Log" />
+    </>
+  );
+
   return (
     <>
       <SidebarHeader className="px-4 py-4 border-b">
@@ -572,174 +632,52 @@ export function AppSidebarContent({
       <SidebarContent className="px-2 py-3">
         <SidebarMenu className="gap-0">
 
-          <SidebarMenuItem>
-            <Link href="/dashboard" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/dashboard', true)}
-                tooltip="Dashboard"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <Home className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Dashboard</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/content-library" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/content-library')}
-                tooltip="Content Library"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <FolderIcon className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Content Library</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/spaces" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/spaces')}
-                tooltip="Spaces"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <Package className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Spaces</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/agreements" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/agreements')}
-                tooltip="Agreements"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <FileLock className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Agreements</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/file-requests" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/file-requests')}
-                tooltip="File Requests"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <FileUp className="h-6 w-6 shrink-0" />
-                  <span className="text-base">File Requests</span>
-                  {fileRequestCount > 0 && (
-                    <SidebarMenuBadge>{fileRequestCount}</SidebarMenuBadge>
-                  )}
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/analytics" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/analytics')}
-                tooltip="Analytics"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <BarChart2 className="h-5 w-5 shrink-0" />
-                  <span className="text-base">Analytics</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <div className="border-t border-gray-200" />
-
-          <SidebarMenuItem>
-            <Link href="/audit-log" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/audit-log')}
-                tooltip="Audit Log"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <History className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Audit Log</span>
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          <SidebarMenuItem>
-            <Link href="/dashboard/shared-with-me" className="w-full" passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/dashboard/shared-with-me')}
-                tooltip="Shared with me"
-                className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <Users className="h-6 w-6 shrink-0" />
-                  <span className="text-base">Shared with me</span>
-                  {sharedUnopened > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white animate-red-dot-blink">
-                      {sharedUnopened}
-                    </span>
-                  )}
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-
-          {dwInvestor && (
+          {dwInvestor ? (
+            // ── Investor plan ───────────────────────────────────────────────
+            // Only what a Deal Watch subscriber actually uses. Spaces, Content
+            // Library and Analytics are founder tools and are not shown at all.
             <>
-              <div className="border-t border-gray-200" />
-              <SidebarMenuItem>
-                <Link href="/watchlist" className="w-full" passHref>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive('/watchlist')}
-                    tooltip="Watchlist"
-                    className="h-14 px-4 text-base font-medium gap-4 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Star className="h-6 w-6 shrink-0" />
-                      <span className="text-base">Watchlist</span>
-                    </div>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
+              <div className="px-4 pb-1.5 pt-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#4285F4' }}>
+                  Deal Watch
+                </span>
+              </div>
+              <NavRow href="/watchlist" icon={Star} label="Watchlist" />
+              <Divider />
+              <NavRow href="/dashboard" icon={Home} label="Dashboard" exact />
+              <Divider />
+              <NavRow
+                href="/dashboard/shared-with-me"
+                icon={Users}
+                label="Shared with me"
+                badge={sharedBadge}
+              />
+              <Divider />
+              <NavRow href="/account-manager" icon={Headset} label="Account Manager" />
+              <Divider />
+              <NavRow href="/audit-log" icon={History} label="Audit Log" />
 
-              {/* Account Manager moved to the top header, next to the bell. */}
+              <div className="px-4 pb-1.5 pt-6">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Documents
+                </span>
+              </div>
+              <NavRow href="/agreements" icon={FileLock} label="Agreements" />
+              <Divider />
+              <NavRow href="/file-requests" icon={FileUp} label="File Requests" badge={fileReqBadge} />
+            </>
+          ) : (
+            // ── Founder / default account ──────────────────────────────────
+            <>
+              <NavRow href="/dashboard" icon={Home} label="Dashboard" exact />
+              <Divider />
+              {documentTools}
+              <NavRow
+                href="/dashboard/shared-with-me"
+                icon={Users}
+                label="Shared with me"
+                badge={sharedBadge}
+              />
             </>
           )}
 

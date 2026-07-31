@@ -92,7 +92,7 @@ begin
     delete from public.support_tickets where user_id = v_uid;
   end if;
   if to_regclass('public.dw_offers') is not null then
-    delete from public.dw_offers where lower(email) = 'venturethrust@gmail.com';
+    delete from public.dw_offers where lower(investor_email) = 'venturethrust@gmail.com';
   end if;
 
   -- ── 2. Make it a full Investor-plan account ─────────────────────────────
@@ -101,8 +101,7 @@ begin
          plan             = 'vdr_ai',
          plan_status      = 'active',
          plan_expires_at  = now() + interval '365 days',
-         dw_auto_assign   = true,
-         signup_notified  = true
+         dw_auto_assign   = true
    where id = v_uid;
 
   -- ── 3. The five watched startups, as real spaces ────────────────────────
