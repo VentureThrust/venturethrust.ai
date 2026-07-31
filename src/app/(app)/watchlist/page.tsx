@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Star, Loader2, UserCheck, ExternalLink, FileBarChart } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type Row = {
   id: string;
@@ -27,6 +28,7 @@ type Row = {
 
 export default function WatchlistPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -156,13 +158,17 @@ export default function WatchlistPage() {
 
           <div className="divide-y divide-gray-200 border-b border-gray-200">
             {rows.map((r) => (
-              <div key={r.id} className="flex items-center gap-4 px-2 py-4 hover:bg-gray-50">
+              <div
+                key={r.id}
+                onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view`); }}
+                className={`flex items-center gap-4 px-2 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
+              >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#FFF8E6]">
                     <Star className="h-4 w-4 text-[#F4B400]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{r.startup_name || 'Unnamed startup'}</p>
+                    <p className="truncate text-sm font-semibold text-gray-900">{r.startup_name || 'Unnamed startup'}</p>
                     {r.note ? (
                       <p className="truncate text-xs italic text-muted-foreground" title={r.note}>
                         {r.note}
@@ -182,7 +188,7 @@ export default function WatchlistPage() {
                     size="sm"
                     variant={r.quarterly_report ? 'outline' : 'ghost'}
                     className={r.quarterly_report ? '' : 'text-muted-foreground'}
-                    onClick={() => toggleQuarterly(r)}
+                    onClick={(e) => { e.stopPropagation(); toggleQuarterly(r); }}
                     disabled={togglingId === r.id}
                     title={r.quarterly_report
                       ? 'You get a quarterly report on this startup. Click to turn off.'
@@ -204,7 +210,7 @@ export default function WatchlistPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => assign(r)}
+                      onClick={(e) => { e.stopPropagation(); assign(r); }}
                       disabled={assigningId === r.id}
                     >
                       {assigningId === r.id
@@ -214,8 +220,12 @@ export default function WatchlistPage() {
                     </Button>
                   )}
                   {r.space_id && (
-                    <Button size="sm" variant="ghost" asChild title="Open the data room">
-                      <Link href={`/spaces/${r.space_id}/view`} target="_blank">
+                    <Button size="sm" variant="ghost" asChild title="Open in a new tab">
+                      <Link
+                        href={`/spaces/${r.space_id}/view`}
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <ExternalLink className="h-4 w-4" />
                       </Link>
                     </Button>

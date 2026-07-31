@@ -145,21 +145,20 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
         </p>
       </div>
 
-      {/* ── Stat row ───────────────────────────────────────────────────── */}
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {/* ── Stat row: one band, divided by hairlines. No cards. ────────── */}
+      <div className="mb-10 grid grid-cols-2 divide-y divide-gray-200 border-y border-gray-200 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
         {stats.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-2xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
-          >
+          <div key={s.label} className="flex items-center gap-3.5 py-5 sm:px-6 sm:first:pl-0">
             <div
-              className="mb-3 grid h-11 w-11 place-items-center rounded-xl"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
               style={{ background: s.bg }}
             >
               <s.icon className="h-5 w-5" style={{ color: s.fg }} />
             </div>
-            <p className="text-3xl font-bold tracking-tight text-gray-900">{s.value}</p>
-            <p className="mt-0.5 text-[13px] text-gray-500">{s.label}</p>
+            <div>
+              <p className="text-2xl font-bold leading-none tracking-tight text-gray-900">{s.value}</p>
+              <p className="mt-1.5 text-[12.5px] text-gray-500">{s.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -178,58 +177,43 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               {briefs.length === 1 ? 'One startup moved' : `${briefs.length} startups moved`}
             </h2>
           </div>
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-200 border-y border-gray-200">
             {briefs.map((b) => (
-              <div
-                key={b.id}
-                className="overflow-hidden rounded-2xl border bg-white"
-                style={{ borderColor: '#F3C9C9' }}
-              >
-                <div className="flex flex-wrap items-center gap-4 p-5">
-                  <div
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
-                    style={{ background: 'linear-gradient(135deg,#FEE2E2 0%,#FCA5A5 100%)' }}
-                  >
-                    <FileText className="h-5 w-5" style={{ color: CRIMSON }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-semibold leading-snug text-gray-900">
-                      {b.message}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(b.created_at), { addSuffix: true })} · from your account manager
-                    </p>
-                  </div>
-                  {b.space_id && (
-                    <Link
-                      href={`/spaces/${b.space_id}/view`}
-                      target="_blank"
-                      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                      style={{ background: CRIMSON }}
-                    >
-                      Open the room <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  )}
+              <div key={b.id} className="flex flex-wrap items-center gap-4 py-5">
+                <div
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
+                  style={{ background: 'linear-gradient(135deg,#FEE2E2 0%,#FCA5A5 100%)' }}
+                >
+                  <FileText className="h-5 w-5" style={{ color: CRIMSON }} />
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-semibold leading-snug text-gray-900">
+                    {b.message}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {formatDistanceToNow(new Date(b.created_at), { addSuffix: true })} · from your account manager
+                  </p>
+                </div>
+                {b.space_id && (
+                  <Link
+                    href={`/spaces/${b.space_id}/view`}
+                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                    style={{ background: CRIMSON }}
+                  >
+                    Take a look <ArrowRight className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
             ))}
           </div>
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-12 lg:grid-cols-[1fr_320px]">
         {/* ── Watchlist ────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-gray-200 bg-white">
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="grid h-9 w-9 place-items-center rounded-lg"
-                style={{ background: 'linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%)' }}
-              >
-                <Star className="h-4 w-4" style={{ color: '#B45309' }} />
-              </div>
-              <h2 className="text-base font-bold tracking-tight text-gray-900">Your watchlist</h2>
-            </div>
+        <section>
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-lg font-bold tracking-tight text-gray-900">Your watchlist</h2>
             <Link
               href="/watchlist"
               className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
@@ -238,9 +222,12 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               Manage <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
+          <p className="mb-4 text-[13px] text-gray-500">
+            Click any startup to open its data room.
+          </p>
 
           {rows.length === 0 ? (
-            <div className="px-5 py-14 text-center">
+            <div className="border-y border-gray-200 py-16 text-center">
               <Star className="mx-auto mb-3 h-9 w-9 text-gray-300" />
               <p className="text-[15px] font-semibold text-gray-900">Nothing watched yet</p>
               <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
@@ -255,9 +242,13 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-200 border-y border-gray-200">
               {rows.map((r) => (
-                <div key={r.id} className="flex items-start gap-3.5 px-5 py-4">
+                <div
+                  key={r.id}
+                  onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view`); }}
+                  className={`flex items-start gap-3.5 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
+                >
                   <div
                     className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg"
                     style={{ background: '#FFF8E6' }}
@@ -287,6 +278,7 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
                       Added {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                     </p>
                   </div>
+                  <ArrowRight className="mt-3 h-4 w-4 shrink-0 text-gray-300" />
                 </div>
               ))}
             </div>
@@ -294,23 +286,26 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
         </section>
 
         {/* ── Right column ─────────────────────────────────────────────── */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Account manager */}
           <section
             className="overflow-hidden rounded-2xl text-white"
-            style={{ background: 'linear-gradient(150deg,#0D1B3E 0%,#1E3A6E 100%)' }}
+            style={{ background: 'linear-gradient(150deg,#0D1B3E 0%,#24457F 100%)' }}
           >
-            <div className="p-5">
-              <div className="flex items-center gap-2.5">
-                <div className="grid h-9 w-9 place-items-center rounded-lg bg-white/10">
-                  <Headset className="h-4 w-4 text-white" />
+            <div className="p-6">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-200">
+                Your account manager
+              </p>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-white/10">
+                  <Headset className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-200">
-                  Your account manager
-                </p>
+                <div>
+                  <p className="text-[17px] font-bold leading-tight">{DW_MANAGER_INFO.name}</p>
+                  <p className="text-[12px] text-blue-200">Deal Watch, VentureThrust</p>
+                </div>
               </div>
-              <p className="mt-3 text-lg font-bold">{DW_MANAGER_INFO.name}</p>
-              <p className="text-[13px] leading-relaxed text-blue-100">
+              <p className="mt-4 text-[13px] leading-relaxed text-blue-100">
                 Reads every update your watched startups make, so you only hear what matters.
               </p>
               <div className="mt-4 space-y-2 text-[13px]">
@@ -329,7 +324,7 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               </div>
               <Link
                 href="/account-manager"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white text-sm font-semibold text-[#0D1B3E] transition-opacity hover:opacity-90"
+                className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white text-sm font-semibold text-[#0D1B3E] transition-opacity hover:opacity-90"
               >
                 Message your manager <ArrowRight className="h-4 w-4" />
               </Link>
@@ -337,15 +332,10 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
           </section>
 
           {/* The silence receipt */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-5">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="grid h-9 w-9 place-items-center rounded-lg"
-                style={{ background: 'linear-gradient(135deg,#D1FAE5 0%,#A7F3D0 100%)' }}
-              >
-                <ShieldCheck className="h-4 w-4" style={{ color: '#047857' }} />
-              </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
+          <section>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" style={{ color: '#047857' }} />
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400">
                 This month
               </p>
             </div>
