@@ -37,6 +37,7 @@ import {
   Headset,
   Radar,
   History,
+  FileText,
 } from 'lucide-react';
 import { DW_MANAGER_EMAIL } from '@/lib/deal-watch';
 import Image from 'next/image';
@@ -270,6 +271,7 @@ export function AppSidebarContent({
   const [supportOpen, setSupportOpen] = useState(false);
   const [isSupportAdmin, setIsSupportAdmin] = useState(false);
 
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -401,6 +403,26 @@ export function AppSidebarContent({
     })();
     return () => { active = false; };
   }, []);
+
+  // Unread Deal Watch reports, for the Reports badge. Pre-migration databases
+  // have no dw_reports table, so a failure here just means no badge.
+  const [unreadReports, setUnreadReports] = useState(0);
+  useEffect(() => {
+    if (!dwInvestor) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const { count } = await supabase
+          .from('dw_reports')
+          .select('id', { count: 'exact', head: true })
+          .is('opened_at', null);
+        if (active) setUnreadReports(count ?? 0);
+      } catch { /* no table, no badge */ }
+    };
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => { active = false; clearInterval(timer); };
+  }, [dwInvestor]);
 
   if (isSpaceView) {
     if (!isClient || !space) return null;
@@ -605,6 +627,12 @@ export function AppSidebarContent({
     <SidebarMenuBadge>{fileRequestCount}</SidebarMenuBadge>
   ) : null;
 
+  const reportBadge = unreadReports > 0 ? (
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white animate-red-dot-blink">
+      {unreadReports}
+    </span>
+  ) : null;
+
   // The founder-side document tools. For an investor these are secondary, so
   // they collapse into one group instead of pushing Deal Watch off the screen.
   const documentTools = (
@@ -642,9 +670,11 @@ export function AppSidebarContent({
                   Deal Watch
                 </span>
               </div>
+              <NavRow href="/dashboard" icon={Home} label="Dashboard" exact />
+              <Divider />
               <NavRow href="/watchlist" icon={Star} label="Watchlist" />
               <Divider />
-              <NavRow href="/dashboard" icon={Home} label="Dashboard" exact />
+              <NavRow href="/reports" icon={FileText} label="Reports" badge={reportBadge} />
               <Divider />
               <NavRow
                 href="/dashboard/shared-with-me"

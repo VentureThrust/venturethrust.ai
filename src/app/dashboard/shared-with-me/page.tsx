@@ -227,13 +227,21 @@ export default function SharedWithMePage() {
     // A data room opens on its pitch deck. A single emailed document opens
     // as itself, so there is no deck to jump to.
     const deck = space.kind === 'file' ? '' : '?open=deck';
+
+    // An invite is access in its own right, so go straight to the viewer,
+    // which authorises invited accounts through /api/spaces/view-data. Going
+    // via /shared/{token} would break the moment that token is rotated or
+    // deactivated, even though the invite is still perfectly valid.
+    if (space.invited) {
+      router.push(`/spaces/${space.spaceId}/view${deck}`);
+      return;
+    }
     if (space.shareToken) {
-      // Through the gates (NDA, signature, password, etc.). A signed-in
-      // visitor clears the email gate automatically.
+      // Sent by email: the token is the access, so it has to go through the
+      // gates (NDA, signature, password). A signed-in visitor clears the
+      // email gate automatically.
       router.push(`/shared/${space.shareToken}${deck}`);
     } else {
-      // Invited without an active link: the viewer grants access to invited
-      // accounts through /api/spaces/view-data.
       router.push(`/spaces/${space.spaceId}/view${deck}`);
     }
   };

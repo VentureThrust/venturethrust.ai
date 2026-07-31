@@ -45,6 +45,7 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
   const [rows, setRows] = useState<WatchRow[]>([]);
   const [briefs, setBriefs] = useState<AlertRow[]>([]);
   const [updatesReviewed, setUpdatesReviewed] = useState(0);
+  const [reportsSent, setReportsSent] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,15 +69,21 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
             .eq('type', 'dw_update')
             .order('created_at', { ascending: false })
             .limit(5),
-          supabase
-            .from('dw_update_events')
-            .select('id', { count: 'exact', head: true }),
+          // dw_update_events is RLS scoped to the founder, so the investor
+          // cannot count it directly. The service role route does it for us,
+          // restricted to this investor's own watched spaces.
+          fetch('/api/deal-watch/stats', {
+            headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+          }).then((r) => r.json()).catch(() => ({ ok: false })),
         ]);
 
         if (!active) return;
         setRows((watch.data ?? []) as WatchRow[]);
         setBriefs((alerts.data ?? []) as AlertRow[]);
-        setUpdatesReviewed(events.count ?? 0);
+        if (events?.ok) {
+          setUpdatesReviewed(events.updatesReviewed ?? 0);
+          setReportsSent(events.reportsSent ?? 0);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -103,8 +110,8 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
       bg: 'linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%)',
     },
     {
-      label: 'Briefs waiting',
-      value: briefs.length,
+      label: 'Reports sent to you',
+      value: reportsSent,
       icon: FileText,
       fg: CRIMSON,
       bg: 'linear-gradient(135deg,#FEE2E2 0%,#FECACA 100%)',
@@ -194,13 +201,21 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
                     {formatDistanceToNow(new Date(b.created_at), { addSuffix: true })} · from your account manager
                   </p>
                 </div>
+                {/* The brief itself lives in Reports, so that is where this
+                    goes. The data room is one click further on. */}
+                <Link
+                  href="/reports"
+                  className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: CRIMSON }}
+                >
+                  Read the brief <ArrowRight className="h-4 w-4" />
+                </Link>
                 {b.space_id && (
                   <Link
                     href={`/spaces/${b.space_id}/view?open=deck`}
-                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                    style={{ background: CRIMSON }}
+                    className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                   >
-                    Take a look <ArrowRight className="h-4 w-4" />
+                    Data room
                   </Link>
                 )}
               </div>

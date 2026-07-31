@@ -831,6 +831,34 @@ alter table public.dw_watchlist
   add column if not exists note text,
   add column if not exists quarterly_report boolean not null default false;
 
+-- Reports the account manager has sent. Full definition in sql/dw_reports.sql.
+create table if not exists public.dw_reports (
+  id            uuid primary key default gen_random_uuid(),
+  investor_id   uuid not null references auth.users(id) on delete cascade,
+  space_id      uuid references public.spaces(id) on delete set null,
+  startup_name  text not null,
+  kind          text not null check (kind in ('priority', 'quarterly')),
+  title         text not null,
+  period        text,
+  summary       text,
+  storage_path  text not null,
+  page_count    int,
+  size_bytes    bigint,
+  sent_at       timestamptz not null default now(),
+  opened_at     timestamptz,
+  created_at    timestamptz not null default now()
+);
+create index if not exists dw_reports_investor_sent_idx
+  on public.dw_reports (investor_id, sent_at desc);
+alter table public.dw_reports enable row level security;
+drop policy if exists dw_reports_select_own on public.dw_reports;
+create policy dw_reports_select_own on public.dw_reports
+  for select using (investor_id = auth.uid());
+drop policy if exists dw_reports_update_own on public.dw_reports;
+create policy dw_reports_update_own on public.dw_reports
+  for update using (investor_id = auth.uid())
+  with check (investor_id = auth.uid());
+
 do $$
 declare
   v_inv uuid;
@@ -898,6 +926,9 @@ begin
   end if;
   if to_regclass('public.dw_watchlist') is not null then
     delete from public.dw_watchlist where investor_id = v_inv;
+  end if;
+  if to_regclass('public.dw_reports') is not null then
+    delete from public.dw_reports where investor_id = v_inv;
   end if;
   if to_regclass('public.alerts') is not null then
     delete from public.alerts where user_id = v_inv;
@@ -1091,6 +1122,9 @@ def write_sql(files, path):
                "    join public.spaces  sp on sp.name = m.nm and sp.id = any(ids)\n"
                "    join public.folders fo on fo.space_id = sp.id and fo.name = t.fol;\n"
                % slugmap)
+
+    from reports import sql_block as reports_sql   # noqa: E402
+    out.append(reports_sql())
 
     out.append(SQL_TAIL)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:

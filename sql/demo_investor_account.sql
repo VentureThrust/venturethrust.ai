@@ -22,6 +22,34 @@ alter table public.dw_watchlist
   add column if not exists note text,
   add column if not exists quarterly_report boolean not null default false;
 
+-- Reports the account manager has sent. Full definition in sql/dw_reports.sql.
+create table if not exists public.dw_reports (
+  id            uuid primary key default gen_random_uuid(),
+  investor_id   uuid not null references auth.users(id) on delete cascade,
+  space_id      uuid references public.spaces(id) on delete set null,
+  startup_name  text not null,
+  kind          text not null check (kind in ('priority', 'quarterly')),
+  title         text not null,
+  period        text,
+  summary       text,
+  storage_path  text not null,
+  page_count    int,
+  size_bytes    bigint,
+  sent_at       timestamptz not null default now(),
+  opened_at     timestamptz,
+  created_at    timestamptz not null default now()
+);
+create index if not exists dw_reports_investor_sent_idx
+  on public.dw_reports (investor_id, sent_at desc);
+alter table public.dw_reports enable row level security;
+drop policy if exists dw_reports_select_own on public.dw_reports;
+create policy dw_reports_select_own on public.dw_reports
+  for select using (investor_id = auth.uid());
+drop policy if exists dw_reports_update_own on public.dw_reports;
+create policy dw_reports_update_own on public.dw_reports
+  for update using (investor_id = auth.uid())
+  with check (investor_id = auth.uid());
+
 do $$
 declare
   v_inv uuid;
@@ -89,6 +117,9 @@ begin
   end if;
   if to_regclass('public.dw_watchlist') is not null then
     delete from public.dw_watchlist where investor_id = v_inv;
+  end if;
+  if to_regclass('public.dw_reports') is not null then
+    delete from public.dw_reports where investor_id = v_inv;
   end if;
   if to_regclass('public.alerts') is not null then
     delete from public.alerts where user_id = v_inv;
@@ -300,44 +331,44 @@ begin
       ('thooval-studios','01 Company Overview','Thooval Pitch Deck.pdf','Deck',11689,4,1,37),
       ('thooval-studios','01 Company Overview','One Pager.pdf','PDF',3567,11,2,42),
       ('thooval-studios','01 Company Overview','Founding Team.pdf','PDF',3473,18,3,3),
-      ('thooval-studios','02 Financials','Financial Model.xlsx','Sheet',7336,25,1,8),
-      ('thooval-studios','02 Financials','Unit Economics.xlsx','Sheet',5562,6,2,13),
-      ('thooval-studios','02 Financials','Cap Table.xlsx','Sheet',5610,13,3,18),
+      ('thooval-studios','02 Financials','Financial Model.xlsx','Sheet',7335,25,1,8),
+      ('thooval-studios','02 Financials','Unit Economics.xlsx','Sheet',5561,6,2,13),
+      ('thooval-studios','02 Financials','Cap Table.xlsx','Sheet',5609,13,3,18),
       ('thooval-studios','03 Product and Technology','Localisation Pipeline.pdf','PDF',3072,20,1,23),
-      ('thooval-studios','04 Customers and Traction','Customer List.xlsx','Sheet',5720,1,1,28),
+      ('thooval-studios','04 Customers and Traction','Customer List.xlsx','Sheet',5719,1,1,28),
       ('thooval-studios','04 Customers and Traction','Platform Delivery Record.pdf','PDF',3582,8,2,33),
       ('thooval-studios','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3366,15,1,38),
       ('thooval-studios','05 Legal and Compliance','Voice Artist Consent Framework.pdf','PDF',3087,22,2,43),
       ('kalpana-robotics','01 Company Overview','Kalpana Pitch Deck.pdf','Deck',11613,3,1,4),
       ('kalpana-robotics','01 Company Overview','One Pager.pdf','PDF',3488,10,2,9),
       ('kalpana-robotics','01 Company Overview','Founding Team.pdf','PDF',3462,17,3,14),
-      ('kalpana-robotics','02 Financials','Financial Model.xlsx','Sheet',7321,24,1,19),
-      ('kalpana-robotics','02 Financials','Unit Economics.xlsx','Sheet',5611,5,2,24),
-      ('kalpana-robotics','02 Financials','Cap Table.xlsx','Sheet',5565,12,3,29),
+      ('kalpana-robotics','02 Financials','Financial Model.xlsx','Sheet',7320,24,1,19),
+      ('kalpana-robotics','02 Financials','Unit Economics.xlsx','Sheet',5610,5,2,24),
+      ('kalpana-robotics','02 Financials','Cap Table.xlsx','Sheet',5564,12,3,29),
       ('kalpana-robotics','03 Product and Technology','Curriculum and Lab Setup.pdf','PDF',3077,19,1,34),
-      ('kalpana-robotics','04 Customers and Traction','College Contracts.xlsx','Sheet',5772,0,1,39),
+      ('kalpana-robotics','04 Customers and Traction','College Contracts.xlsx','Sheet',5771,0,1,39),
       ('kalpana-robotics','04 Customers and Traction','Placement Outcomes Report.pdf','PDF',3533,7,2,44),
       ('kalpana-robotics','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3366,14,1,5),
       ('kalpana-robotics','05 Legal and Compliance','College Agreement Template.pdf','PDF',3060,21,2,10),
       ('metricon-interconnect','01 Company Overview','Metricon Pitch Deck.pdf','Deck',11672,2,1,15),
       ('metricon-interconnect','01 Company Overview','One Pager.pdf','PDF',3572,9,2,20),
       ('metricon-interconnect','01 Company Overview','Founding Team.pdf','PDF',3465,16,3,25),
-      ('metricon-interconnect','02 Financials','Financial Model.xlsx','Sheet',7321,23,1,30),
-      ('metricon-interconnect','02 Financials','Unit Economics.xlsx','Sheet',5687,4,2,35),
-      ('metricon-interconnect','02 Financials','Cap Table.xlsx','Sheet',5611,11,3,40),
+      ('metricon-interconnect','02 Financials','Financial Model.xlsx','Sheet',7320,23,1,30),
+      ('metricon-interconnect','02 Financials','Unit Economics.xlsx','Sheet',5686,4,2,35),
+      ('metricon-interconnect','02 Financials','Cap Table.xlsx','Sheet',5610,11,3,40),
       ('metricon-interconnect','03 Product and Technology','Product Catalogue and Tooling.pdf','PDF',3017,18,1,45),
-      ('metricon-interconnect','04 Customers and Traction','Customer Approvals.xlsx','Sheet',5759,25,1,6),
+      ('metricon-interconnect','04 Customers and Traction','Customer Approvals.xlsx','Sheet',5758,25,1,6),
       ('metricon-interconnect','04 Customers and Traction','Quality and PPAP Record.pdf','PDF',3439,6,2,11),
       ('metricon-interconnect','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3381,13,1,16),
       ('metricon-interconnect','05 Legal and Compliance','Certifications and Compliance.pdf','PDF',3008,20,2,21),
       ('puzha-foods','01 Company Overview','Puzha Pitch Deck.pdf','Deck',11705,1,1,26),
       ('puzha-foods','01 Company Overview','One Pager.pdf','PDF',3540,8,2,31),
       ('puzha-foods','01 Company Overview','Founding Team.pdf','PDF',3395,15,3,36),
-      ('puzha-foods','02 Financials','Financial Model.xlsx','Sheet',7333,22,1,41),
-      ('puzha-foods','02 Financials','SKU Economics.xlsx','Sheet',5669,3,2,46),
-      ('puzha-foods','02 Financials','Cap Table.xlsx','Sheet',5606,10,3,7),
+      ('puzha-foods','02 Financials','Financial Model.xlsx','Sheet',7332,22,1,41),
+      ('puzha-foods','02 Financials','SKU Economics.xlsx','Sheet',5668,3,2,46),
+      ('puzha-foods','02 Financials','Cap Table.xlsx','Sheet',5605,10,3,7),
       ('puzha-foods','03 Product and Technology','Plant and Process Overview.pdf','PDF',3114,17,1,12),
-      ('puzha-foods','04 Customers and Traction','Channel Performance.xlsx','Sheet',5738,24,1,17),
+      ('puzha-foods','04 Customers and Traction','Channel Performance.xlsx','Sheet',5737,24,1,17),
       ('puzha-foods','04 Customers and Traction','Working Capital and Collections.pdf','PDF',3032,5,2,22),
       ('puzha-foods','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3359,12,1,27),
       ('puzha-foods','05 Legal and Compliance','FSSAI and Farmer Contracts.pdf','PDF',3023,19,2,32)
@@ -345,6 +376,21 @@ begin
     join (values ('nellara-agrichain','Nellara AgriChain'), ('zylo-health','Zylo Health'), ('voltaneer','Voltaneer'), ('aegis-drone-systems','Aegis Drone Systems'), ('kadal-systems','Kadal Systems'), ('anvaya-ai','Anvaya AI'), ('thooval-studios','Thooval Studios'), ('kalpana-robotics','Kalpana Robotics'), ('metricon-interconnect','Metricon Interconnect'), ('puzha-foods','Puzha Foods')) as m(slug, nm) on m.slug = t.slug
     join public.spaces  sp on sp.name = m.nm and sp.id = any(ids)
     join public.folders fo on fo.space_id = sp.id and fo.name = t.fol;
+
+  -- ── Reports the account manager has already sent ────────────────────────
+  -- Nothing for the silent startups. The empty space is the product.
+  insert into public.dw_reports
+    (id, investor_id, space_id, startup_name, kind, title, period, summary,
+     storage_path, size_bytes, sent_at, opened_at)
+  select gen_random_uuid(), v_inv, sp.id, t.startup, t.kind, t.title, t.period,
+         t.summary, t.spath, t.sz, t.sent, null
+    from (values
+      ('Nellara AgriChain','priority','Nellara AgriChain: both your conditions are met','July 2026','Wastage 22 percent to 7.4 percent, gross margin 8 percent to 21 percent. Seed round planned for September.','demo/reports/Nellara AgriChain - Priority brief - Jul 2026.pdf',138417,timestamptz '2026-07-26 09:15:00+05:30'),
+      ('Voltaneer','priority','Voltaneer: recurring revenue and sales cycle both past your thresholds','July 2026','Recurring revenue 24 percent to 47 percent, median sales cycle 264 days to 71 days.','demo/reports/Voltaneer - Priority brief - Jul 2026.pdf',148458,timestamptz '2026-07-24 16:40:00+05:30'),
+      ('Zylo Health','quarterly','Zylo Health quarterly, Q2 2026','Q2 2026 (Apr to Jun)','Scan volume up 2.4 times, four hospitals live, CDSCO Class B filed on 14 April.','demo/reports/Zylo Health - Quarterly report - Q2 2026.pdf',135679,timestamptz '2026-07-12 11:05:00+05:30'),
+      ('Zylo Health','quarterly','Zylo Health quarterly, Q1 2026','Q1 2026 (Jan to Mar)','First quarter after your pass. Volume tripled off a small base, CDSCO still unfiled at quarter end.','demo/reports/Zylo Health - Quarterly report - Q1 2026.pdf',135452,timestamptz '2026-04-11 10:20:00+05:30')
+    ) as t(startup, kind, title, period, summary, spath, sz, sent)
+    left join public.spaces sp on sp.name = t.startup and sp.id = any(ids);
 
   -- ── Founder update history behind the briefs ─────────────────────────────
   insert into public.dw_update_events (id, founder_id, space_id, file_id, file_name, event_type, created_at)
