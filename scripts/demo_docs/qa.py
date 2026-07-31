@@ -8,11 +8,10 @@ OUT = sys.argv[1]
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 
 JOBS = [
-    ("nellara-agrichain", "Nellara Pitch Deck v5.pdf", [0, 4]),
-    ("nellara-agrichain", "One Pager.pdf", [0]),
-    ("zylo-health", "Clinical Validation Summary.pdf", [0]),
-    ("voltaneer", "Sensor Spec Sheet.pdf", [0]),
-    ("kadal-systems", "Founders.pdf", [0]),
+    ("anvaya-ai", "Anvaya Pitch Deck.pdf", [0, 3]),
+    ("anvaya-ai", "Quality Benchmark Report.pdf", [0]),
+    ("thooval-studios", "One Pager.pdf", [0]),
+    ("metricon-interconnect", "Quality and PPAP Record.pdf", [0]),
 ]
 
 for slug, name, pages in JOBS:

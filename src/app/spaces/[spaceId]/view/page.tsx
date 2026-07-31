@@ -11,7 +11,7 @@ import {
   Search, Sparkles, MessageSquare, Link2Off, Package,
   FileText, Image as ImageIcon, Film, Music, Archive, Download,
   CheckCircle, X, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Bell, Layers,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -432,15 +432,6 @@ function FileViewer({ file, url, allFiles, onClose, onNavigate, allowDownload = 
           <span className="text-white font-medium truncate text-sm">{file.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* The way out of the deck and into the rest of the room. */}
-          <button
-            onClick={onClose}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
-          >
-            <Layers className="h-3.5 w-3.5" />
-            See the whole data room
-          </button>
-          <div className="hidden sm:block w-px h-5 bg-white/20 mx-1" />
           {category === 'image' && (
             <>
               <button onClick={() => setImgZoom(z => Math.max(0.5, z - 0.25))} className="text-white/70 hover:text-white p-1.5 rounded-md hover:bg-white/10 transition-colors" title="Zoom out"><ZoomOut className="h-4 w-4" /></button>

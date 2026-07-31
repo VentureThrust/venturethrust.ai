@@ -1038,10 +1038,675 @@ KADAL = [
     ])),
 ]
 
+# ── New inbound: sent recently, not yet opened, not yet on the watchlist ─────
+
+ANVAYA = [
+    (1, "Anvaya Pitch Deck.pdf", *deck([
+        ("Anvaya AI",
+         ["Expert reviewed Indian clinical and legal data for frontier model training",
+          "Seed round, July 2026",
+          "Kochi, Kerala"]),
+        ("The problem",
+         ["Frontier labs have run out of the easy internet.",
+          "What they need now is judgement: a doctor saying this reasoning is wrong, and why.",
+          "That data does not exist on the web and cannot be scraped.",
+          "India has the experts. Nobody had organised them into a delivery pipeline."]),
+        ("What we do",
+         ["We run a panel of 612 practising doctors and 140 advocates.",
+          "They review, correct and rank model output in their own domain, paid per item.",
+          "We deliver it as a versioned dataset with full provenance on every item.",
+          "1.84 million reviewed items delivered so far."]),
+        ("Why India and why now",
+         ["An Indian specialist costs a fraction of a US one and the judgement is the same.",
+          "English medical and legal practice here maps directly onto what the labs need.",
+          "Indian court judgments and clinical notes are an untouched corpus in English.",
+          "Data protection rules mean the labs need an Indian partner, not a scraper."]),
+        ("Traction",
+         ["Contracted ARR of Rs 3.10 crore in July 2026, from Rs 0 in October 2025.",
+          "Three frontier lab customers, two in the United States and one in India.",
+          "Two further evaluation pilots running on coding and agentic tasks.",
+          "Inter annotator agreement of 0.89, which is what buys the renewal."]),
+        ("Quality is the product",
+         ["Every item is reviewed once, and 18 percent go to a second independent adjudicator.",
+          "Reviewer rejection rate fell from 9.1 percent to 4.1 percent as we tightened selection.",
+          "We publish our disagreement statistics to customers. Nobody else in this market does.",
+          "A lab that trusts your labels does not re run the tender next quarter."]),
+        ("Unit economics",
+         ["Rs 41 realised per reviewed item, Rs 22.20 gross contribution.",
+          "Reviewers are paid per item, so cost scales with revenue and not with headcount.",
+          "Gross margin 58 percent and improving as adjudication rates fall.",
+          "No long term reviewer liability, which keeps the balance sheet clean."]),
+        ("The honest risk",
+         ["Three customers are 92 percent of our revenue.",
+          "Frontier lab budgets move fast in both directions and we have no contractual minimums.",
+          "If the labs shift decisively to synthetic data this market compresses.",
+          "We are telling you this before you find it in diligence."]),
+        ("Use of funds",
+         ["Rs 9.0 crore, expected to last 20 months.",
+          "Rs 3.4 crore: reviewer acquisition, to 2,000 experts across four domains.",
+          "Rs 2.6 crore: platform, principally provenance and adjudication tooling.",
+          "Rs 2.0 crore: a United States facing commercial team.",
+          "Rs 1.0 crore: reserve."]),
+        ("The team",
+         ["Nandita Rajagopal, CEO. Ran the medical vertical at a US labelling company, 400 reviewers.",
+          "Basil Thomas, CTO. Built the evaluation harness for three model releases.",
+          "Adv. Shruti Nayar, Legal Domain. Eleven years in the Kerala High Court, runs the advocate panel.",
+          "31 full time, plus 752 experts active on the panel."]),
+    ])),
+    (1, "One Pager.pdf", *doc("Company summary, July 2026", [
+        ("What Anvaya does", [
+            "Anvaya AI organises Indian domain experts, principally practising doctors and "
+            "advocates, into a reviewed data pipeline for frontier AI labs. Experts correct and "
+            "rank model output in their own field, and Anvaya delivers it as a versioned dataset "
+            "with provenance on every item."]),
+        ("Why labs buy", [
+            "Judgement data in medicine and law that cannot be scraped from the open web.",
+            "Published inter annotator agreement, currently 0.89, rather than an unverified claim.",
+            "Indian cost base at the same standard of professional judgement.",
+            "An Indian entity handling Indian source material, which the rules increasingly require."]),
+        ("Where the business stands", None),
+        ("What the round funds", [
+            "Reviewer acquisition to 2,000 experts across four domains, provenance and adjudication "
+            "tooling, and a United States facing commercial team."]),
+    ])),
+    (1, "Founding Team.pdf", *doc("Founding team and domain leads", [])),
+    (2, "Financial Model.xlsx", *model("Monthly build, FY27 to FY29, item volume driven")),
+    (2, "Unit Economics.xlsx", *table("Unit economics", rows_key="unit_rows",
+                                      note="Per reviewed item, July 2026 actuals")),
+    (2, "Cap Table.xlsx", *table("Cap table", rows_key="cap",
+                                 note="Fully diluted, before the proposed seed round")),
+    (3, "Data Pipeline and Provenance.pdf", *doc("How an item moves and what is recorded", [
+        ("The pipeline", [
+            "A customer task arrives as a batch. It is routed to reviewers qualified in that "
+            "sub domain, reviewed once, sampled for adjudication, then packaged and delivered with "
+            "a manifest."]),
+        ("Reviewer selection", [
+            "Every doctor is verified against the National Medical Commission register and every "
+            "advocate against the Bar Council roll. Both then pass a paid qualification batch that "
+            "is graded against a gold set before they see customer work."]),
+        ("Provenance", [
+            "Every item carries the reviewer identifier, timestamp, time on task, the gold set score "
+            "of that reviewer at the time, and whether it went to adjudication. Customers can trace "
+            "any single label back to the person who made it."]),
+        ("Quality control", [
+            "A hidden gold set is mixed into every batch at 4 percent. A reviewer whose gold score "
+            "drops below threshold is paused and re qualified, not silently dropped."]),
+        ("Data handling", [
+            "Source material stays in an Indian cloud region. Reviewers work in a browser workspace "
+            "with no download and no copy. Personally identifying content is stripped before it "
+            "reaches a reviewer."]),
+    ])),
+    (4, "Customer Contracts.xlsx", *table("Customers", rows_key="customers",
+                                          note="Contracted work as at 31 July 2026")),
+    (4, "Quality Benchmark Report.pdf", *doc("Agreement and accuracy, Q1 FY27", [
+        ("Why we publish this", [
+            "Every labelling vendor claims high quality. Almost none publish the number. We send "
+            "this report to every customer monthly, including the results we would rather not show."]),
+        ("Results", None),
+        ("Where we are weakest", [
+            "Multilingual medical items, where a reviewer works from a Malayalam or Tamil clinical "
+            "note, run about six points below our English agreement. We have paused expansion on "
+            "that line until it closes."]),
+        ("What changed this quarter", [
+            "Tighter qualification cut the reviewer rejection rate from 6.4 percent to 4.1 percent, "
+            "and adjudication load fell from 24 percent of items to 18 percent, which is where most "
+            "of the margin improvement came from."]),
+    ])),
+    (5, "Certificate of Incorporation.pdf", *doc("Registrar of Companies, Ernakulam", [])),
+    (5, "Reviewer and Data Agreements.pdf", *doc("Contracts with experts and customers", [
+        ("Reviewer agreement", [
+            "Every reviewer signs an independent contractor agreement with a present assignment of "
+            "all rights in the work produced, a confidentiality undertaking, and a bar on using any "
+            "customer material outside the platform."]),
+        ("Payment terms to reviewers", [
+            "Paid per accepted item, settled fortnightly. No claw back once an item is accepted. "
+            "Adjudicated corrections are paid to both reviewers, which is deliberate: we do not want "
+            "reviewers guessing what the adjudicator wants."]),
+        ("Customer terms", [
+            "Work for hire. All delivered data and derived rights vest in the customer on payment. "
+            "Anvaya retains no licence to resell any customer specific dataset."]),
+        ("Confidentiality", [
+            "Two of three customers are named only under NDA in this data room. Their identity can "
+            "be disclosed to a lead investor under a separate confidentiality undertaking."]),
+    ])),
+]
+
+THOOVAL = [
+    (1, "Thooval Pitch Deck.pdf", *deck([
+        ("Thooval Studios",
+         ["AI assisted dubbing and subtitling for Indian language streaming",
+          "Seed round, July 2026",
+          "Kozhikode, Kerala"]),
+        ("The problem",
+         ["A Malayalam series that would work in Tamil usually never gets dubbed.",
+          "Traditional dubbing costs about Rs 1.4 lakh a finished hour and takes 6 to 9 days.",
+          "So platforms dub only their biggest titles and the back catalogue sits unwatched.",
+          "The content already exists. The economics of translating it do not."]),
+        ("What we do",
+         ["Rs 38,000 a finished hour, delivered in 31 hours, across nine Indian languages.",
+          "Synthesis does the first pass. A dubbing director and a voice artist do the last one.",
+          "The voice artist is paid, credited and holds a royalty. That is not optional for us.",
+          "4,180 hours delivered to four OTT platforms and eleven production houses."]),
+        ("Why the last pass matters",
+         ["A pure machine dub is detectably wrong within about forty seconds.",
+          "Lip sync fails on plosives, and emotion collapses in an argument scene.",
+          "Our director marks the scenes that need a human take, usually 12 to 18 percent.",
+          "That is the whole difference between a demo and something a platform will publish."]),
+        ("Traction",
+         ["ARR of Rs 1.64 crore in July 2026, up from Rs 89 lakh in February.",
+          "868 hours delivered in July alone.",
+          "13 of 17 customers have come back for a second title.",
+          "Nine languages live, from an initial five."]),
+        ("Why voice artists work with us",
+         ["90 artists on panel, every one under a consent and royalty agreement.",
+          "They earn on the first dub and again every time their voice model is reused.",
+          "An artist can withdraw consent for any title or any language at any time.",
+          "This is why we have a panel at all. The industry is watching how this is done."]),
+        ("Unit economics",
+         ["Rs 38,000 revenue a finished hour, Rs 14,500 gross contribution.",
+          "Voice artist fees and royalty are Rs 11,200 of that, and we do not intend to cut it.",
+          "Compute is Rs 2,100 a hour, which is noise next to the creative cost.",
+          "A traditional studio makes Rs 26,000 a hour on Rs 1.4 lakh. We make more on less."]),
+        ("Market",
+         ["Indian OTT localisation spend is estimated at over Rs 1,400 crore a year and growing.",
+          "Every regional platform has a back catalogue it cannot afford to translate.",
+          "Education publishers are a second market we did not plan for and now serve.",
+          "Kozhikode gives us a creative talent pool at a fraction of Mumbai cost."]),
+        ("Use of funds",
+         ["Rs 6.5 crore, expected to last 16 months.",
+          "Rs 2.2 crore: three more language pairs and the voice model work behind them.",
+          "Rs 1.8 crore: studio capacity, a second mixing suite in Kozhikode.",
+          "Rs 1.6 crore: sales into Mumbai and Hyderabad platform teams.",
+          "Rs 0.9 crore: reserve."]),
+        ("The team",
+         ["Rahul Panicker, CEO. Nine years in post production, ran localisation delivery for three OTT platforms.",
+          "Divya Krishnan, CTO. Published on low resource Indian language speech synthesis.",
+          "Ameer Haris, Creative. Dubbing director on fourteen feature releases.",
+          "22 full time, plus 90 voice artists on panel."]),
+    ])),
+    (1, "One Pager.pdf", *doc("Company summary, July 2026", [
+        ("What Thooval does", [
+            "Thooval Studios dubs and subtitles streaming content into nine Indian languages using "
+            "speech synthesis for the first pass and a dubbing director plus voice artist for the "
+            "final one. Rs 38,000 a finished hour against roughly Rs 1.4 lakh traditionally, in "
+            "31 hours rather than 6 to 9 days."]),
+        ("Why platforms buy", [
+            "The back catalogue becomes economic to translate, not just the flagship titles.",
+            "Turnaround fits a weekly release schedule instead of blocking it.",
+            "Every voice artist is under a consent and royalty agreement, so the rights are clean.",
+            "Nine languages from one vendor with one delivery specification."]),
+        ("Where the business stands", None),
+        ("What the round funds", [
+            "Three more language pairs, a second mixing suite in Kozhikode, and a sales team calling "
+            "on platform localisation heads in Mumbai and Hyderabad."]),
+    ])),
+    (1, "Founding Team.pdf", *doc("Founding team and creative leadership", [])),
+    (2, "Financial Model.xlsx", *model("Monthly build, FY27 to FY29, delivered hours driven")),
+    (2, "Unit Economics.xlsx", *table("Unit economics", rows_key="unit_rows",
+                                      note="Per finished hour, against a traditional studio")),
+    (2, "Cap Table.xlsx", *table("Cap table", rows_key="cap",
+                                 note="Fully diluted, before the proposed seed round")),
+    (3, "Localisation Pipeline.pdf", *doc("How an episode becomes nine episodes", [
+        ("Step one, transcription and timing", [
+            "The source audio is transcribed and time aligned at the phrase level. A language lead "
+            "corrects names, places and any dialect the model mishears, which for Malayalam source "
+            "material is the single largest error class."]),
+        ("Step two, adaptation not translation", [
+            "A writer adapts the script for length and lip closure rather than translating it "
+            "literally. A line that is accurate but two syllables too long is a failed line."]),
+        ("Step three, synthesis", [
+            "Voice models built from consented artist recordings generate the first pass. The "
+            "director reviews every scene and marks the ones that need a human take."]),
+        ("Step four, the human pass", [
+            "Typically 12 to 18 percent of runtime is re recorded by the artist. Arguments, crying, "
+            "singing and anything with overlapping dialogue almost always go to a human."]),
+        ("Step five, mix and deliver", [
+            "Dialogue is mixed back against the original music and effects stems, checked against "
+            "the platform delivery specification, and shipped with subtitles in the same language."]),
+    ])),
+    (4, "Customer List.xlsx", *table("Customers", rows_key="customers",
+                                     note="Active customers as at 31 July 2026")),
+    (4, "Platform Delivery Record.pdf", *doc("On time delivery and rejections, FY27 to date", [
+        ("Delivery record", [
+            "868 hours delivered in July 2026 against 902 committed, with 34 hours rolled into "
+            "August at the customer's request. On time delivery across Q1 FY27 was 97.2 percent."]),
+        ("Rejections", [
+            "Eleven hours were rejected on first delivery in Q1 FY27, 0.5 percent of volume. Nine "
+            "were lip sync failures on rapid dialogue and two were terminology errors in a medical "
+            "drama. All were re delivered inside 24 hours."]),
+        ("What customers escalate", [
+            "The most common note is not accuracy, it is performance. A line can be correct and "
+            "still land flat. This is why the creative director sits above the pipeline rather than "
+            "beside it."]),
+        ("Track record by customer", None),
+    ])),
+    (5, "Certificate of Incorporation.pdf", *doc("Registrar of Companies, Ernakulam", [])),
+    (5, "Voice Artist Consent Framework.pdf", *doc("Consent, royalty and withdrawal", [
+        ("The principle", [
+            "No voice model is built without the artist's written, specific and revocable consent. "
+            "Not implied consent, not a clause buried in a session release."]),
+        ("What the artist signs", [
+            "A consent that names the languages, the content types and the term. Anything outside "
+            "that scope requires a fresh consent. Political content and advertising are excluded by "
+            "default and require an explicit opt in."]),
+        ("Royalty", [
+            "The artist is paid a session fee for the recordings used to build the model, and a "
+            "royalty on every finished hour their voice model appears in. Royalty is paid whether "
+            "the line was synthesised or re recorded."]),
+        ("Withdrawal", [
+            "An artist may withdraw consent for any title, language or content type on 30 days "
+            "notice. On withdrawal the model is retired and not used on any new work. Titles already "
+            "published are unaffected, which is disclosed to the artist before they sign."]),
+        ("Why this is in the data room", [
+            "An investor should assume this becomes a regulated area. We would rather be early and "
+            "conservative than have to retrofit consent across 90 artists later."]),
+    ])),
+]
+
+KALPANA = [
+    (1, "Kalpana Pitch Deck.pdf", *deck([
+        ("Kalpana Robotics",
+         ["Placement linked robotics and embedded training for tier 2 engineering colleges",
+          "Seed round, July 2026",
+          "Kozhikode, Kerala"]),
+        ("The problem",
+         ["A tier 2 engineering college in Kerala places maybe a third of its electronics batch.",
+          "The syllabus was written before the jobs existed.",
+          "Employers in Coimbatore and Hosur cannot fill embedded roles and hire from Bengaluru instead.",
+          "Both sides of the market are unhappy and they are ninety minutes apart."]),
+        ("What we do",
+         ["We run a two semester robotics and embedded lab inside the college, on our kit.",
+          "The curriculum is written from live job descriptions, not from a textbook.",
+          "We bring the employers to the campus and run the hiring rounds ourselves.",
+          "71 percent of students on the placement track are placed within six months."]),
+        ("Who pays and why",
+         ["The college pays, not the student. Rs 4,860 per student per term.",
+          "A college sells its placement rate to next year's admissions, so this is a growth cost.",
+          "That makes it a budget line, not a discretionary purchase, which is why renewal is 88 percent.",
+          "Students pay nothing, which is the only way this works in a Kerala government college."]),
+        ("Traction",
+         ["ARR of Rs 2.06 crore in July 2026, from Rs 18 lakh two years ago.",
+          "34 colleges under contract across Kerala and Tamil Nadu.",
+          "4,820 students trained, 2,487 placed.",
+          "46 employer partners actively hiring from the programme."]),
+        ("The number that sells it",
+         ["Median first salary on the programme is Rs 4.6 lakh.",
+          "The campus baseline in the same colleges is Rs 2.8 lakh.",
+          "That gap is what a principal repeats to parents at the admission counter.",
+          "We track it per college and publish it back to them every term."]),
+        ("Unit economics",
+         ["Rs 4,860 revenue per student per term, Rs 1,680 gross contribution.",
+          "One trainer covers 40 students, which is the main lever on margin.",
+          "Lab kits are ours, amortised over three years, and move between colleges.",
+          "A 34 college base is contribution positive today at 64 percent trainer utilisation."]),
+        ("Why this scales in tier 2",
+         ["Kerala and Tamil Nadu together hold over 700 engineering colleges.",
+          "Employers in Coimbatore, Hosur and Kochi are hiring embedded talent continuously.",
+          "One trainer can cover three colleges inside a 60 km radius with no overnight stay.",
+          "The same density exists in coastal Andhra and western Maharashtra."]),
+        ("Use of funds",
+         ["Rs 5.0 crore, expected to last 15 months.",
+          "Rs 1.8 crore: trainer hiring and a residential trainer academy.",
+          "Rs 1.4 crore: lab kits for 40 more colleges.",
+          "Rs 1.2 crore: employer side team, because placements are the product.",
+          "Rs 0.6 crore: reserve."]),
+        ("The team",
+         ["Sreelakshmi Menon, CEO. Ran campus hiring for an automotive electronics supplier.",
+          "Vishnu Prasad, Curriculum. Embedded engineer, wrote the lab now running in 34 colleges.",
+          "Jerin Sebastian, Employers. Six years staffing electronics manufacturing.",
+          "38 full time, of whom 26 are trainers."]),
+    ])),
+    (1, "One Pager.pdf", *doc("Company summary, July 2026", [
+        ("What Kalpana does", [
+            "Kalpana Robotics runs a two semester robotics and embedded systems lab inside tier 2 "
+            "engineering colleges, on its own equipment, with a curriculum written from live job "
+            "descriptions. It then runs the hiring rounds with its employer partners on campus."]),
+        ("Why colleges buy", [
+            "Placement rate is what a college sells to next year's admissions.",
+            "Median first salary on the programme is Rs 4.6 lakh against a Rs 2.8 lakh baseline.",
+            "No capital cost. The lab equipment belongs to Kalpana.",
+            "The college is billed per student per term, so the cost tracks the intake."]),
+        ("Where the business stands", None),
+        ("What the round funds", [
+            "Trainer hiring and a residential trainer academy, lab kits for forty more colleges, and "
+            "an employer side team, because the placement is the product."]),
+    ])),
+    (1, "Founding Team.pdf", *doc("Founding team and academic advisors", [])),
+    (2, "Financial Model.xlsx", *model("Term by term build, FY27 to FY29, college and student driven")),
+    (2, "Unit Economics.xlsx", *table("Unit economics", rows_key="unit_rows",
+                                      note="Per student per term, Odd 2026 actuals")),
+    (2, "Cap Table.xlsx", *table("Cap table", rows_key="cap",
+                                 note="Fully diluted, before the proposed seed round")),
+    (3, "Curriculum and Lab Setup.pdf", *doc("What is installed and what is taught", [
+        ("The lab", [
+            "Twenty workstations, each with a microcontroller development board, a motor and sensor "
+            "kit, a small robotic arm and a shared vision rig. The equipment stays Kalpana property "
+            "and is insured by Kalpana."]),
+        ("Semester one", [
+            "Embedded C, microcontroller peripherals, sensor interfacing, motor control and serial "
+            "protocols. Assessed by a working build, not by a written paper."]),
+        ("Semester two", [
+            "Robot kinematics, PID control, computer vision basics, industrial communication and a "
+            "capstone build specified by an employer partner."]),
+        ("Why it is written from job descriptions", [
+            "The curriculum is rebuilt every year from the actual postings our 46 employer partners "
+            "publish. In 2026 that added CAN bus and battery management, because every EV supplier "
+            "in Hosur was asking for it and no syllabus in the state covered it."]),
+        ("Assessment", [
+            "Every student ends with a portfolio of six working builds and a capstone. That "
+            "portfolio, not the marksheet, is what goes to the employer."]),
+    ])),
+    (4, "College Contracts.xlsx", *table("Colleges", rows_key="customers",
+                                         note="Colleges under contract, Odd 2026 term")),
+    (4, "Placement Outcomes Report.pdf", *doc("Placements by term and employer", [
+        ("Headline", [
+            "2,487 students placed of 3,502 on the placement track, a 71 percent rate within six "
+            "months of programme completion. Median first salary Rs 4.6 lakh."]),
+        ("Term by term", None),
+        ("Where students go", [
+            "Automotive electronics and EV suppliers in Hosur and Coimbatore take about 38 percent.",
+            "Industrial automation and pumps in Coimbatore take about 24 percent.",
+            "Electronics manufacturing services in Chennai and Kochi take about 21 percent.",
+            "The remainder go to product startups, mostly in Bengaluru and Kochi."]),
+        ("What we do not claim", [
+            "The 71 percent is on the placement track, not on total enrolment. About 28 percent of "
+            "trained students opt out of placement, mostly for higher studies or the government exam "
+            "route. We report both numbers to every college and we report them here."]),
+    ])),
+    (5, "Certificate of Incorporation.pdf", *doc("Registrar of Companies, Ernakulam", [])),
+    (5, "College Agreement Template.pdf", *doc("Standard institutional agreement, 2026 edition", [
+        ("Term and fee", [
+            "Two semester programme, billed per student per term at Rs 4,860, invoiced at the start "
+            "of each term against the confirmed enrolment list. Auto renewing annually unless either "
+            "party gives 90 days notice before the term begins."]),
+        ("What the college provides", [
+            "A dedicated lab room with power and network, a faculty coordinator, and timetable slots "
+            "of four hours a week per batch. Nothing else."]),
+        ("What Kalpana provides", [
+            "All equipment, the trainer, the curriculum, assessment, the student portfolio platform, "
+            "and the employer hiring rounds on campus."]),
+        ("The placement clause", [
+            "If the placement rate for a cohort falls below 50 percent within six months, the college "
+            "pays half the following term's fee. This has been triggered once, at a college in the "
+            "Even 2025 term, and was honoured."]),
+        ("Equipment", [
+            "All lab equipment remains Kalpana property and is removed on termination. The college "
+            "carries no capital cost and no depreciation."]),
+    ])),
+]
+
+METRICON = [
+    (1, "Metricon Pitch Deck.pdf", *deck([
+        ("Metricon Interconnect",
+         ["Precision connectors for electric vehicles and industrial automation",
+          "Seed round, July 2026",
+          "Coimbatore, Tamil Nadu"]),
+        ("The problem",
+         ["An Indian EV maker designs in India and then buys its connectors from China.",
+          "Lead times run 10 to 14 weeks and a design change means starting again.",
+          "The few Indian suppliers are either too small to qualify or too slow to iterate.",
+          "A connector is two rupees of copper and the reason a line stops."]),
+        ("What we do",
+         ["We design, tool and manufacture connectors in Coimbatore, close to the customer.",
+          "41 part numbers approved across nine customers, from 18 a year ago.",
+          "22 to 31 percent below landed Chinese cost, at four week lead times.",
+          "184 parts per million defect rate against a 500 limit from our automotive customers."]),
+        ("Why now",
+         ["EV two wheeler volume in India has made connector demand large enough to be worth serving.",
+          "Customers actively want a second source that is not Chinese.",
+          "Production linked incentives have moved battery and drivetrain assembly into Tamil Nadu.",
+          "Coimbatore already has the tool room ecosystem. It did not have the connector design."]),
+        ("Traction",
+         ["Rs 6.40 crore revenue in FY26, Rs 9.80 crore annualised in July 2026.",
+          "EV is 58 percent of revenue, from 21 percent five quarters ago.",
+          "Nine customers, none more than 33 percent of revenue.",
+          "Near EBITDA breakeven at the current run rate."]),
+        ("Why qualification is the moat",
+         ["An automotive connector takes 9 to 14 months to qualify into a platform.",
+          "Once it is in, it stays for the life of that platform, usually four to six years.",
+          "That makes growth slow to start and very hard for a competitor to reverse.",
+          "41 approved part numbers is 41 doors nobody else has to walk through again."]),
+        ("Unit economics",
+         ["Rs 41,200 per thousand units, Rs 9,100 gross contribution.",
+          "Copper is 61 percent of material cost and moves straight through to us.",
+          "Scrap and rework fell from Rs 3,400 to Rs 1,100 per thousand as tooling matured.",
+          "Bringing moulding and stamping in house took Rs 4,900 out of cost per thousand."]),
+        ("The honest risk",
+         ["Plating is outsourced to a single vendor in Coimbatore.",
+          "If that vendor stops, we stop, and we have not yet qualified a second.",
+          "Copper repricing happens twice a year while the metal moves weekly.",
+          "Both are fixable with this round and both are in the use of funds."]),
+        ("Use of funds",
+         ["Rs 8.5 crore, expected to last 18 months.",
+          "Rs 3.2 crore: in house plating line, removing the single point of failure.",
+          "Rs 2.4 crore: two more moulding machines and tooling for 20 new part numbers.",
+          "Rs 1.8 crore: working capital, because automotive pays in 60 to 90 days.",
+          "Rs 1.1 crore: reserve."]),
+        ("The team",
+         ["Ramesh Venkataraman, CEO. Sixteen years in connectors, plant head for a Japanese maker in India.",
+          "Priya Sundaram, Engineering. Two granted design registrations on high current terminals.",
+          "Naveen Kumar, Quality. Took two plants through IATF 16949.",
+          "64 full time across design, tool room and production."]),
+    ])),
+    (1, "One Pager.pdf", *doc("Company summary, July 2026", [
+        ("What Metricon does", [
+            "Metricon Interconnect designs, tools and manufactures precision electrical connectors in "
+            "Coimbatore for electric vehicle and industrial automation customers, replacing imported "
+            "parts at 22 to 31 percent below landed cost with four week lead times."]),
+        ("Why customers switch", [
+            "Four week lead times against 10 to 14 weeks on an import.",
+            "Design changes handled in the same city rather than across a language and a time zone.",
+            "184 parts per million defect rate against a customer limit of 500.",
+            "A second source that is not exposed to Chinese supply or tariff risk."]),
+        ("Where the business stands", None),
+        ("What the round funds", [
+            "An in house plating line to remove the single vendor dependency, two more moulding "
+            "machines with tooling for twenty new part numbers, and working capital for automotive "
+            "payment terms."]),
+    ])),
+    (1, "Founding Team.pdf", *doc("Founding team and plant leadership", [])),
+    (2, "Financial Model.xlsx", *model("Quarterly build, FY27 to FY29, part number driven")),
+    (2, "Unit Economics.xlsx", *table("Unit economics", rows_key="unit_rows",
+                                      note="Per thousand units, blended across 41 part numbers")),
+    (2, "Cap Table.xlsx", *table("Cap table", rows_key="cap",
+                                 note="Fully diluted, before the proposed seed round")),
+    (3, "Product Catalogue and Tooling.pdf", *doc("Part families, tooling and capacity", [
+        ("Part families", [
+            "High current battery and drivetrain terminals rated 80 to 400 amps.",
+            "Signal and sensor connectors, 2 to 24 way, sealed to IP67.",
+            "Charging interface contacts for AC and DC equipment.",
+            "Industrial rectangular connectors for drives and control panels."]),
+        ("Tooling", [
+            "Eleven progressive stamping tools and nine injection moulds, all designed in house and "
+            "cut in the Coimbatore tool room. Average tool development is fourteen weeks from "
+            "drawing release to first article."]),
+        ("Capacity", [
+            "Current capacity is roughly 14 million contacts a year on two shifts. The two additional "
+            "moulding machines in the use of funds take that to about 24 million."]),
+        ("Intellectual property", [
+            "Two granted design registrations on high current terminal geometry. No patents filed. "
+            "The real protection is the customer qualification, not the registration."]),
+    ])),
+    (4, "Customer Approvals.xlsx", *table("Customers", rows_key="customers",
+                                          note="Approved customers and part numbers, July 2026")),
+    (4, "Quality and PPAP Record.pdf", *doc("Production part approval and defect history", [
+        ("Approval status", [
+            "41 part numbers at PPAP level 3 approval across nine customers. Six further parts are "
+            "in the sample and validation stage with two customers."]),
+        ("Defect history", None),
+        ("Systems", [
+            "IATF 16949 certified in March 2026 following an eighteen month preparation. ISO 14001 "
+            "certified. Full traceability from copper coil lot to shipped box, retained for seven "
+            "years as the automotive customers require."]),
+        ("Customer complaints", [
+            "Four customer complaints in FY26, all closed. Two were plating thickness variation from "
+            "the outsourced vendor, one was a packaging damage issue in transit, and one was a "
+            "drawing revision our side had not picked up. The plating complaints are the direct "
+            "reason the in house line is the first line item in this round."]),
+    ])),
+    (5, "Certificate of Incorporation.pdf", *doc("Registrar of Companies, Coimbatore", [])),
+    (5, "Certifications and Compliance.pdf", *doc("Plant certifications, licences and lending", [
+        ("Certifications", [
+            "IATF 16949:2016 certified March 2026, certificate number IN 26 04471, valid to March 2029.",
+            "ISO 14001:2015 certified September 2025.",
+            "RoHS and REACH declarations on file for every shipped part number."]),
+        ("Plant approvals", [
+            "Factories Act registration for the Kurichi unit, consent to operate from the Tamil Nadu "
+            "Pollution Control Board valid to March 2028, and a hazardous waste authorisation "
+            "covering plating chemical handling for the planned in house line."]),
+        ("Borrowings", [
+            "A machinery term loan of Rs 2.10 crore outstanding, secured on the moulding and stamping "
+            "equipment, repayable to November 2029. The lender holds a warrant for 7 percent, which "
+            "is reflected in the cap table."]),
+        ("Litigation", [
+            "None. No customer claim, no supplier dispute and no labour matter pending."]),
+    ])),
+]
+
+PUZHA = [
+    (1, "Puzha Pitch Deck.pdf", *deck([
+        ("Puzha Foods",
+         ["Minimally processed Kerala produce for modern trade and direct to consumer",
+          "Seed round, July 2026",
+          "Thrissur, Kerala"]),
+        ("The problem",
+         ["Kerala grows jackfruit, tender coconut and banana in quantities it cannot consume.",
+          "A large share of the jackfruit crop is never harvested because there is no buyer.",
+          "Meanwhile a Bengaluru household buys imported packaged snacks made from the same crops.",
+          "The produce and the demand exist. The processing between them does not."]),
+        ("What we do",
+         ["We buy directly from 620 contracted farmers in Thrissur and Palakkad.",
+          "We process at our own plant: cold pressing, freezing, drying and packing.",
+          "We sell through 410 modern trade doors and direct to consumer through our own app.",
+          "Rs 78 lakh a month in July 2026, at 38 percent gross margin."]),
+        ("Why both channels",
+         ["Modern trade gives volume and gives the brand shelf credibility.",
+          "Direct to consumer gives margin, repeat data and pricing freedom.",
+          "62 percent modern trade and 38 percent direct today.",
+          "The direct channel is what tells us which SKU to put in the next store, not the other way round."]),
+        ("Traction",
+         ["Revenue up from Rs 34 lakh in February to Rs 78 lakh in July 2026.",
+          "410 retail doors across Kerala, Bengaluru and Chennai.",
+          "47 percent of direct customers reorder inside 60 days.",
+          "Gross margin up from 31 percent to 38 percent over the same six months."]),
+        ("What we fixed",
+         ["Gross margin was 31 percent in February and it was killing us.",
+          "Three changes: we moved jackfruit from bought pulp to own processing, dropped two SKUs "
+          "that never covered their freight, and renegotiated cold storage.",
+          "Seven points of margin in six months, with no price increase to the consumer.",
+          "That is the single number a food investor should look at, so we lead with it."]),
+        ("Unit economics",
+         ["Contribution positive on all six SKUs, from Rs 9.20 to Rs 52.60 a unit.",
+          "Banana flour and frozen jackfruit carry the mix and are the direct channel favourites.",
+          "Tender coconut water is the traffic driver and the thinnest line, deliberately.",
+          "Plant is at 64 percent of a single shift, so volume growth is nearly free."]),
+        ("The honest problem",
+         ["Modern trade pays in 45 to 60 days. Farmers are paid in 7.",
+          "Every rupee of growth in that channel consumes working capital before it returns any.",
+          "This is the reason for the round, and it is the first line in the use of funds.",
+          "We would rather show you the cash conversion cycle than the revenue chart."]),
+        ("Use of funds",
+         ["Rs 5.5 crore, expected to last 15 months.",
+          "Rs 2.2 crore: working capital for the modern trade receivable.",
+          "Rs 1.4 crore: a second processing line, taking capacity to two shifts.",
+          "Rs 1.2 crore: brand and performance marketing on the direct channel.",
+          "Rs 0.7 crore: reserve."]),
+        ("The team",
+         ["Anjali Warrier, CEO. Ran the south India business for a spices brand. IIM Kozhikode.",
+          "Deepak Nair, Operations. Food processing engineer, set up two fruit pulping lines.",
+          "Farhan Ali, Sourcing. Twelve years buying coconut, jackfruit and banana in Thrissur.",
+          "41 full time, of whom 26 are at the plant."]),
+    ])),
+    (1, "One Pager.pdf", *doc("Company summary, July 2026", [
+        ("What Puzha does", [
+            "Puzha Foods buys directly from 620 contracted farmers in Thrissur and Palakkad, "
+            "processes at its own plant into six minimally processed SKUs, and sells through 410 "
+            "modern trade doors plus its own direct to consumer channel."]),
+        ("Why it works", [
+            "Kerala grows more jackfruit, tender coconut and banana than it consumes, and a large "
+            "share is never harvested for want of a buyer.",
+            "Own processing rather than bought pulp, which is where seven points of margin came from.",
+            "The direct channel tells the company which SKU to put in which store.",
+            "Farmers are paid in seven days, which is why the contracted base keeps growing."]),
+        ("Where the business stands", None),
+        ("What the round funds", [
+            "Working capital against the modern trade receivable, a second processing line taking "
+            "the plant to two shifts, and marketing on the direct channel."]),
+    ])),
+    (1, "Founding Team.pdf", *doc("Founding team and plant leadership", [])),
+    (2, "Financial Model.xlsx", *model("Monthly build, FY27 to FY29, channel and SKU driven")),
+    (2, "SKU Economics.xlsx", *table("SKU economics", rows_key="unit_rows",
+                                     note="Contribution per unit, July 2026 costing")),
+    (2, "Cap Table.xlsx", *table("Cap table", rows_key="cap",
+                                 note="Fully diluted, before the proposed seed round")),
+    (3, "Plant and Process Overview.pdf", *doc("Thrissur facility, lines and capacity", [
+        ("The plant", [
+            "An 11,000 square foot facility at Koratty, Thrissur, commissioned in August 2024. Four "
+            "process lines: cold pressing, blast freezing, low temperature drying, and cut and pack."]),
+        ("Capacity", [
+            "Current throughput is roughly 42 tonnes of raw produce a month at 64 percent of a "
+            "single shift. The second line in the use of funds and a second shift together take that "
+            "to about 140 tonnes."]),
+        ("Cold chain", [
+            "Two blast freezers and 60 tonnes of cold storage on site. Outbound to modern trade moves "
+            "on contracted reefer vehicles with temperature logging attached to each delivery note."]),
+        ("Seasonality", [
+            "Jackfruit runs March to July and tender coconut peaks in summer. Banana and coconut milk "
+            "run year round and are deliberately weighted to cover the Q2 trough. Frozen inventory "
+            "built in season carries the jackfruit line through to December."]),
+        ("Food safety", [
+            "FSSAI manufacturing licence, HACCP implemented, and a third party audit in May 2026 "
+            "scoring 88 of 100. Two observations, both on documentation, closed within 30 days."]),
+    ])),
+    (4, "Channel Performance.xlsx", *table("Channels", rows_key="customers",
+                                           note="Channel performance, July 2026")),
+    (4, "Working Capital and Collections.pdf", *doc("Cash conversion, the honest version", [
+        ("The cycle", [
+            "Farmers are paid in 7 days. Raw produce becomes finished stock in 3 to 9 days depending "
+            "on the SKU. Modern trade pays in 45 to 60 days. Direct to consumer is prepaid. The "
+            "blended cash conversion cycle is 41 days and it lengthens as modern trade grows."]),
+        ("Collections", [
+            "Rs 94 lakh of receivables outstanding at 31 July 2026, of which Rs 11 lakh is over 60 "
+            "days, all with one chain that is renegotiating terms across all its suppliers."]),
+        ("Why we do not just shift to direct only", [
+            "The direct channel is higher margin but its acquisition cost rises as it scales. Modern "
+            "trade is the cheapest awareness we can buy, and it is what makes the direct channel "
+            "convert at the rate it does. The two are not alternatives."]),
+        ("What the round changes", [
+            "Rs 2.2 crore of working capital lets us take modern trade to about 900 doors without "
+            "the receivable strangling the farmer payment commitment, which is the one thing we will "
+            "not compromise on."]),
+    ])),
+    (5, "Certificate of Incorporation.pdf", *doc("Registrar of Companies, Ernakulam", [])),
+    (5, "FSSAI and Farmer Contracts.pdf", *doc("Licences and the farmer contracting model", [
+        ("FSSAI", [
+            "Central manufacturing licence number 10024051000318, covering fruit and vegetable "
+            "processing, valid to 31 March 2029. Separate storage endorsement for the Koratty cold "
+            "store."]),
+        ("Farmer contracts", [
+            "620 farmers on a written annual contract specifying a minimum offtake, a floor price "
+            "agreed before the season, and payment within seven days of delivery. The floor price is "
+            "the reason farmers plant for us rather than for the open market."]),
+        ("Floor price mechanics", [
+            "The floor is set before planting against the previous three seasons. If the market price "
+            "rises above the floor, Puzha pays the market price. If it falls below, Puzha pays the "
+            "floor. This has cost the company Rs 14 lakh across two seasons and it is the single "
+            "biggest reason the contracted base grew from 180 farmers to 620."]),
+        ("Other approvals", [
+            "Organic certification under NPOP for the banana flour and jackfruit lines. Legal "
+            "metrology packer registration. Trade mark registered in classes 29 and 30."]),
+    ])),
+]
+
 MANIFEST = {
     "nellara-agrichain": NELLARA,
     "zylo-health": ZYLO,
     "voltaneer": VOLTANEER,
     "aegis-drone-systems": AEGIS,
     "kadal-systems": KADAL,
+    "anvaya-ai": ANVAYA,
+    "thooval-studios": THOOVAL,
+    "kalpana-robotics": KALPANA,
+    "metricon-interconnect": METRICON,
+    "puzha-foods": PUZHA,
 }

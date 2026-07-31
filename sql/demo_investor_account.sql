@@ -29,7 +29,7 @@ declare
   s_id  uuid;
   rec   record;
   ids   uuid[] := '{}';
-  demo_names text[] := array['Nellara AgriChain', 'Zylo Health', 'Voltaneer', 'Aegis Drone Systems', 'Kadal Systems'];
+  demo_names text[] := array['Nellara AgriChain', 'Zylo Health', 'Voltaneer', 'Aegis Drone Systems', 'Kadal Systems', 'Anvaya AI', 'Thooval Studios', 'Kalpana Robotics', 'Metricon Interconnect', 'Puzha Foods'];
 begin
   select id into v_inv from auth.users where lower(email) = 'venturethrust@gmail.com';
   if v_inv is null then
@@ -94,7 +94,7 @@ begin
          dw_auto_assign = true, signup_notified = true
    where id = v_inv;
 
-  -- ── Five data rooms, their share link, invite and watchlist row ─────────
+  -- ── 10 data rooms, their share link, invite and watchlist row ──────────
   for rec in
     select * from (values
       ('Nellara AgriChain',
@@ -116,8 +116,28 @@ begin
       ('Kadal Systems',
        'Satellite messaging and distress alerts for small fishing vessels. Based in Kollam, Kerala.',
        'Genuinely important product and the safety case is unarguable. My problem is who pays. Almost all current units were bought through a state subsidy scheme, so I have no evidence a boat owner pays full price from his own pocket. Show me 200 units sold without subsidy and I will look again.',
-       false, false, timestamptz '2026-05-06 11:05:00+05:30')
-    ) as t(nm, descr, note, quarterly, opened, added)
+       false, true, timestamptz '2026-05-06 11:05:00+05:30'),
+      ('Anvaya AI',
+       'Expert reviewed Indian clinical and legal data for frontier model training. Based in Kochi, Kerala.',
+       null,
+       false, false, timestamptz '2026-07-29 09:20:00+05:30'),
+      ('Thooval Studios',
+       'AI assisted dubbing and subtitling for Indian language streaming. Based in Kozhikode, Kerala.',
+       null,
+       false, false, timestamptz '2026-07-27 17:45:00+05:30'),
+      ('Kalpana Robotics',
+       'Placement linked robotics and embedded training for tier 2 engineering colleges. Based in Kozhikode, Kerala.',
+       null,
+       false, false, timestamptz '2026-07-18 10:05:00+05:30'),
+      ('Metricon Interconnect',
+       'Precision connectors for electric vehicles and industrial automation. Based in Coimbatore, Tamil Nadu.',
+       null,
+       false, false, timestamptz '2026-07-21 15:30:00+05:30'),
+      ('Puzha Foods',
+       'Minimally processed Kerala produce for modern trade and direct to consumer. Based in Thrissur, Kerala.',
+       null,
+       false, false, timestamptz '2026-07-24 11:10:00+05:30')
+    ) as t(nm, descr, note, quarterly, watched, added)
   loop
     s_id := gen_random_uuid();
 
@@ -135,102 +155,163 @@ begin
     values (gen_random_uuid(), s_id, encode(gen_random_bytes(16), 'hex'), true, true,
             'venturethrust@gmail.com', v_own, rec.added);
 
+    -- Read state follows the watchlist. A startup the investor chose to
+    -- follow was obviously opened, so it can never sit in Pending.
     insert into public.alerts (user_id, space_id, type, message, created_at, read_at)
     values (v_inv, s_id, 'space_shared',
             rec.nm || ' shared their data room with you.',
-            rec.added, case when rec.opened then rec.added + interval '2 hours' else null end);
+            rec.added, case when rec.watched then rec.added + interval '2 hours' else null end);
 
-    insert into public.dw_watchlist
-      (id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, note,
-       quarterly_report, created_at)
-    values (gen_random_uuid(), v_inv, v_own, s_id, null, rec.nm, v_mgr,
-            rec.note, rec.quarterly, rec.added);
+    if rec.watched then
+      insert into public.dw_watchlist
+        (id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, note,
+         quarterly_report, created_at)
+      values (gen_random_uuid(), v_inv, v_own, s_id, null, rec.nm, v_mgr,
+              rec.note, rec.quarterly, rec.added);
+    end if;
   end loop;
 
-  -- ── 75 documents, each already uploaded to the vdr-files bucket ────────
+  -- ── 130 documents, each already uploaded to the vdr-files bucket ────────
   insert into public.files
     (id, user_id, folder_id, space_id, name, type, storage_path,
      size_bytes, views, position, created_at)
   select gen_random_uuid()::text, v_own, fo.id, sp.id, t.fname, t.ftype,
-         t.spath, t.sz, t.vws, t.pos, now() - (t.age || ' days')::interval
+         'demo/' || t.slug || '/' || t.fname,
+         t.sz, t.vws, t.pos, now() - (t.age || ' days')::interval
     from (values
-      ('Nellara AgriChain','01 Company Overview','Nellara Pitch Deck v5.pdf','Deck','demo/nellara-agrichain/Nellara Pitch Deck v5.pdf',11589,0,1,3),
-      ('Nellara AgriChain','01 Company Overview','One Pager.pdf','PDF','demo/nellara-agrichain/One Pager.pdf',3462,7,2,8),
-      ('Nellara AgriChain','01 Company Overview','Founder Profiles.pdf','PDF','demo/nellara-agrichain/Founder Profiles.pdf',3551,14,3,13),
-      ('Nellara AgriChain','01 Company Overview','Board Update Q1 FY27.pdf','PDF','demo/nellara-agrichain/Board Update Q1 FY27.pdf',3359,21,4,18),
-      ('Nellara AgriChain','02 Financials','Financial Model FY27.xlsx','Sheet','demo/nellara-agrichain/Financial Model FY27.xlsx',7261,2,1,23),
-      ('Nellara AgriChain','02 Financials','Unit Economics by SKU.xlsx','Sheet','demo/nellara-agrichain/Unit Economics by SKU.xlsx',5735,9,2,28),
-      ('Nellara AgriChain','02 Financials','Cap Table.xlsx','Sheet','demo/nellara-agrichain/Cap Table.xlsx',5615,16,3,33),
-      ('Nellara AgriChain','02 Financials','GST Returns FY26.pdf','PDF','demo/nellara-agrichain/GST Returns FY26.pdf',3365,23,4,38),
-      ('Nellara AgriChain','03 Product and Technology','Cold Chain Route Plan.pdf','PDF','demo/nellara-agrichain/Cold Chain Route Plan.pdf',3139,4,1,43),
-      ('Nellara AgriChain','03 Product and Technology','Wastage Tracking Method.pdf','PDF','demo/nellara-agrichain/Wastage Tracking Method.pdf',3647,11,2,4),
-      ('Nellara AgriChain','03 Product and Technology','Procurement App Overview.pdf','PDF','demo/nellara-agrichain/Procurement App Overview.pdf',3014,18,3,9),
-      ('Nellara AgriChain','04 Customers and Traction','Hotel Supply Agreements.pdf','PDF','demo/nellara-agrichain/Hotel Supply Agreements.pdf',3087,25,1,14),
-      ('Nellara AgriChain','04 Customers and Traction','Farmer Collective MOUs.pdf','PDF','demo/nellara-agrichain/Farmer Collective MOUs.pdf',3075,6,2,19),
-      ('Nellara AgriChain','04 Customers and Traction','Customer List Jul 2026.xlsx','Sheet','demo/nellara-agrichain/Customer List Jul 2026.xlsx',5839,13,3,24),
-      ('Nellara AgriChain','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF','demo/nellara-agrichain/Certificate of Incorporation.pdf',3370,20,1,29),
-      ('Nellara AgriChain','05 Legal and Compliance','FSSAI License.pdf','PDF','demo/nellara-agrichain/FSSAI License.pdf',2836,1,2,34),
-      ('Nellara AgriChain','05 Legal and Compliance','Shareholder Agreement.pdf','PDF','demo/nellara-agrichain/Shareholder Agreement.pdf',2976,8,3,39),
-      ('Zylo Health','01 Company Overview','Zylo Pitch Deck.pdf','Deck','demo/zylo-health/Zylo Pitch Deck.pdf',11552,15,1,44),
-      ('Zylo Health','01 Company Overview','Clinical One Pager.pdf','PDF','demo/zylo-health/Clinical One Pager.pdf',3676,22,2,5),
-      ('Zylo Health','01 Company Overview','Founding Team.pdf','PDF','demo/zylo-health/Founding Team.pdf',3512,3,3,10),
-      ('Zylo Health','02 Financials','Financial Model.xlsx','Sheet','demo/zylo-health/Financial Model.xlsx',7287,10,1,15),
-      ('Zylo Health','02 Financials','Per Scan Unit Economics.xlsx','Sheet','demo/zylo-health/Per Scan Unit Economics.xlsx',5636,17,2,20),
-      ('Zylo Health','02 Financials','Cap Table.xlsx','Sheet','demo/zylo-health/Cap Table.xlsx',5606,24,3,25),
-      ('Zylo Health','03 Product and Technology','Triage Algorithm Overview.pdf','PDF','demo/zylo-health/Triage Algorithm Overview.pdf',3143,5,1,30),
-      ('Zylo Health','03 Product and Technology','Clinical Validation Summary.pdf','PDF','demo/zylo-health/Clinical Validation Summary.pdf',3721,12,2,35),
-      ('Zylo Health','03 Product and Technology','Product Overview.pdf','PDF','demo/zylo-health/Product Overview.pdf',2872,19,3,40),
-      ('Zylo Health','04 Customers and Traction','Hospital Contracts.pdf','PDF','demo/zylo-health/Hospital Contracts.pdf',3622,0,1,45),
-      ('Zylo Health','04 Customers and Traction','Scan Volume Report Jul 2026.xlsx','Sheet','demo/zylo-health/Scan Volume Report Jul 2026.xlsx',5880,7,2,6),
-      ('Zylo Health','04 Customers and Traction','Radiologist Coverage Study.pdf','PDF','demo/zylo-health/Radiologist Coverage Study.pdf',2989,14,3,11),
-      ('Zylo Health','05 Legal and Compliance','CDSCO Filing Acknowledgement.pdf','PDF','demo/zylo-health/CDSCO Filing Acknowledgement.pdf',3122,21,1,16),
-      ('Zylo Health','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF','demo/zylo-health/Certificate of Incorporation.pdf',3365,2,2,21),
-      ('Zylo Health','05 Legal and Compliance','Data Protection Policy.pdf','PDF','demo/zylo-health/Data Protection Policy.pdf',3096,9,3,26),
-      ('Voltaneer','01 Company Overview','Voltaneer Pitch Deck v3.pdf','Deck','demo/voltaneer/Voltaneer Pitch Deck v3.pdf',11613,16,1,31),
-      ('Voltaneer','01 Company Overview','One Pager.pdf','PDF','demo/voltaneer/One Pager.pdf',3534,23,2,36),
-      ('Voltaneer','01 Company Overview','Team and Advisors.pdf','PDF','demo/voltaneer/Team and Advisors.pdf',3507,4,3,41),
-      ('Voltaneer','02 Financials','Financial Model.xlsx','Sheet','demo/voltaneer/Financial Model.xlsx',7274,11,1,46),
-      ('Voltaneer','02 Financials','ARR Bridge FY27.xlsx','Sheet','demo/voltaneer/ARR Bridge FY27.xlsx',5612,18,2,7),
-      ('Voltaneer','02 Financials','Cap Table.xlsx','Sheet','demo/voltaneer/Cap Table.xlsx',5610,25,3,12),
-      ('Voltaneer','03 Product and Technology','Sensor Spec Sheet.pdf','PDF','demo/voltaneer/Sensor Spec Sheet.pdf',3508,6,1,17),
-      ('Voltaneer','03 Product and Technology','Dashboard Overview.pdf','PDF','demo/voltaneer/Dashboard Overview.pdf',3029,13,2,22),
-      ('Voltaneer','03 Product and Technology','Firmware Release Notes.pdf','PDF','demo/voltaneer/Firmware Release Notes.pdf',3082,20,3,27),
-      ('Voltaneer','04 Customers and Traction','Annual SaaS Agreement Template.pdf','PDF','demo/voltaneer/Annual SaaS Agreement Template.pdf',3036,1,1,32),
-      ('Voltaneer','04 Customers and Traction','Customer Savings Report.xlsx','Sheet','demo/voltaneer/Customer Savings Report.xlsx',5868,8,2,37),
-      ('Voltaneer','04 Customers and Traction','Sales Cycle Export Jul 2026.xlsx','Sheet','demo/voltaneer/Sales Cycle Export Jul 2026.xlsx',5969,15,3,42),
-      ('Voltaneer','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF','demo/voltaneer/Certificate of Incorporation.pdf',3360,22,1,3),
-      ('Voltaneer','05 Legal and Compliance','IP Assignment Deed.pdf','PDF','demo/voltaneer/IP Assignment Deed.pdf',3025,3,2,8),
-      ('Voltaneer','05 Legal and Compliance','ESOP Policy.pdf','PDF','demo/voltaneer/ESOP Policy.pdf',3291,10,3,13),
-      ('Aegis Drone Systems','01 Company Overview','Aegis Pitch Deck.pdf','Deck','demo/aegis-drone-systems/Aegis Pitch Deck.pdf',11725,17,1,18),
-      ('Aegis Drone Systems','01 Company Overview','Capability Statement.pdf','PDF','demo/aegis-drone-systems/Capability Statement.pdf',3120,24,2,23),
-      ('Aegis Drone Systems','01 Company Overview','Pilot Team Credentials.pdf','PDF','demo/aegis-drone-systems/Pilot Team Credentials.pdf',3539,5,3,28),
-      ('Aegis Drone Systems','02 Financials','Financial Model.xlsx','Sheet','demo/aegis-drone-systems/Financial Model.xlsx',7281,12,1,33),
-      ('Aegis Drone Systems','02 Financials','Project Level P and L.xlsx','Sheet','demo/aegis-drone-systems/Project Level P and L.xlsx',5637,19,2,38),
-      ('Aegis Drone Systems','02 Financials','Cap Table.xlsx','Sheet','demo/aegis-drone-systems/Cap Table.xlsx',5616,0,3,43),
-      ('Aegis Drone Systems','03 Product and Technology','Inspection Platform Overview.pdf','PDF','demo/aegis-drone-systems/Inspection Platform Overview.pdf',3160,7,1,4),
-      ('Aegis Drone Systems','03 Product and Technology','Sample Defect Report.pdf','PDF','demo/aegis-drone-systems/Sample Defect Report.pdf',3647,14,2,9),
-      ('Aegis Drone Systems','03 Product and Technology','Fleet and Payload Specs.pdf','PDF','demo/aegis-drone-systems/Fleet and Payload Specs.pdf',2940,21,3,14),
-      ('Aegis Drone Systems','04 Customers and Traction','Port Authority Work Order.pdf','PDF','demo/aegis-drone-systems/Port Authority Work Order.pdf',2967,2,1,19),
-      ('Aegis Drone Systems','04 Customers and Traction','Client List.xlsx','Sheet','demo/aegis-drone-systems/Client List.xlsx',5833,9,2,24),
-      ('Aegis Drone Systems','05 Legal and Compliance','DGCA Application Status.pdf','PDF','demo/aegis-drone-systems/DGCA Application Status.pdf',3033,16,1,29),
-      ('Aegis Drone Systems','05 Legal and Compliance','Aviation Insurance Certificate.pdf','PDF','demo/aegis-drone-systems/Aviation Insurance Certificate.pdf',2855,23,2,34),
-      ('Aegis Drone Systems','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF','demo/aegis-drone-systems/Certificate of Incorporation.pdf',3374,4,3,39),
-      ('Kadal Systems','01 Company Overview','Kadal Pitch Deck.pdf','Deck','demo/kadal-systems/Kadal Pitch Deck.pdf',11637,11,1,44),
-      ('Kadal Systems','01 Company Overview','Product One Pager.pdf','PDF','demo/kadal-systems/Product One Pager.pdf',3555,18,2,5),
-      ('Kadal Systems','01 Company Overview','Founders.pdf','PDF','demo/kadal-systems/Founders.pdf',3502,25,3,10),
-      ('Kadal Systems','02 Financials','Financial Model.xlsx','Sheet','demo/kadal-systems/Financial Model.xlsx',7264,6,1,15),
-      ('Kadal Systems','02 Financials','Unit Cost Breakdown.xlsx','Sheet','demo/kadal-systems/Unit Cost Breakdown.xlsx',5666,13,2,20),
-      ('Kadal Systems','02 Financials','Cap Table.xlsx','Sheet','demo/kadal-systems/Cap Table.xlsx',5602,20,3,25),
-      ('Kadal Systems','03 Product and Technology','Device Spec Sheet.pdf','PDF','demo/kadal-systems/Device Spec Sheet.pdf',3656,1,1,30),
-      ('Kadal Systems','03 Product and Technology','Satellite Coverage Map.pdf','PDF','demo/kadal-systems/Satellite Coverage Map.pdf',3015,8,2,35),
-      ('Kadal Systems','03 Product and Technology','Field Trial Report.pdf','PDF','demo/kadal-systems/Field Trial Report.pdf',3102,15,3,40),
-      ('Kadal Systems','04 Customers and Traction','Unit Sales Register Jun 2026.xlsx','Sheet','demo/kadal-systems/Unit Sales Register Jun 2026.xlsx',5778,22,1,45),
-      ('Kadal Systems','04 Customers and Traction','Fisheries Dept Subsidy Order.pdf','PDF','demo/kadal-systems/Fisheries Dept Subsidy Order.pdf',3018,3,2,6),
-      ('Kadal Systems','05 Legal and Compliance','WPC Equipment License.pdf','PDF','demo/kadal-systems/WPC Equipment License.pdf',2909,10,1,11),
-      ('Kadal Systems','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF','demo/kadal-systems/Certificate of Incorporation.pdf',3356,17,2,16),
-      ('Kadal Systems','05 Legal and Compliance','Founder Agreement.pdf','PDF','demo/kadal-systems/Founder Agreement.pdf',3032,24,3,21)
-    ) as t(sname, fol, fname, ftype, spath, sz, vws, pos, age)
-    join public.spaces  sp on sp.name = t.sname and sp.created_by = v_own
+      ('nellara-agrichain','01 Company Overview','Nellara Pitch Deck v5.pdf','Deck',11589,0,1,3),
+      ('nellara-agrichain','01 Company Overview','One Pager.pdf','PDF',3462,7,2,8),
+      ('nellara-agrichain','01 Company Overview','Founder Profiles.pdf','PDF',3551,14,3,13),
+      ('nellara-agrichain','01 Company Overview','Board Update Q1 FY27.pdf','PDF',3359,21,4,18),
+      ('nellara-agrichain','02 Financials','Financial Model FY27.xlsx','Sheet',7261,2,1,23),
+      ('nellara-agrichain','02 Financials','Unit Economics by SKU.xlsx','Sheet',5735,9,2,28),
+      ('nellara-agrichain','02 Financials','Cap Table.xlsx','Sheet',5615,16,3,33),
+      ('nellara-agrichain','02 Financials','GST Returns FY26.pdf','PDF',3365,23,4,38),
+      ('nellara-agrichain','03 Product and Technology','Cold Chain Route Plan.pdf','PDF',3139,4,1,43),
+      ('nellara-agrichain','03 Product and Technology','Wastage Tracking Method.pdf','PDF',3647,11,2,4),
+      ('nellara-agrichain','03 Product and Technology','Procurement App Overview.pdf','PDF',3014,18,3,9),
+      ('nellara-agrichain','04 Customers and Traction','Hotel Supply Agreements.pdf','PDF',3087,25,1,14),
+      ('nellara-agrichain','04 Customers and Traction','Farmer Collective MOUs.pdf','PDF',3075,6,2,19),
+      ('nellara-agrichain','04 Customers and Traction','Customer List Jul 2026.xlsx','Sheet',5839,13,3,24),
+      ('nellara-agrichain','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3370,20,1,29),
+      ('nellara-agrichain','05 Legal and Compliance','FSSAI License.pdf','PDF',2836,1,2,34),
+      ('nellara-agrichain','05 Legal and Compliance','Shareholder Agreement.pdf','PDF',2976,8,3,39),
+      ('zylo-health','01 Company Overview','Zylo Pitch Deck.pdf','Deck',11552,15,1,44),
+      ('zylo-health','01 Company Overview','Clinical One Pager.pdf','PDF',3676,22,2,5),
+      ('zylo-health','01 Company Overview','Founding Team.pdf','PDF',3512,3,3,10),
+      ('zylo-health','02 Financials','Financial Model.xlsx','Sheet',7287,10,1,15),
+      ('zylo-health','02 Financials','Per Scan Unit Economics.xlsx','Sheet',5636,17,2,20),
+      ('zylo-health','02 Financials','Cap Table.xlsx','Sheet',5606,24,3,25),
+      ('zylo-health','03 Product and Technology','Triage Algorithm Overview.pdf','PDF',3143,5,1,30),
+      ('zylo-health','03 Product and Technology','Clinical Validation Summary.pdf','PDF',3721,12,2,35),
+      ('zylo-health','03 Product and Technology','Product Overview.pdf','PDF',2872,19,3,40),
+      ('zylo-health','04 Customers and Traction','Hospital Contracts.pdf','PDF',3622,0,1,45),
+      ('zylo-health','04 Customers and Traction','Scan Volume Report Jul 2026.xlsx','Sheet',5880,7,2,6),
+      ('zylo-health','04 Customers and Traction','Radiologist Coverage Study.pdf','PDF',2989,14,3,11),
+      ('zylo-health','05 Legal and Compliance','CDSCO Filing Acknowledgement.pdf','PDF',3122,21,1,16),
+      ('zylo-health','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3365,2,2,21),
+      ('zylo-health','05 Legal and Compliance','Data Protection Policy.pdf','PDF',3096,9,3,26),
+      ('voltaneer','01 Company Overview','Voltaneer Pitch Deck v3.pdf','Deck',11613,16,1,31),
+      ('voltaneer','01 Company Overview','One Pager.pdf','PDF',3534,23,2,36),
+      ('voltaneer','01 Company Overview','Team and Advisors.pdf','PDF',3507,4,3,41),
+      ('voltaneer','02 Financials','Financial Model.xlsx','Sheet',7274,11,1,46),
+      ('voltaneer','02 Financials','ARR Bridge FY27.xlsx','Sheet',5612,18,2,7),
+      ('voltaneer','02 Financials','Cap Table.xlsx','Sheet',5610,25,3,12),
+      ('voltaneer','03 Product and Technology','Sensor Spec Sheet.pdf','PDF',3508,6,1,17),
+      ('voltaneer','03 Product and Technology','Dashboard Overview.pdf','PDF',3029,13,2,22),
+      ('voltaneer','03 Product and Technology','Firmware Release Notes.pdf','PDF',3082,20,3,27),
+      ('voltaneer','04 Customers and Traction','Annual SaaS Agreement Template.pdf','PDF',3036,1,1,32),
+      ('voltaneer','04 Customers and Traction','Customer Savings Report.xlsx','Sheet',5868,8,2,37),
+      ('voltaneer','04 Customers and Traction','Sales Cycle Export Jul 2026.xlsx','Sheet',5969,15,3,42),
+      ('voltaneer','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3360,22,1,3),
+      ('voltaneer','05 Legal and Compliance','IP Assignment Deed.pdf','PDF',3025,3,2,8),
+      ('voltaneer','05 Legal and Compliance','ESOP Policy.pdf','PDF',3291,10,3,13),
+      ('aegis-drone-systems','01 Company Overview','Aegis Pitch Deck.pdf','Deck',11725,17,1,18),
+      ('aegis-drone-systems','01 Company Overview','Capability Statement.pdf','PDF',3120,24,2,23),
+      ('aegis-drone-systems','01 Company Overview','Pilot Team Credentials.pdf','PDF',3539,5,3,28),
+      ('aegis-drone-systems','02 Financials','Financial Model.xlsx','Sheet',7281,12,1,33),
+      ('aegis-drone-systems','02 Financials','Project Level P and L.xlsx','Sheet',5637,19,2,38),
+      ('aegis-drone-systems','02 Financials','Cap Table.xlsx','Sheet',5616,0,3,43),
+      ('aegis-drone-systems','03 Product and Technology','Inspection Platform Overview.pdf','PDF',3160,7,1,4),
+      ('aegis-drone-systems','03 Product and Technology','Sample Defect Report.pdf','PDF',3647,14,2,9),
+      ('aegis-drone-systems','03 Product and Technology','Fleet and Payload Specs.pdf','PDF',2940,21,3,14),
+      ('aegis-drone-systems','04 Customers and Traction','Port Authority Work Order.pdf','PDF',2967,2,1,19),
+      ('aegis-drone-systems','04 Customers and Traction','Client List.xlsx','Sheet',5833,9,2,24),
+      ('aegis-drone-systems','05 Legal and Compliance','DGCA Application Status.pdf','PDF',3033,16,1,29),
+      ('aegis-drone-systems','05 Legal and Compliance','Aviation Insurance Certificate.pdf','PDF',2855,23,2,34),
+      ('aegis-drone-systems','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3374,4,3,39),
+      ('kadal-systems','01 Company Overview','Kadal Pitch Deck.pdf','Deck',11637,11,1,44),
+      ('kadal-systems','01 Company Overview','Product One Pager.pdf','PDF',3555,18,2,5),
+      ('kadal-systems','01 Company Overview','Founders.pdf','PDF',3502,25,3,10),
+      ('kadal-systems','02 Financials','Financial Model.xlsx','Sheet',7264,6,1,15),
+      ('kadal-systems','02 Financials','Unit Cost Breakdown.xlsx','Sheet',5666,13,2,20),
+      ('kadal-systems','02 Financials','Cap Table.xlsx','Sheet',5602,20,3,25),
+      ('kadal-systems','03 Product and Technology','Device Spec Sheet.pdf','PDF',3656,1,1,30),
+      ('kadal-systems','03 Product and Technology','Satellite Coverage Map.pdf','PDF',3015,8,2,35),
+      ('kadal-systems','03 Product and Technology','Field Trial Report.pdf','PDF',3102,15,3,40),
+      ('kadal-systems','04 Customers and Traction','Unit Sales Register Jun 2026.xlsx','Sheet',5778,22,1,45),
+      ('kadal-systems','04 Customers and Traction','Fisheries Dept Subsidy Order.pdf','PDF',3018,3,2,6),
+      ('kadal-systems','05 Legal and Compliance','WPC Equipment License.pdf','PDF',2909,10,1,11),
+      ('kadal-systems','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3356,17,2,16),
+      ('kadal-systems','05 Legal and Compliance','Founder Agreement.pdf','PDF',3032,24,3,21),
+      ('anvaya-ai','01 Company Overview','Anvaya Pitch Deck.pdf','Deck',11594,5,1,26),
+      ('anvaya-ai','01 Company Overview','One Pager.pdf','PDF',3535,12,2,31),
+      ('anvaya-ai','01 Company Overview','Founding Team.pdf','PDF',3480,19,3,36),
+      ('anvaya-ai','02 Financials','Financial Model.xlsx','Sheet',7273,0,1,41),
+      ('anvaya-ai','02 Financials','Unit Economics.xlsx','Sheet',5605,7,2,46),
+      ('anvaya-ai','02 Financials','Cap Table.xlsx','Sheet',5557,14,3,7),
+      ('anvaya-ai','03 Product and Technology','Data Pipeline and Provenance.pdf','PDF',3083,21,1,12),
+      ('anvaya-ai','04 Customers and Traction','Customer Contracts.xlsx','Sheet',5662,2,1,17),
+      ('anvaya-ai','04 Customers and Traction','Quality Benchmark Report.pdf','PDF',3434,9,2,22),
+      ('anvaya-ai','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3347,16,1,27),
+      ('anvaya-ai','05 Legal and Compliance','Reviewer and Data Agreements.pdf','PDF',2918,23,2,32),
+      ('thooval-studios','01 Company Overview','Thooval Pitch Deck.pdf','Deck',11689,4,1,37),
+      ('thooval-studios','01 Company Overview','One Pager.pdf','PDF',3567,11,2,42),
+      ('thooval-studios','01 Company Overview','Founding Team.pdf','PDF',3473,18,3,3),
+      ('thooval-studios','02 Financials','Financial Model.xlsx','Sheet',7335,25,1,8),
+      ('thooval-studios','02 Financials','Unit Economics.xlsx','Sheet',5561,6,2,13),
+      ('thooval-studios','02 Financials','Cap Table.xlsx','Sheet',5609,13,3,18),
+      ('thooval-studios','03 Product and Technology','Localisation Pipeline.pdf','PDF',3072,20,1,23),
+      ('thooval-studios','04 Customers and Traction','Customer List.xlsx','Sheet',5719,1,1,28),
+      ('thooval-studios','04 Customers and Traction','Platform Delivery Record.pdf','PDF',3582,8,2,33),
+      ('thooval-studios','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3366,15,1,38),
+      ('thooval-studios','05 Legal and Compliance','Voice Artist Consent Framework.pdf','PDF',3087,22,2,43),
+      ('kalpana-robotics','01 Company Overview','Kalpana Pitch Deck.pdf','Deck',11613,3,1,4),
+      ('kalpana-robotics','01 Company Overview','One Pager.pdf','PDF',3488,10,2,9),
+      ('kalpana-robotics','01 Company Overview','Founding Team.pdf','PDF',3462,17,3,14),
+      ('kalpana-robotics','02 Financials','Financial Model.xlsx','Sheet',7320,24,1,19),
+      ('kalpana-robotics','02 Financials','Unit Economics.xlsx','Sheet',5610,5,2,24),
+      ('kalpana-robotics','02 Financials','Cap Table.xlsx','Sheet',5564,12,3,29),
+      ('kalpana-robotics','03 Product and Technology','Curriculum and Lab Setup.pdf','PDF',3077,19,1,34),
+      ('kalpana-robotics','04 Customers and Traction','College Contracts.xlsx','Sheet',5771,0,1,39),
+      ('kalpana-robotics','04 Customers and Traction','Placement Outcomes Report.pdf','PDF',3533,7,2,44),
+      ('kalpana-robotics','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3366,14,1,5),
+      ('kalpana-robotics','05 Legal and Compliance','College Agreement Template.pdf','PDF',3060,21,2,10),
+      ('metricon-interconnect','01 Company Overview','Metricon Pitch Deck.pdf','Deck',11672,2,1,15),
+      ('metricon-interconnect','01 Company Overview','One Pager.pdf','PDF',3572,9,2,20),
+      ('metricon-interconnect','01 Company Overview','Founding Team.pdf','PDF',3465,16,3,25),
+      ('metricon-interconnect','02 Financials','Financial Model.xlsx','Sheet',7320,23,1,30),
+      ('metricon-interconnect','02 Financials','Unit Economics.xlsx','Sheet',5686,4,2,35),
+      ('metricon-interconnect','02 Financials','Cap Table.xlsx','Sheet',5610,11,3,40),
+      ('metricon-interconnect','03 Product and Technology','Product Catalogue and Tooling.pdf','PDF',3017,18,1,45),
+      ('metricon-interconnect','04 Customers and Traction','Customer Approvals.xlsx','Sheet',5758,25,1,6),
+      ('metricon-interconnect','04 Customers and Traction','Quality and PPAP Record.pdf','PDF',3439,6,2,11),
+      ('metricon-interconnect','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3381,13,1,16),
+      ('metricon-interconnect','05 Legal and Compliance','Certifications and Compliance.pdf','PDF',3008,20,2,21),
+      ('puzha-foods','01 Company Overview','Puzha Pitch Deck.pdf','Deck',11705,1,1,26),
+      ('puzha-foods','01 Company Overview','One Pager.pdf','PDF',3540,8,2,31),
+      ('puzha-foods','01 Company Overview','Founding Team.pdf','PDF',3395,15,3,36),
+      ('puzha-foods','02 Financials','Financial Model.xlsx','Sheet',7332,22,1,41),
+      ('puzha-foods','02 Financials','SKU Economics.xlsx','Sheet',5668,3,2,46),
+      ('puzha-foods','02 Financials','Cap Table.xlsx','Sheet',5605,10,3,7),
+      ('puzha-foods','03 Product and Technology','Plant and Process Overview.pdf','PDF',3114,17,1,12),
+      ('puzha-foods','04 Customers and Traction','Channel Performance.xlsx','Sheet',5737,24,1,17),
+      ('puzha-foods','04 Customers and Traction','Working Capital and Collections.pdf','PDF',3032,5,2,22),
+      ('puzha-foods','05 Legal and Compliance','Certificate of Incorporation.pdf','PDF',3359,12,1,27),
+      ('puzha-foods','05 Legal and Compliance','FSSAI and Farmer Contracts.pdf','PDF',3023,19,2,32)
+    ) as t(slug, fol, fname, ftype, sz, vws, pos, age)
+    join (values ('nellara-agrichain','Nellara AgriChain'), ('zylo-health','Zylo Health'), ('voltaneer','Voltaneer'), ('aegis-drone-systems','Aegis Drone Systems'), ('kadal-systems','Kadal Systems'), ('anvaya-ai','Anvaya AI'), ('thooval-studios','Thooval Studios'), ('kalpana-robotics','Kalpana Robotics'), ('metricon-interconnect','Metricon Interconnect'), ('puzha-foods','Puzha Foods')) as m(slug, nm) on m.slug = t.slug
+    join public.spaces  sp on sp.name = m.nm and sp.created_by = v_own
     join public.folders fo on fo.space_id = sp.id and fo.name = t.fol;
 
   -- ── Founder update history behind the briefs ─────────────────────────────

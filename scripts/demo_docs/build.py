@@ -34,7 +34,7 @@ from openpyxl.utils import get_column_letter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from profiles import PROFILES, BY_SLUG          # noqa: E402
+from profiles import ALL_PROFILES, BY_SLUG      # noqa: E402
 from manifest import MANIFEST, FOLDERS          # noqa: E402
 
 OUT = os.path.join(HERE, "out")
@@ -179,9 +179,17 @@ def _traction(st, p):
     return [data_table(st, p["traction_rows"])]
 
 
-for _p in PROFILES:
+def _customers(st, p):
+    return [data_table(st, p["customers"])]
+
+
+for _p in ALL_PROFILES:
     AUTO[(_p["slug"], "Where the business stands")] = _metrics
     AUTO[(_p["slug"], "Performance")] = _metrics
+    AUTO[(_p["slug"], "Results")] = _traction
+    AUTO[(_p["slug"], "Track record by customer")] = _customers
+    AUTO[(_p["slug"], "Term by term")] = _traction
+    AUTO[(_p["slug"], "Defect history")] = _traction
 
 
 @auto("nellara-agrichain", "Summary of outward supplies")
@@ -552,6 +560,61 @@ MODELS = {
             ("People cost", [28, 30, 34, 38, 186, 312]),
         ],
     },
+    "anvaya-ai": {
+        "unit": "Rs lakh",
+        "periods": ["Q1 FY27", "Q2 FY27", "Q3 FY27", "Q4 FY27", "FY28", "FY29"],
+        "lines": [
+            ("Revenue", [158, 214, 288, 372, 1980, 4260]),
+            ("Gross margin %", [0.541, 0.562, 0.581, 0.598, 0.628, 0.652]),
+            ("Reviewer operations", [34, 42, 52, 64, 306, 552]),
+            ("People cost", [62, 74, 90, 108, 548, 936]),
+            ("Platform and cloud", [14, 17, 21, 26, 128, 254]),
+        ],
+    },
+    "thooval-studios": {
+        "unit": "Rs lakh",
+        "periods": ["Q1 FY27", "Q2 FY27", "Q3 FY27", "Q4 FY27", "FY28", "FY29"],
+        "lines": [
+            ("Revenue", [51, 68, 89, 114, 604, 1280]),
+            ("Gross margin %", [0.381, 0.396, 0.412, 0.428, 0.462, 0.494]),
+            ("Studio and mixing", [12, 15, 19, 24, 118, 232]),
+            ("People cost", [39, 45, 54, 64, 322, 566]),
+            ("Compute and platform", [6, 8, 10, 13, 64, 132]),
+        ],
+    },
+    "kalpana-robotics": {
+        "unit": "Rs lakh",
+        "periods": ["Q1 FY27", "Q2 FY27", "Q3 FY27", "Q4 FY27", "FY28", "FY29"],
+        "lines": [
+            ("College fee revenue", [62, 74, 92, 112, 604, 1180]),
+            ("Employer hiring fee revenue", [8, 11, 15, 20, 128, 296]),
+            ("Gross margin %", [0.346, 0.362, 0.381, 0.398, 0.436, 0.472]),
+            ("Lab kit and logistics", [14, 17, 21, 26, 118, 208]),
+            ("People cost", [42, 48, 57, 68, 338, 588]),
+        ],
+    },
+    "metricon-interconnect": {
+        "unit": "Rs lakh",
+        "periods": ["Q1 FY27", "Q2 FY27", "Q3 FY27", "Q4 FY27", "FY28", "FY29"],
+        "lines": [
+            ("Revenue", [245, 288, 342, 404, 2140, 3860]),
+            ("Gross margin %", [0.221, 0.248, 0.276, 0.302, 0.348, 0.386]),
+            ("Plant overhead", [22, 25, 29, 34, 168, 288]),
+            ("People cost", [34, 39, 46, 54, 268, 452]),
+            ("Tooling amortisation", [9, 11, 13, 16, 78, 142]),
+        ],
+    },
+    "puzha-foods": {
+        "unit": "Rs lakh",
+        "periods": ["Q1 FY27", "Q2 FY27", "Q3 FY27", "Q4 FY27", "FY28", "FY29"],
+        "lines": [
+            ("Modern trade revenue", [128, 108, 174, 212, 1080, 2140]),
+            ("Direct to consumer revenue", [79, 71, 106, 132, 704, 1520]),
+            ("Gross margin %", [0.380, 0.372, 0.394, 0.408, 0.436, 0.462]),
+            ("Plant and cold chain", [34, 32, 44, 52, 254, 464]),
+            ("People and marketing", [48, 46, 62, 74, 372, 686]),
+        ],
+    },
 }
 
 
@@ -866,62 +929,81 @@ SQL_TAIL = r"""
 end $$;
 """
 
-# Investor context per startup: note, quarterly flag, when it arrived, whether
-# the invite has been opened.
+# Investor context per startup.
+#
+# The states have to agree with each other or an investor spots it in a second:
+#   watchlist=True  means the investor read it and chose to follow it, so the
+#                   invite is necessarily opened. Shows under Opened.
+#   watchlist=False means new inbound that has not been read yet, so the invite
+#                   is unopened. Shows under Pending.
+# Nothing is ever both watchlisted and pending.
 CONTEXT = {
     "Nellara AgriChain": dict(
-        added="2026-03-12 10:40:00+05:30", quarterly=False, opened=True,
+        added="2026-03-12 10:40:00+05:30", quarterly=False, watchlist=True,
         note="Passed at pre seed, March 2026. Right problem, wrong economics: 22 percent wastage "
              "and 8 percent gross margin meant every rupee of growth was losing money. The Kerala "
              "produce gap is real and the founder knows the Wayanad collectives personally. Come "
              "back when wastage is under 10 percent and gross margin is above 18 percent."),
     "Zylo Health": dict(
-        added="2026-02-02 16:05:00+05:30", quarterly=True, opened=True,
+        added="2026-02-02 16:05:00+05:30", quarterly=True, watchlist=True,
         note="Strong clinical team out of Amrita and the radiologist shortage in tier 2 hospitals "
              "is real. But everything depends on CDSCO Class B clearance, which they had not even "
              "filed when we met. No point pricing a regulated device before the regulator speaks. "
              "Revisit on clearance plus one paying hospital outside Kerala."),
     "Voltaneer": dict(
-        added="2026-02-05 12:15:00+05:30", quarterly=False, opened=True,
+        added="2026-02-05 12:15:00+05:30", quarterly=False, watchlist=True,
         note="A hardware business wearing a software badge. 76 percent of revenue was one time "
              "sensor sales and the average deal took nearly nine months because it needed a capex "
              "approval. The energy saving is real, the business model was not. Come back when "
              "recurring software is above 40 percent of revenue and the sales cycle is under 90 days."),
     "Aegis Drone Systems": dict(
-        added="2026-04-18 15:25:00+05:30", quarterly=False, opened=True,
+        added="2026-04-18 15:25:00+05:30", quarterly=False, watchlist=True,
         note="Good pilots, good imagery, no repeat business. Every rupee so far has come from one "
              "off inspections, and DGCA BVLOS permissions were still pending when we met. "
              "Inspection only becomes a business when it becomes a retainer. Revisit when at least "
              "three sites are on annual contracts and BVLOS clearance is granted."),
     "Kadal Systems": dict(
-        added="2026-05-06 11:05:00+05:30", quarterly=False, opened=False,
+        added="2026-05-06 11:05:00+05:30", quarterly=False, watchlist=True,
         note="Genuinely important product and the safety case is unarguable. My problem is who "
              "pays. Almost all current units were bought through a state subsidy scheme, so I have "
              "no evidence a boat owner pays full price from his own pocket. Show me 200 units sold "
              "without subsidy and I will look again."),
+
+    # New inbound. Not read yet, so no note and no watchlist row.
+    "Anvaya AI": dict(
+        added="2026-07-29 09:20:00+05:30", quarterly=False, watchlist=False, note=""),
+    "Thooval Studios": dict(
+        added="2026-07-27 17:45:00+05:30", quarterly=False, watchlist=False, note=""),
+    "Puzha Foods": dict(
+        added="2026-07-24 11:10:00+05:30", quarterly=False, watchlist=False, note=""),
+    "Metricon Interconnect": dict(
+        added="2026-07-21 15:30:00+05:30", quarterly=False, watchlist=False, note=""),
+    "Kalpana Robotics": dict(
+        added="2026-07-18 10:05:00+05:30", quarterly=False, watchlist=False, note=""),
 }
 
 
 def write_sql(files, path):
-    names = ", ".join("'%s'" % sqlq(p["name"]) for p in PROFILES)
+    names = ", ".join("'%s'" % sqlq(p["name"]) for p in ALL_PROFILES)
     out = [SQL_HEAD % {"NAMES": names}]
 
-    # ── One VALUES list drives all five rooms ────────────────────────────────
-    out.append("\n  -- ── Five data rooms, their share link, invite and watchlist row ─────────\n")
+    # ── One VALUES list drives every room ────────────────────────────────────
+    out.append("\n  -- ── %d data rooms, their share link, invite and watchlist row ──────────\n"
+               % len(ALL_PROFILES))
     out.append("  for rec in\n    select * from (values\n")
     rows = []
-    for p in PROFILES:
+    for p in ALL_PROFILES:
         c = CONTEXT[p["name"]]
         rows.append(
-            "      ('%s',\n       '%s',\n       '%s',\n       %s, %s, timestamptz '%s')"
+            "      ('%s',\n       '%s',\n       %s,\n       %s, %s, timestamptz '%s')"
             % (sqlq(p["name"]),
                sqlq(p["one_line"] + " Based in " + p["city"] + "."),
-               sqlq(c["note"]),
+               ("'%s'" % sqlq(c["note"])) if c["note"] else "null",
                "true" if c["quarterly"] else "false",
-               "true" if c["opened"] else "false",
+               "true" if c["watchlist"] else "false",
                c["added"]))
     out.append(",\n".join(rows))
-    out.append("\n    ) as t(nm, descr, note, quarterly, opened, added)\n  loop\n")
+    out.append("\n    ) as t(nm, descr, note, quarterly, watched, added)\n  loop\n")
     out.append("""    s_id := gen_random_uuid();
 
     insert into public.spaces (id, name, title, description, created_by)
@@ -938,41 +1020,53 @@ def write_sql(files, path):
     values (gen_random_uuid(), s_id, encode(gen_random_bytes(16), 'hex'), true, true,
             'venturethrust@gmail.com', v_own, rec.added);
 
+    -- Read state follows the watchlist. A startup the investor chose to
+    -- follow was obviously opened, so it can never sit in Pending.
     insert into public.alerts (user_id, space_id, type, message, created_at, read_at)
     values (v_inv, s_id, 'space_shared',
             rec.nm || ' shared their data room with you.',
-            rec.added, case when rec.opened then rec.added + interval '2 hours' else null end);
+            rec.added, case when rec.watched then rec.added + interval '2 hours' else null end);
 
-    insert into public.dw_watchlist
-      (id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, note,
-       quarterly_report, created_at)
-    values (gen_random_uuid(), v_inv, v_own, s_id, null, rec.nm, v_mgr,
-            rec.note, rec.quarterly, rec.added);
+    if rec.watched then
+      insert into public.dw_watchlist
+        (id, investor_id, founder_id, space_id, file_id, startup_name, manager_id, note,
+         quarterly_report, created_at)
+      values (gen_random_uuid(), v_inv, v_own, s_id, null, rec.nm, v_mgr,
+              rec.note, rec.quarterly, rec.added);
+    end if;
   end loop;
 """ % {"FOLDERS": ", ".join("'%s'" % sqlq(f) for f in FOLDERS)})
 
     # ── Every document, one line each ────────────────────────────────────────
     out.append("\n  -- ── %d documents, each already uploaded to the vdr-files bucket ────────\n"
                % len(files))
+    # The storage path is always demo/<slug>/<filename>, so it is built in SQL
+    # rather than repeated on 130 lines. The room name comes from a small
+    # slug to name map, which is also what proves every file lands in a room
+    # that this script actually created.
+    slugmap = ", ".join("('%s','%s')" % (p["slug"], sqlq(p["name"])) for p in ALL_PROFILES)
     out.append("  insert into public.files\n"
                "    (id, user_id, folder_id, space_id, name, type, storage_path,\n"
                "     size_bytes, views, position, created_at)\n"
                "  select gen_random_uuid()::text, v_own, fo.id, sp.id, t.fname, t.ftype,\n"
-               "         t.spath, t.sz, t.vws, t.pos, now() - (t.age || ' days')::interval\n"
+               "         'demo/' || t.slug || '/' || t.fname,\n"
+               "         t.sz, t.vws, t.pos, now() - (t.age || ' days')::interval\n"
                "    from (values\n")
     lines = []
     seen = {}
     for i, f in enumerate(files):
-        key = (f["company"], f["folder"])
+        key = (f["slug"], f["folder"])
         seen[key] = seen.get(key, 0) + 1
-        lines.append("      ('%s','%s','%s','%s','%s',%d,%d,%d,%d)"
-                     % (sqlq(f["company"]), sqlq(f["folder"]), sqlq(f["name"]),
-                        ftype(f["name"]), sqlq(f["storage"]),
-                        f["size"], (i * 7) % 26, seen[key], 3 + (i * 5) % 44))
+        lines.append("      ('%s','%s','%s','%s',%d,%d,%d,%d)"
+                     % (f["slug"], sqlq(f["folder"]), sqlq(f["name"]),
+                        ftype(f["name"]), f["size"], (i * 7) % 26, seen[key],
+                        3 + (i * 5) % 44))
     out.append(",\n".join(lines))
-    out.append("\n    ) as t(sname, fol, fname, ftype, spath, sz, vws, pos, age)\n"
-               "    join public.spaces  sp on sp.name = t.sname and sp.created_by = v_own\n"
-               "    join public.folders fo on fo.space_id = sp.id and fo.name = t.fol;\n")
+    out.append("\n    ) as t(slug, fol, fname, ftype, sz, vws, pos, age)\n"
+               "    join (values %s) as m(slug, nm) on m.slug = t.slug\n"
+               "    join public.spaces  sp on sp.name = m.nm and sp.created_by = v_own\n"
+               "    join public.folders fo on fo.space_id = sp.id and fo.name = t.fol;\n"
+               % slugmap)
 
     out.append(SQL_TAIL)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
