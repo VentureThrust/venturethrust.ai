@@ -67,6 +67,11 @@ const FileViewer = dynamic(
   { ssr: false }
 );
 
+/** Which nav this account saw last. Read synchronously on mount so a refresh
+ *  paints the right menu instead of flashing the other one. Cleared on sign
+ *  out so the next account never inherits it. */
+export const NAV_ROLE_KEY = 'vt_nav_is_investor';
+
 type Item = (Folder | TFile) & { itemType: 'folder' | 'file' | 'section' };
 
 type FolderTreeProps = {
@@ -378,7 +383,16 @@ export function AppSidebarContent({
   // Deal Watch nav visibility: Watchlist + Account Manager only for Investor
   // plan accounts; the Deal Watch dashboard only for the account manager.
   // Errors (e.g. the migration not run yet) simply leave both hidden.
-  const [dwInvestor, setDwInvestor] = useState(false);
+  // null means "not known yet". Defaulting to false painted the founder nav
+  // for a moment on every refresh, and an investor saw Spaces, Content Library
+  // and Analytics flash past before their own nav replaced it. The answer is
+  // cached per account so a refresh paints the right nav immediately, and the
+  // first ever load shows a placeholder rather than the wrong menu.
+  const [dwInvestor, setDwInvestor] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const cached = window.localStorage.getItem(NAV_ROLE_KEY);
+    return cached === '1' ? true : cached === '0' ? false : null;
+  });
   const [dwManager, setDwManager] = useState(false);
   useEffect(() => {
     let active = true;
@@ -394,11 +408,15 @@ export function AppSidebarContent({
           .select('is_investor')
           .eq('id', uid)
           .maybeSingle();
-        if (active && (data as { is_investor?: boolean } | null)?.is_investor === true) {
-          setDwInvestor(true);
-        }
+        if (!active) return;
+        const investor = (data as { is_investor?: boolean } | null)?.is_investor === true;
+        setDwInvestor(investor);
+        try {
+          window.localStorage.setItem(NAV_ROLE_KEY, investor ? '1' : '0');
+        } catch { /* private mode, just no cache */ }
       } catch {
-        /* hidden by default */
+        // Could not tell. Fall back to the founder nav rather than an empty one.
+        if (active) setDwInvestor((prev) => (prev === null ? false : prev));
       }
     })();
     return () => { active = false; };
@@ -660,7 +678,16 @@ export function AppSidebarContent({
       <SidebarContent className="px-2 py-3">
         <SidebarMenu className="gap-0">
 
-          {dwInvestor ? (
+          {dwInvestor === null ? (
+            // ── Role not resolved yet ───────────────────────────────────────
+            // Only on the very first load of a new browser, before the cache
+            // exists. A quiet placeholder beats flashing the wrong menu.
+            <div className="space-y-2 px-4 py-2" aria-hidden>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-8 animate-pulse rounded-md bg-gray-100" />
+              ))}
+            </div>
+          ) : dwInvestor ? (
             // ── Investor plan ───────────────────────────────────────────────
             // Only what a Deal Watch subscriber actually uses. Spaces, Content
             // Library and Analytics are founder tools and are not shown at all.

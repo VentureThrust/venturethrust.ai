@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import { supabase } from '@/lib/supabaseClient';
+import { NAV_ROLE_KEY } from '@/components/app-sidebar-content';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +103,9 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {
+            // Drop the cached nav role, or the next account to sign in on this
+            // browser paints the previous one's menu for a moment.
+            try { window.localStorage.removeItem(NAV_ROLE_KEY); } catch {}
             await supabase.auth.signOut();
             window.location.href = '/login';
           }}

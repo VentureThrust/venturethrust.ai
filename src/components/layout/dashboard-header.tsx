@@ -25,6 +25,7 @@ import { DashboardSidebar } from './dashboard-sidebar';
 import { useUser } from '@/hooks/use-user';
 import { Logo } from './logo';
 import { supabase } from '@/lib/supabaseClient';
+import { NAV_ROLE_KEY } from '@/components/app-sidebar-content';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -113,6 +114,7 @@ function UserDropdown({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {
+            try { window.localStorage.removeItem(NAV_ROLE_KEY); } catch {}
             await supabase.auth.signOut();
             window.location.href = '/login';
           }}
