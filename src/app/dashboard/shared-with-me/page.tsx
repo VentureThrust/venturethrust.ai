@@ -38,6 +38,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SharedWithMePage() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [myEmail, setMyEmail] = useState<string | null>(null);
   const [spaces, setSpaces] = useState<SharedSpace[]>([]);
@@ -223,12 +225,13 @@ export default function SharedWithMePage() {
       setSpaces((prev) => prev.map((s) => (s.spaceId === space.spaceId ? { ...s, unopened: false } : s)));
     }
     if (space.shareToken) {
-      // Through the gates (NDA, signature, password, etc.).
-      window.open(`/shared/${space.shareToken}`, '_blank');
+      // Through the gates (NDA, signature, password, etc.). A signed-in
+      // visitor clears the email gate automatically.
+      router.push(`/shared/${space.shareToken}`);
     } else {
       // Invited without an active link: the viewer grants access to invited
       // accounts through /api/spaces/view-data.
-      window.open(`/spaces/${space.spaceId}/view`, '_blank');
+      router.push(`/spaces/${space.spaceId}/view`);
     }
   };
 
@@ -443,7 +446,7 @@ export default function SharedWithMePage() {
                 {filteredWatch.map((w) => (
                   <button
                     key={w.id}
-                    onClick={() => { if (w.space_id) window.open(`/spaces/${w.space_id}/view`, '_blank'); }}
+                    onClick={() => { if (w.space_id) router.push(`/spaces/${w.space_id}/view`); }}
                     className="group flex w-full items-center gap-4 px-2 py-4 text-left hover:bg-gray-50"
                     disabled={!w.space_id}
                   >
