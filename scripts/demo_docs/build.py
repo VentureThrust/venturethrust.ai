@@ -789,10 +789,14 @@ begin
   select coalesce(array_agg(id), '{}') into ids from public.spaces
    where name = any(demo_names) and created_by in (v_inv, v_own);
 
+  -- Anything ever addressed to this inbox by ANY sender is cleared too.
+  -- Old test sends from other accounts are what put stray PDFs and videos
+  -- in Shared with me, and they are not owned by v_inv or v_own.
   if to_regclass('public.share_link_access_logs') is not null then
     delete from public.share_link_access_logs where share_link_id in (
       select id from public.share_links
        where space_id = any(ids)
+          or lower(recipient_email) = 'venturethrust@gmail.com'
           or space_id in (select id from public.spaces where created_by = v_inv));
   end if;
   if to_regclass('public.viewer_sessions') is not null then
@@ -800,6 +804,7 @@ begin
   end if;
   if to_regclass('public.share_links') is not null then
     delete from public.share_links where space_id = any(ids)
+      or lower(recipient_email) = 'venturethrust@gmail.com'
       or space_id in (select id from public.spaces where created_by = v_inv);
   end if;
   if to_regclass('public.visits') is not null then

@@ -120,6 +120,15 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ranInitial = useRef(false);
 
+  // Carried through the gates: ?open=deck means the visitor clicked a startup
+  // and should land on its pitch deck, not on a folder list.
+  const openParam = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('open')
+    : null;
+  const viewUrl = (spaceId: string) =>
+    `/spaces/${spaceId}/view?via=${encodeURIComponent(token)}`
+    + (openParam ? `&open=${encodeURIComponent(openParam)}` : '');
+
   const SESSION_KEY = `shared_session_${token}`;
 
   // ── If first step is redirecting (no gates at all) - go through ────────
@@ -192,7 +201,7 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
         // `via` carries the share token so the space viewer can load its
         // data server-side regardless of who (if anyone) is logged in.
         logAccess(recipient).finally(() =>
-          router.replace(`/spaces/${link.space_id}/view?via=${encodeURIComponent(token)}`)
+          router.replace(viewUrl(link.space_id as string))
         );
       }
     }

@@ -160,7 +160,7 @@ export default function WatchlistPage() {
             {rows.map((r) => (
               <div
                 key={r.id}
-                onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view`); }}
+                onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
                 className={`flex items-center gap-4 px-2 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -222,7 +222,7 @@ export default function WatchlistPage() {
                   {r.space_id && (
                     <Button size="sm" variant="ghost" asChild title="Open in a new tab">
                       <Link
-                        href={`/spaces/${r.space_id}/view`}
+                        href={`/spaces/${r.space_id}/view?open=deck`}
                         target="_blank"
                         onClick={(e) => e.stopPropagation()}
                       >

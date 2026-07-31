@@ -196,7 +196,7 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
                 </div>
                 {b.space_id && (
                   <Link
-                    href={`/spaces/${b.space_id}/view`}
+                    href={`/spaces/${b.space_id}/view?open=deck`}
                     className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                     style={{ background: CRIMSON }}
                   >
@@ -246,7 +246,7 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               {rows.map((r) => (
                 <div
                   key={r.id}
-                  onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view`); }}
+                  onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
                   className={`flex items-start gap-3.5 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
                 >
                   <div

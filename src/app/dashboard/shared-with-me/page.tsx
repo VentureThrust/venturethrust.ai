@@ -224,14 +224,17 @@ export default function SharedWithMePage() {
     if (space.unopened) {
       setSpaces((prev) => prev.map((s) => (s.spaceId === space.spaceId ? { ...s, unopened: false } : s)));
     }
+    // A data room opens on its pitch deck. A single emailed document opens
+    // as itself, so there is no deck to jump to.
+    const deck = space.kind === 'file' ? '' : '?open=deck';
     if (space.shareToken) {
       // Through the gates (NDA, signature, password, etc.). A signed-in
       // visitor clears the email gate automatically.
-      router.push(`/shared/${space.shareToken}`);
+      router.push(`/shared/${space.shareToken}${deck}`);
     } else {
       // Invited without an active link: the viewer grants access to invited
       // accounts through /api/spaces/view-data.
-      router.push(`/spaces/${space.spaceId}/view`);
+      router.push(`/spaces/${space.spaceId}/view${deck}`);
     }
   };
 
@@ -446,7 +449,7 @@ export default function SharedWithMePage() {
                 {filteredWatch.map((w) => (
                   <button
                     key={w.id}
-                    onClick={() => { if (w.space_id) router.push(`/spaces/${w.space_id}/view`); }}
+                    onClick={() => { if (w.space_id) router.push(`/spaces/${w.space_id}/view?open=deck`); }}
                     className="group flex w-full items-center gap-4 px-2 py-4 text-left hover:bg-gray-50"
                     disabled={!w.space_id}
                   >
