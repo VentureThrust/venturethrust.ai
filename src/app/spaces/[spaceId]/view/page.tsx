@@ -451,6 +451,15 @@ function FileViewer({ file, url, allFiles, onClose, onNavigate, allowDownload = 
               Ask a question
             </button>
           )}
+          {/* Closing the deck lands on the folder list, which is the room. */}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
+            title="Browse every folder in this data room"
+          >
+            <Package className="h-3.5 w-3.5" />
+            Visit the data room
+          </button>
           {allowDownload && (
             <a href={url} download={file.name} className="flex items-center gap-1.5 text-white/70 hover:text-white text-xs px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/20">
               <Download className="h-3.5 w-3.5" />Download

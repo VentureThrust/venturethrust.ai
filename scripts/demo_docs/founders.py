@@ -19,6 +19,7 @@ They are data, not accounts anyone can use. --purge removes them completely.
 import os
 import secrets
 import sys
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -34,6 +35,9 @@ AUTH = {"Authorization": "Bearer %s" % KEY, "apikey": KEY,
 REST = dict(AUTH, Prefer="return=representation")
 
 BAN_FOREVER = "876000h"   # 100 years
+
+# isPlanActive treats a missing expiry as lapsed, so this has to be a real date.
+PLAN_EXPIRY = (datetime.now(timezone.utc) + timedelta(days=730)).isoformat()
 
 
 def find(email):
@@ -73,8 +77,24 @@ def create(p):
                  json={"ban_duration": BAN_FOREVER})
 
     # The profile row is what Shared with me reads the sender email from.
-    requests.patch("%s/rest/v1/profiles?id=eq.%s" % (BASE, uid), headers=REST, timeout=60,
-                   json={"email": email, "full_name": p["founders"][0][0]})
+    #
+    # It also needs a live plan. The space viewer asks whether the room owner's
+    # plan is still active and shows "This link is no longer active" if it is
+    # not, which is right in production and wrong here: a founder who really
+    # shared a data room on VentureThrust is a paying founder.
+    #
+    # Only columns that exist. PostgREST rejects the whole patch if one column
+    # is unknown, so an extra field here silently loses the plan as well.
+    r = requests.patch("%s/rest/v1/profiles?id=eq.%s" % (BASE, uid), headers=REST, timeout=60,
+                       json={
+                           "email": email,
+                           "plan": "vdr_only",
+                           "plan_status": "active",
+                           "plan_expires_at": PLAN_EXPIRY,
+                       })
+    if r.status_code not in (200, 204):
+        print("  PROFILE PATCH FAILED %-30s %s %s" % (email, r.status_code, r.text[:200]))
+        return uid
 
     print("  %-8s %-38s %s" % (action, email, p["name"]))
     return uid

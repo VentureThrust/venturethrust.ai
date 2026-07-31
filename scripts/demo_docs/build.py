@@ -944,6 +944,17 @@ begin
          dw_auto_assign = true, signup_notified = true
    where id = v_inv;
 
+  -- The demo founders need a live plan. The space viewer asks whether the
+  -- room owner's plan is still active and refuses to render the room if it is
+  -- not, which is right in production and wrong here: a founder who really
+  -- shared a data room on VentureThrust is a paying founder.
+  update public.profiles
+     set plan = coalesce(plan, 'vdr_only'),
+         plan_status = 'active',
+         plan_expires_at = greatest(coalesce(plan_expires_at, now()), now() + interval '730 days'),
+         signup_notified = true
+   where id in (select id from auth.users where lower(email) = any(founder_emails));
+
   -- The wipe is done. From here ids collects the rooms this run creates.
   ids := '{}';
 """
