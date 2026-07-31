@@ -11,7 +11,7 @@
  * Investor plan only. Reports come from dw_reports under RLS (own rows).
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -67,8 +67,23 @@ export default function ReportsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const closeViewer = () => { setOpen(null); setUrl(null); };
+  // Release the blob if the page unmounts with a report still open.
+  const urlRef = useRef<string | null>(null);
+  useEffect(() => { urlRef.current = url; }, [url]);
+  useEffect(() => () => {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+  }, []);
 
+  const closeViewer = () => {
+    setUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setOpen(null);
+  };
+
+  // The PDF is fetched and rendered from a blob URL rather than straight from
+  // the signed storage URL. frame-src in the CSP allows 'self' and blob: but
+  // not the Supabase host, so an iframe pointed at storage is blocked by the
+  // browser. Same approach the content library preview uses. The blob also
+  // makes Download instant and gives the file its real name.
   const openReport = async (r: Report) => {
     setOpening(r.id);
     try {
@@ -81,33 +96,31 @@ export default function ReportsPage() {
         toast({ variant: 'destructive', title: 'Could not open the report. Try again.' });
         return;
       }
+      const file = await fetch(json.url as string);
+      if (!file.ok) throw new Error('fetch failed');
+      const blobUrl = URL.createObjectURL(await file.blob());
+
+      setUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return blobUrl; });
       setOpen(r);
-      setUrl(json.url as string);
       if (!r.opened_at) {
         setReports((prev) => prev.map((x) =>
           x.id === r.id ? { ...x, opened_at: new Date().toISOString() } : x));
       }
+    } catch {
+      toast({ variant: 'destructive', title: 'Could not open the report. Try again.' });
     } finally {
       setOpening(null);
     }
   };
 
-  // Fetched as a blob so the file saves with its real name instead of the
-  // signed URL's storage key.
-  const download = async () => {
+  const download = () => {
     if (!url || !open) return;
     setDownloading(true);
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const href = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = href;
+      a.href = url;
       a.download = `${open.title}.pdf`;
       a.click();
-      URL.revokeObjectURL(href);
-    } catch {
-      toast({ variant: 'destructive', title: 'Download failed. Try again.' });
     } finally {
       setDownloading(false);
     }
