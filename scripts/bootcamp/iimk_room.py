@@ -28,7 +28,7 @@ from build import (                      # noqa: E402
 from manifest import doc, table          # noqa: E402
 
 SLUG = "iimk-live"
-SPACE = "IIMK LIVE  ·  Cohort Investor Room (demonstration)"
+SPACE = "IDEA VAULT Cohort 1  ·  Investor Room"
 OWNER_EMAIL = "omprakashborkar611@gmail.com"
 OUT = os.path.join(DEMO, "out", SLUG)
 
