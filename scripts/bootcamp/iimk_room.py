@@ -508,6 +508,15 @@ begin
     raise exception 'No auth user for %(OWNER)s.';
   end if;
 
+  -- Without an active plan the app sends this account to the pricing page
+  -- instead of the workspace, because PlanGate checks isPlanActive before it
+  -- lets anyone into the app shell. A demo account has to be past that gate.
+  update public.profiles
+     set plan = 'vdr_ai',
+         plan_status = 'active',
+         plan_expires_at = greatest(coalesce(plan_expires_at, now()), now() + interval '730 days')
+   where id = v_own;
+
   -- Remove only a previous copy of this one room.
   select id into s_id from public.spaces
    where name = '%(SPACE)s' and created_by = v_own limit 1;

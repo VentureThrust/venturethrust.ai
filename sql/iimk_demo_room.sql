@@ -20,6 +20,15 @@ begin
     raise exception 'No auth user for omprakashborkar611@gmail.com.';
   end if;
 
+  -- Without an active plan the app sends this account to the pricing page
+  -- instead of the workspace, because PlanGate checks isPlanActive before it
+  -- lets anyone into the app shell. A demo account has to be past that gate.
+  update public.profiles
+     set plan = 'vdr_ai',
+         plan_status = 'active',
+         plan_expires_at = greatest(coalesce(plan_expires_at, now()), now() + interval '730 days')
+   where id = v_own;
+
   -- Remove only a previous copy of this one room.
   select id into s_id from public.spaces
    where name = 'IIMK LIVE  ·  Cohort Investor Room (demonstration)' and created_by = v_own limit 1;
@@ -51,8 +60,8 @@ begin
       ('01 About IIMK LIVE','Programmes and Funding.pdf','PDF',3616,5,2,5),
       ('01 About IIMK LIVE','Leadership and Investment Committee.pdf','PDF',3424,10,3,8),
       ('02 Cohort Snapshot','Cohort Snapshot.pdf','PDF',3597,15,1,11),
-      ('02 Cohort Snapshot','Cohort Companies.xlsx','Sheet',5689,20,2,14),
-      ('02 Cohort Snapshot','Cohort Metrics.xlsx','Sheet',5655,25,3,17),
+      ('02 Cohort Snapshot','Cohort Companies.xlsx','Sheet',5690,20,2,14),
+      ('02 Cohort Snapshot','Cohort Metrics.xlsx','Sheet',5656,25,3,17),
       ('03 Startup Profiles','Aether Semiconductors.pdf','PDF',2971,30,1,20),
       ('03 Startup Profiles','Verdant Climate.pdf','PDF',2969,4,2,23),
       ('03 Startup Profiles','Orbitfall Systems.pdf','PDF',2954,9,3,26),
@@ -60,7 +69,7 @@ begin
       ('03 Startup Profiles','Quantiva.pdf','PDF',2880,19,5,6),
       ('03 Startup Profiles','Sarva Health AI.pdf','PDF',2917,24,6,9),
       ('04 Investor Process','Matching Investment Program.pdf','PDF',3824,29,1,12),
-      ('04 Investor Process','Investor Engagement Record.xlsx','Sheet',5815,3,2,15),
+      ('04 Investor Process','Investor Engagement Record.xlsx','Sheet',5816,3,2,15),
       ('04 Investor Process','Investment Committee Process.pdf','PDF',2880,8,3,18),
       ('04 Investor Process','How to Request Access.pdf','PDF',2863,13,4,21),
       ('05 Programme and Compliance','DST Recognition and Governance.pdf','PDF',3160,18,1,24),
