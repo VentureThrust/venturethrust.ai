@@ -590,7 +590,7 @@ SQL_BODY = r"""
           (id, space_id, share_link_id, visitor_email, device,
            started_at, last_heartbeat, ended_at, total_seconds)
         values (ses, s_id, lnk, inv.em,
-                (array['Desktop','Desktop','Mobile','Tablet'])[1 + (random() * 3)::int],
+                (array['Desktop','Desktop','Mobile'])[1 + (random() * 2)::int],
                 now() - ((greatest(sent - 1 - (k - 1) * 3, 1)) || ' days')::interval,
                 now() - ((greatest(sent - 1 - (k - 1) * 3, 1)) || ' days')::interval
                       + (secs || ' seconds')::interval,
@@ -612,7 +612,7 @@ SQL_BODY = r"""
 
       insert into public.share_link_access_logs
         (id, share_link_id, email, action, created_at)
-      values (gen_random_uuid(), lnk, inv.em, 'opened',
+      values (gen_random_uuid(), lnk, inv.em, 'OPEN',
               now() - (greatest(sent - 1, 1) || ' days')::interval);
     end loop;
   end loop;
