@@ -163,22 +163,13 @@ export default function WatchlistPage() {
                 onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
                 className={`flex items-center gap-4 px-2 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
               >
+                {/* The name is the row. The investor's own note is on the
+                    startup page, not shrunk into grey text here. */}
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#FFF8E6]">
-                    <Star className="h-4 w-4 text-[#F4B400]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-900">{r.startup_name || 'Unnamed startup'}</p>
-                    {r.note ? (
-                      <p className="truncate text-xs italic text-muted-foreground" title={r.note}>
-                        {r.note}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground sm:hidden">
-                        Added {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                      </p>
-                    )}
-                  </div>
+                  <Star className="h-4 w-4 shrink-0" style={{ color: '#C7A24B' }} strokeWidth={2} />
+                  <p className="truncate text-[15px] font-semibold text-gray-900" title={r.note ?? undefined}>
+                    {r.startup_name || 'Unnamed startup'}
+                  </p>
                 </div>
                 <span className="hidden w-40 text-sm text-muted-foreground sm:block">
                   {format(new Date(r.created_at), 'MMM d, yyyy')}

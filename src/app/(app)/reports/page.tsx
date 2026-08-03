@@ -34,6 +34,8 @@ type Watched = { startup_name: string | null };
 
 const CRIMSON = '#8B1E2D';
 const NAVY = '#0D1B3E';
+const INK = '#0F1729';
+const ACCENT = '#1E3A6E';
 
 export default function ReportsPage() {
   const { toast } = useToast();
@@ -154,85 +156,65 @@ export default function ReportsPage() {
   return (
     <div className="flex w-full flex-col">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Everything your account manager has sent you. A priority brief arrives when a startup
-            crosses the conditions in your own note. A quarterly arrives only where you asked for one.
-          </p>
-        </div>
-        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+      <div className="flex items-end justify-between gap-3 pb-6">
+        <h1 className="text-[28px] font-semibold tracking-tight" style={{ color: INK }}>Reports</h1>
+        <span className="text-[13px] text-gray-400">
           {reports.length} {reports.length === 1 ? 'report' : 'reports'}
         </span>
       </div>
 
       {reports.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border-b border-gray-200 py-24 text-center">
-          <FileText className="mb-4 h-10 w-10 text-gray-300" />
-          <p className="text-base font-semibold text-foreground">No reports yet</p>
-          <p className="mt-1.5 max-w-md text-sm text-muted-foreground">
-            That is the normal state. Your account manager writes to you when one of your watched
-            startups moves, not on a schedule.
+        <div className="flex flex-col items-center justify-center border-y border-gray-200 py-24 text-center">
+          <FileText className="mb-4 h-9 w-9 text-gray-300" strokeWidth={1.5} />
+          <p className="text-[15px] font-semibold" style={{ color: INK }}>No reports yet</p>
+          <p className="mt-1.5 max-w-md text-[13.5px] text-gray-500">
+            Your account manager writes to you when a watched startup moves, not on a schedule.
           </p>
         </div>
       ) : (
-        <div className="mt-2">
+        <div>
           {grouped.map(([startup, list]) => (
-            <section key={startup} className="mb-2">
-              <div className="flex items-baseline justify-between px-1 pb-1.5 pt-5">
-                <h2 className="text-[15px] font-bold tracking-tight text-gray-900">{startup}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {list.length} {list.length === 1 ? 'report' : 'reports'}
-                </span>
+            <section key={startup} className="mb-10">
+              <div className="mb-1 flex items-baseline gap-3">
+                <h2 className="text-[13px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+                  {startup}
+                </h2>
+                <span className="h-px flex-1" style={{ background: '#E8EAED' }} />
               </div>
-              <div className="divide-y divide-gray-200 border-y border-gray-200">
+              <div className="divide-y divide-gray-200 border-b border-gray-200">
                 {list.map((r) => (
                   <button
                     key={r.id}
                     onClick={() => openReport(r)}
                     disabled={opening === r.id}
-                    className="group flex w-full items-center gap-4 px-1 py-4 text-left transition-colors hover:bg-[#F7FAFF]"
+                    className="group flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-gray-50/70"
                   >
-                    <div
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-                      style={{ background: r.kind === 'priority' ? '#FDEBEE' : '#EAF0FB' }}
-                    >
-                      {opening === r.id
-                        ? <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                        : <FileText className="h-4 w-4"
-                            style={{ color: r.kind === 'priority' ? CRIMSON : NAVY }} />}
-                    </div>
-
+                    {/* Thin rule, crimson for priority, navy for quarterly. */}
+                    <span
+                      className="h-9 w-[3px] shrink-0 rounded-full"
+                      style={{ background: r.kind === 'priority' ? CRIMSON : NAVY }}
+                    />
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900 group-hover:text-[#4285F4]">
+                      <div className="flex items-center gap-2.5">
+                        <p className="truncate text-[15px] font-semibold" style={{ color: INK }}>
                           {r.title}
                         </p>
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                          style={r.kind === 'priority'
-                            ? { background: '#FDEBEE', color: CRIMSON }
-                            : { background: '#EAF0FB', color: NAVY }}
-                        >
-                          {r.kind === 'priority' ? 'Priority brief' : 'Quarterly'}
-                        </span>
                         {!r.opened_at && (
-                          <span className="h-2 w-2 shrink-0 rounded-full bg-[#4285F4]" title="Not opened yet" />
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ACCENT }} title="Not opened yet" />
                         )}
                       </div>
-                      {r.summary && (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{r.summary}</p>
-                      )}
+                      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                         style={{ color: r.kind === 'priority' ? CRIMSON : ACCENT }}>
+                        {r.kind === 'priority' ? 'Priority brief' : 'Quarterly'}
+                        {r.period ? <span className="text-gray-400"> · {r.period}</span> : null}
+                      </p>
                     </div>
-
-                    <span className="hidden w-32 shrink-0 text-sm text-muted-foreground sm:block">
-                      {r.period ?? ''}
-                    </span>
-                    <span className="hidden w-32 shrink-0 text-sm text-muted-foreground md:block">
+                    <span className="hidden w-28 shrink-0 text-[13px] text-gray-400 sm:block">
                       {format(new Date(r.sent_at), 'd MMM yyyy')}
                     </span>
-                    <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 group-hover:text-[#4285F4]" />
+                    {opening === r.id
+                      ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gray-400" />
+                      : <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-600" />}
                   </button>
                 ))}
               </div>
@@ -243,24 +225,20 @@ export default function ReportsPage() {
 
       {/* The silence receipt */}
       {silent.length > 0 && (
-        <div className="mt-8 border-t border-gray-200 pt-5">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-700" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        <div className="mt-4 border-t border-gray-200 pt-6">
+          <div className="mb-3 flex items-center gap-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-gray-400" strokeWidth={2} />
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-gray-400">
               Watched, nothing to report
             </p>
           </div>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            These are being monitored and have not crossed anything worth your time. You will hear
-            the day that changes.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {silent.map((n) => (
               <span
                 key={n}
-                className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 px-3 py-1 text-[12.5px] font-medium text-gray-600"
               >
-                <Star className="h-3 w-3 text-[#F4B400]" /> {n}
+                <Star className="h-3 w-3" style={{ color: '#C7A24B' }} /> {n}
               </span>
             ))}
           </div>

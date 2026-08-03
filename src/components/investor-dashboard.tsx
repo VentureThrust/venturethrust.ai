@@ -44,6 +44,27 @@ const NAVY = '#0D1B3E';
 const ACCENT = '#1E3A6E';
 const CRIMSON = '#8B1E2D';
 
+/**
+ * Alert messages arrive as "Priority brief ready: <Startup> has crossed ...".
+ * The row shows the startup as the headline and the finding underneath, so a
+ * scan of the dashboard reads as a list of names rather than a paragraph.
+ * Anything that does not match the shape falls back to the whole message.
+ */
+const BRIEF_RE = /^Priority brief ready:\s*([^.]+?)\s+(?:has|is)\s+(.*)$/i;
+
+function briefStartup(message: string): string {
+  const m = message.match(BRIEF_RE);
+  if (!m) return message;
+  // Trim the startup name off the front of the clause it shares with the verb.
+  const words = m[1].trim().split(/\s+/);
+  return words.slice(0, 4).join(' ');
+}
+
+function briefDetail(message: string): string {
+  const m = message.match(BRIEF_RE);
+  return m ? m[2].trim().replace(/\.$/, '') : '';
+}
+
 export function InvestorDashboard({ firstName }: { firstName: string }) {
   const router = useRouter();
   const [rows, setRows] = useState<WatchRow[]>([]);
@@ -159,14 +180,16 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
             {briefs.map((b) => (
               <div key={b.id} className="flex flex-wrap items-center gap-x-6 gap-y-4 py-6">
                 {/* A thin crimson rule, not a chip. Editorial, not SaaS. */}
-                <div className="flex min-w-0 flex-1 items-stretch gap-4">
-                  <span className="w-[3px] shrink-0 rounded-full" style={{ background: CRIMSON }} />
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <span className="h-9 w-[3px] shrink-0 rounded-full" style={{ background: CRIMSON }} />
                   <div className="min-w-0">
-                    <p className="text-[15.5px] font-medium leading-snug" style={{ color: INK }}>
-                      {b.message}
+                    {/* Startup name is the headline. The finding is the subline,
+                        on one line, and the full brief is one click away. */}
+                    <p className="truncate text-[15.5px] font-semibold" style={{ color: INK }}>
+                      {briefStartup(b.message)}
                     </p>
-                    <p className="mt-1.5 text-[12.5px] text-gray-400">
-                      {formatDistanceToNow(new Date(b.created_at), { addSuffix: true })} · from your account manager
+                    <p className="truncate text-[12.5px] text-gray-400">
+                      {briefDetail(b.message)}
                     </p>
                   </div>
                 </div>
@@ -232,33 +255,23 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
                 <div
                   key={r.id}
                   onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
-                  className={`group flex items-start gap-4 py-5 transition-colors hover:bg-gray-50/70 ${r.space_id ? 'cursor-pointer' : ''}`}
+                  className={`group flex items-center gap-4 py-4 transition-colors hover:bg-gray-50/70 ${r.space_id ? 'cursor-pointer' : ''}`}
                 >
-                  <Star className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#C7A24B' }} strokeWidth={2} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <p className="text-[15.5px] font-semibold" style={{ color: INK }}>
-                        {r.startup_name || 'Unnamed startup'}
-                      </p>
-                      {r.quarterly_report && (
-                        <span className="rounded-full border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                          Quarterly on
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                        <UserCheck className="h-3 w-3" /> Managed
-                      </span>
-                    </div>
-                    {r.note && (
-                      <p className="mt-1.5 line-clamp-2 text-[13px] italic leading-relaxed text-gray-500">
-                        &ldquo;{r.note}&rdquo;
-                      </p>
-                    )}
-                    <p className="mt-1.5 text-[11.5px] text-gray-400">
-                      Added {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                  <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-500" />
+                  <Star className="h-4 w-4 shrink-0" style={{ color: '#C7A24B' }} strokeWidth={2} />
+                  {/* Name only. Everything else is one click away. */}
+                  <p className="min-w-0 flex-1 truncate text-[15.5px] font-semibold" style={{ color: INK }}
+                     title={r.note ?? undefined}>
+                    {r.startup_name || 'Unnamed startup'}
+                  </p>
+                  {r.quarterly_report && (
+                    <span className="hidden shrink-0 rounded-full border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 sm:inline">
+                      Quarterly
+                    </span>
+                  )}
+                  <span className="hidden w-24 shrink-0 text-[12.5px] text-gray-400 md:block">
+                    {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-500" />
                 </div>
               ))}
             </div>
