@@ -15,8 +15,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 import {
-  FileText, Loader2, Download, X, ShieldCheck, ArrowUpRight, Star,
+  FileText, Loader2, Download, X, ShieldCheck, Star,
 } from 'lucide-react';
 
 type Report = {
@@ -183,22 +184,25 @@ export default function ReportsPage() {
               </div>
               <div className="divide-y divide-gray-200 border-b border-gray-200">
                 {list.map((r) => (
-                  <button
+                  <div
                     key={r.id}
-                    onClick={() => openReport(r)}
-                    disabled={opening === r.id}
-                    className="group flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-gray-50/70"
+                    className="group flex items-center gap-4 py-3.5"
                   >
-                    {/* Thin rule, crimson for priority, navy for quarterly. */}
-                    <span
-                      className="h-9 w-[3px] shrink-0 rounded-full"
-                      style={{ background: r.kind === 'priority' ? CRIMSON : NAVY }}
-                    />
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                         style={{ background: r.kind === 'priority' ? '#FBEAED' : '#EAEFF8' }}>
+                      <FileText className="h-4 w-4"
+                                style={{ color: r.kind === 'priority' ? CRIMSON : NAVY }} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2.5">
-                        <p className="truncate text-[15px] font-semibold" style={{ color: INK }}>
+                        <button
+                          onClick={() => openReport(r)}
+                          disabled={opening === r.id}
+                          className="truncate text-[15px] font-medium hover:underline"
+                          style={{ color: INK }}
+                        >
                           {r.title}
-                        </p>
+                        </button>
                         {!r.opened_at && (
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ACCENT }} title="Not opened yet" />
                         )}
@@ -212,10 +216,14 @@ export default function ReportsPage() {
                     <span className="hidden w-28 shrink-0 text-[13px] text-gray-400 sm:block">
                       {format(new Date(r.sent_at), 'd MMM yyyy')}
                     </span>
-                    {opening === r.id
-                      ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gray-400" />
-                      : <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-600" />}
-                  </button>
+                    <Button size="sm" variant="outline" onClick={() => openReport(r)}
+                            disabled={opening === r.id} className="shrink-0">
+                      {opening === r.id
+                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                        : null}
+                      Open report
+                    </Button>
+                  </div>
                 ))}
               </div>
             </section>

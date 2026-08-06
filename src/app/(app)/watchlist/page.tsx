@@ -9,11 +9,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { Star, Loader2, UserCheck, ExternalLink, FileBarChart } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+/** Two-letter badge for a startup, matching the Spaces list. */
+function getInitials(name?: string | null): string {
+  if (!name || name.trim() === '') return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length > 1) return `${parts[0][0]}${parts[parts.length - 1][0]}`;
+  return name.substring(0, 2);
+}
 
 type Row = {
   id: string;
@@ -28,7 +38,6 @@ type Row = {
 
 export default function WatchlistPage() {
   const { toast } = useToast();
-  const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -147,84 +156,100 @@ export default function WatchlistPage() {
           </Button>
         </div>
       ) : (
-        <div>
-          {/* Column header */}
-          <div className="flex items-center gap-4 border-b border-gray-200 px-2 py-2">
-            <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Startup</span>
-            <span className="hidden w-40 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:block">Added</span>
-            <span className="hidden w-36 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:block">Reports</span>
-            <span className="w-56 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monitoring</span>
-          </div>
-
-          <div className="divide-y divide-gray-200 border-b border-gray-200">
-            {rows.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
-                className={`flex items-center gap-4 px-2 py-4 transition-colors hover:bg-[#F7FAFF] ${r.space_id ? 'cursor-pointer' : ''}`}
-              >
-                {/* The name is the row. The investor's own note is on the
-                    startup page, not shrunk into grey text here. */}
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <Star className="h-4 w-4 shrink-0" style={{ color: '#C7A24B' }} strokeWidth={2} />
-                  <p className="truncate text-[15px] font-semibold text-gray-900" title={r.note ?? undefined}>
-                    {r.startup_name || 'Unnamed startup'}
-                  </p>
-                </div>
-                <span className="hidden w-40 text-sm text-muted-foreground sm:block">
-                  {format(new Date(r.created_at), 'MMM d, yyyy')}
-                </span>
-                <div className="hidden w-36 md:block">
-                  <Button
-                    size="sm"
-                    variant={r.quarterly_report ? 'outline' : 'ghost'}
-                    className={r.quarterly_report ? '' : 'text-muted-foreground'}
-                    onClick={(e) => { e.stopPropagation(); toggleQuarterly(r); }}
-                    disabled={togglingId === r.id}
-                    title={r.quarterly_report
-                      ? 'You get a quarterly report on this startup. Click to turn off.'
-                      : 'Click to request a quarterly report on this startup.'}
-                  >
-                    {togglingId === r.id
-                      ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                      : <FileBarChart className="mr-1.5 h-4 w-4" />}
-                    {r.quarterly_report ? 'Quarterly on' : 'Quarterly off'}
-                  </Button>
-                </div>
-                <div className="flex w-56 items-center justify-end gap-2">
-                  {r.manager_id ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
-                      <UserCheck className="h-3.5 w-3.5" />
-                      Managed for you
-                    </span>
-                  ) : (
+        // Same table shape as Spaces: initials badge, the name as a link, and
+        // a real button on the right. That is what reads as clickable.
+        <div className="border-t border-gray-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Startup</TableHead>
+                <TableHead className="hidden sm:table-cell">Added</TableHead>
+                <TableHead className="hidden md:table-cell">Reports</TableHead>
+                <TableHead className="hidden lg:table-cell">Monitoring</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground">
+                        {getInitials(r.startup_name)}
+                      </div>
+                      {r.space_id ? (
+                        <Link
+                          href={`/spaces/${r.space_id}/view?open=deck`}
+                          className="hover:underline"
+                          title={r.note ?? undefined}
+                        >
+                          {r.startup_name || 'Unnamed startup'}
+                        </Link>
+                      ) : (
+                        <span>{r.startup_name || 'Unnamed startup'}</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {format(new Date(r.created_at), 'MMM d, yyyy')}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={(e) => { e.stopPropagation(); assign(r); }}
-                      disabled={assigningId === r.id}
+                      variant={r.quarterly_report ? 'outline' : 'ghost'}
+                      className={r.quarterly_report ? '' : 'text-muted-foreground'}
+                      onClick={() => toggleQuarterly(r)}
+                      disabled={togglingId === r.id}
+                      title={r.quarterly_report
+                        ? 'You get a quarterly report on this startup. Click to turn off.'
+                        : 'Click to request a quarterly report on this startup.'}
                     >
-                      {assigningId === r.id
+                      {togglingId === r.id
                         ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                        : <UserCheck className="mr-1.5 h-4 w-4" />}
-                      Assign to manager
+                        : <FileBarChart className="mr-1.5 h-4 w-4" />}
+                      {r.quarterly_report ? 'Quarterly on' : 'Quarterly off'}
                     </Button>
-                  )}
-                  {r.space_id && (
-                    <Button size="sm" variant="ghost" asChild title="Open in a new tab">
-                      <Link
-                        href={`/spaces/${r.space_id}/view?open=deck`}
-                        target="_blank"
-                        onClick={(e) => e.stopPropagation()}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {r.manager_id ? (
+                      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <UserCheck className="h-4 w-4" />
+                        Managed for you
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => assign(r)}
+                        disabled={assigningId === r.id}
                       >
-                        <ExternalLink className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                        {assigningId === r.id
+                          ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          : <UserCheck className="mr-1.5 h-4 w-4" />}
+                        Assign to manager
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      {r.space_id && (
+                        <>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/spaces/${r.space_id}/view?open=deck`}>Open room</Link>
+                          </Button>
+                          <Button size="sm" variant="ghost" asChild title="Open in a new tab">
+                            <Link href={`/spaces/${r.space_id}/view?open=deck`} target="_blank">
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

@@ -39,6 +39,14 @@ type AlertRow = {
 
 // Restraint is the whole aesthetic here. One deep ink, one crimson accent for
 // what needs attention, hairlines instead of filled tiles. No gradient chips.
+/** Two-letter badge, matching the Spaces list. */
+function initials(name?: string | null): string {
+  if (!name || name.trim() === '') return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length > 1) return `${parts[0][0]}${parts[parts.length - 1][0]}`;
+  return name.substring(0, 2);
+}
+
 const INK = '#0F1729';
 const NAVY = '#0D1B3E';
 const ACCENT = '#1E3A6E';
@@ -250,19 +258,28 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
               </button>
             </div>
           ) : (
+            // Initials badge, name as a link, real button. Same shape as the
+            // Spaces list, which is the one that reads as clickable.
             <div className="divide-y divide-gray-200 border-y border-gray-200">
               {rows.map((r) => (
-                <div
-                  key={r.id}
-                  onClick={() => { if (r.space_id) router.push(`/spaces/${r.space_id}/view?open=deck`); }}
-                  className={`group flex items-center gap-4 py-4 transition-colors hover:bg-gray-50/70 ${r.space_id ? 'cursor-pointer' : ''}`}
-                >
-                  <Star className="h-4 w-4 shrink-0" style={{ color: '#C7A24B' }} strokeWidth={2} />
-                  {/* Name only. Everything else is one click away. */}
-                  <p className="min-w-0 flex-1 truncate text-[15.5px] font-semibold" style={{ color: INK }}
-                     title={r.note ?? undefined}>
-                    {r.startup_name || 'Unnamed startup'}
-                  </p>
+                <div key={r.id} className="flex items-center gap-3.5 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-[12px] font-semibold text-gray-500">
+                    {initials(r.startup_name)}
+                  </div>
+                  {r.space_id ? (
+                    <Link
+                      href={`/spaces/${r.space_id}/view?open=deck`}
+                      className="min-w-0 flex-1 truncate text-[15px] font-medium hover:underline"
+                      style={{ color: INK }}
+                      title={r.note ?? undefined}
+                    >
+                      {r.startup_name || 'Unnamed startup'}
+                    </Link>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-medium" style={{ color: INK }}>
+                      {r.startup_name || 'Unnamed startup'}
+                    </span>
+                  )}
                   {r.quarterly_report && (
                     <span className="hidden shrink-0 rounded-full border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 sm:inline">
                       Quarterly
@@ -271,7 +288,14 @@ export function InvestorDashboard({ firstName }: { firstName: string }) {
                   <span className="hidden w-24 shrink-0 text-[12.5px] text-gray-400 md:block">
                     {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                   </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-500" />
+                  {r.space_id && (
+                    <Link
+                      href={`/spaces/${r.space_id}/view?open=deck`}
+                      className="inline-flex h-8 shrink-0 items-center rounded-md border border-gray-300 px-3 text-[13px] font-medium text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-900"
+                    >
+                      Open room
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>
