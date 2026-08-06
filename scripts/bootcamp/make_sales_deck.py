@@ -130,7 +130,20 @@ def shot(slide, filename, x, y, w, h):
     return False
 
 
-def step_slide(prs, n, step, title, sub, filename, note=None, link=None):
+def actor_tag(slide, actor, x=L, y=Inches(0.38)):
+    """Who is doing this step. Never make the reader infer it from 'they'."""
+    colour = {"FOUNDER": RGBColor(0x1E, 0x3A, 0x6E),
+              "INVESTOR": CRIMSON,
+              "VENTURETHRUST": RGBColor(0x2F, 0x6B, 0x4F)}.get(actor, NAVY)
+    w = Inches(1.25 + 0.085 * len(actor))
+    rect(slide, x, y, w, Inches(0.28), colour)
+    tf = box(slide, x, y + Inches(0.045), w, Inches(0.24))
+    para(tf, actor, 9.5, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+    return w
+
+
+def step_slide(prs, n, step, title, sub, filename, actor="INVESTOR",
+               note=None, link=None):
     """
     One workflow step. The screenshot is the slide, so the header is kept
     tight and the footer rule dropped: a shot letterboxed into a short box
@@ -138,8 +151,9 @@ def step_slide(prs, n, step, title, sub, filename, note=None, link=None):
     """
     s = prs.slides.add_slide(prs.slide_layouts[6])
 
-    t = box(s, L, Inches(0.42), CW, Inches(0.3))
-    para(t, "HOW IT WORKS", 10.5, CRIMSON, bold=True, first=True)
+    w = actor_tag(s, actor)
+    t = box(s, L + w + Inches(0.22), Inches(0.4), CW, Inches(0.3))
+    para(t, "STEP %d OF 5" % step, 10, MUTED, bold=True, first=True)
 
     # Step numeral in a filled square, left of the headline.
     rect(s, L, Inches(0.82), Inches(0.56), Inches(0.56), NAVY)
@@ -219,54 +233,56 @@ def build(network="your network"):
 
     # 3 ── Nothing changes ─────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "The important part")
-    head(s, "Nothing about how your members work changes")
+    head(s, "Nothing about how your investors work changes")
     bullets(s, [
-        "The deck still arrives by email, from the founder, exactly as it does today.",
-        "They still open it and read it the same way.",
-        "There is one extra button on that page. That is the entire change.",
-        "No new inbox, no new login to remember, no process for anyone to adopt.",
+        ("The founder still emails the deck.", "Exactly as they do today."),
+        ("The investor still opens it and reads it.", "Same inbox, same habit."),
+        ("One extra button on that page.", "That is the entire change for the investor."),
+        ("VentureThrust does the rest.", "No new login, no forms, no process to adopt."),
     ], top=Inches(2.3))
     rect(s, L, Inches(5.5), CW, Pt(0.75), RULE)
     tf = box(s, L, Inches(5.78), CW, Inches(0.9))
-    para(tf, "Every tool that asks an investor to change their workflow dies in the first week. "
-             "This one asks for a single click.", 17, NAVY, bold=True, first=True, line=1.3)
+    para(tf, "Every tool that asks an investor to change their workflow dies in the first "
+             "week. This one asks the investor for a single click.",
+         17, NAVY, bold=True, first=True, line=1.3)
 
     # 4 to 8 ── The workflow ───────────────────────────────────────────────
     n += 1
-    step_slide(prs, n, 1, "The deck arrives by email",
-               "Exactly as it does today. The founder sends it, your member receives it.",
-               "01_email.png")
+    step_slide(prs, n, 1, "The founder sends the deck by email",
+               "Straight to the investor's inbox, exactly as it happens today.",
+               "01_email.png", actor="FOUNDER")
 
     n += 1
-    step_slide(prs, n, 2, "They read it, and there is one button",
-               "Add to Watchlist sits on the deck they are already looking at.",
-               "02_deck_watch.png")
+    step_slide(prs, n, 2, "The investor opens it and sees one button",
+               "Add to Watchlist sits on the deck the investor is already reading.",
+               "02_deck_watch.png", actor="INVESTOR")
 
     n += 1
-    step_slide(prs, n, 3, "They write why they passed, or they skip it",
-               "The note is optional. It is what the brief is measured against later.",
-               "03_note.png",
+    step_slide(prs, n, 3, "The investor writes why they passed",
+               "Optional. This note is what the brief will be measured against later.",
+               "03_note.png", actor="INVESTOR",
                note="Quarterly reports are opt in, per startup. Off by default.")
 
     n += 1
-    step_slide(prs, n, 4, "It sits on their watchlist and we take over",
-               "Your member does nothing further. No forms, no reminders, no chasing.",
-               "04_watchlist.png")
+    step_slide(prs, n, 4, "The startup sits on the investor's watchlist",
+               "The investor does nothing further. No forms, no reminders, no chasing.",
+               "04_watchlist.png", actor="VENTURETHRUST")
 
     # Step 5 gets its own layout. The brief is the deliverable, so the page
     # runs full height on the left with what is in it spelled out beside it.
     n += 1
     s = prs.slides.add_slide(blank)
-    t = box(s, L, Inches(0.42), CW, Inches(0.3))
-    para(t, "HOW IT WORKS", 10.5, CRIMSON, bold=True, first=True)
+    w = actor_tag(s, "VENTURETHRUST")
+    t = box(s, L + w + Inches(0.22), Inches(0.4), CW, Inches(0.3))
+    para(t, "STEP 5 OF 5", 10, MUTED, bold=True, first=True)
     rect(s, L, Inches(0.82), Inches(0.56), Inches(0.56), NAVY)
     tn = box(s, L, Inches(0.92), Inches(0.56), Inches(0.4))
     para(tn, "5", 20, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
     tf = box(s, Inches(1.62), Inches(0.8), Inches(10.8), Inches(0.55))
-    para(tf, "The brief arrives when the reason they passed stops being true",
+    para(tf, "We send the investor a brief, and only when it matters",
          26, NAVY, bold=True, first=True, line=1.05)
     t2 = box(s, Inches(1.62), Inches(1.33), Inches(10.8), Inches(0.4))
-    para(t2, "Not on a schedule. Only when something crossed the bar they set.",
+    para(t2, "Not on a schedule. Only when the reason the investor passed stops being true.",
          14, MUTED, first=True, line=1.25)
 
     shot(s, "05_report_page.png", L, Inches(1.9), Inches(4.6), Inches(5.2))
@@ -276,7 +292,7 @@ def build(network="your network"):
     tf = box(s, tx, Inches(2.0), tw, Inches(4.2))
     for i, (a, b) in enumerate([
         ("Why you are getting this",
-         "Quoted from the note they wrote when they passed."),
+         "Quoted from the note the investor wrote when they passed."),
         ("Then versus now",
          "The same metrics, at the pass and today, with the arithmetic shown."),
         ("What changed and what did not",
@@ -295,7 +311,7 @@ def build(network="your network"):
 
     rect(s, tx, Inches(5.55), tw, Pt(0.75), RULE)
     tf2 = box(s, tx, Inches(5.8), tw, Inches(1.0))
-    para(tf2, "Every brief ends: we explain, you decide.", 15.5, CRIMSON,
+    para(tf2, "Every brief ends: we explain, the investor decides.", 15.5, CRIMSON,
          bold=True, first=True, after=8)
     if REPORT_LINK:
         para(tf2, "Read the full sample report", 14, NAVY, bold=True,
@@ -308,9 +324,9 @@ def build(network="your network"):
     head(s, "Software catches it. AI reads it. A human confirms it.")
     tf = box(s, L, Inches(2.15), CW, Inches(2.2))
     for i, (a, b) in enumerate([
-        ("1. The software catches it", "A document changes in the startup's data room."),
-        ("2. The AI reads it", "It compares the change against that member's own note."),
-        ("3. A human confirms it", "Nothing is sent until a person agrees it matters."),
+        ("1. The software catches it", "A document changes in the founder's data room."),
+        ("2. The AI reads it", "It compares the change against the investor's own note."),
+        ("3. A human confirms it", "Nothing reaches the investor until a person agrees it matters."),
     ]):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.space_after = Pt(14)
@@ -321,23 +337,23 @@ def build(network="your network"):
         r2.font.size = Pt(17); r2.font.color.rgb = MUTED; r2.font.name = "Calibri"
     rect(s, L, Inches(4.35), CW, Pt(0.75), RULE)
     bullets(s, [
-        ("Founders consent.", "The startup keeps its room on VentureThrust and controls what is shared. Nothing is scraped."),
-        ("The third layer is the product.", "One useless alert and a member stops reading the next one. So a person signs off on every brief."),
+        ("The founder consents.", "The startup keeps its room on VentureThrust and controls what is shared. Nothing is scraped."),
+        ("The third layer is the product.", "One useless alert and the investor stops reading the next one. So a person signs off on every brief."),
     ], top=Inches(4.7), size=15.5, gap=12)
 
     # 10 ── Silence ────────────────────────────────────────────────────────
-    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Why members trust it")
+    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Why investors trust it")
     head(s, "Silence is the product")
     bullets(s, [
-        "Nothing happened this month, so we send nothing. That is the default.",
-        "A quarterly report goes only to the startups where the member asked for one.",
-        "Most months a member hears from us once, or not at all.",
+        "Nothing happened this month, so the investor hears nothing. That is the default.",
+        "A quarterly report goes only to the startups where the investor asked for one.",
+        "Most months an investor hears from us once, or not at all.",
         "Anyone can send more email. The scarce thing is a service that stays quiet.",
     ], top=Inches(2.3))
     rect(s, L, Inches(5.5), CW, Pt(0.75), RULE)
     tf = box(s, L, Inches(5.78), CW, Inches(0.9))
-    para(tf, "Every brief ends the same way: we explain, you decide. We never say invest.",
-         17, NAVY, bold=True, first=True, line=1.3)
+    para(tf, "Every brief ends the same way: we explain, the investor decides. "
+             "We never say invest.", 17, NAVY, bold=True, first=True, line=1.3)
 
     # 11 ── Pricing ────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Commercials")
