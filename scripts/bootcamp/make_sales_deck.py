@@ -131,30 +131,40 @@ def shot(slide, filename, x, y, w, h):
 
 
 def step_slide(prs, n, step, title, sub, filename, note=None, link=None):
-    """One workflow step: big numeral, headline, screenshot underneath."""
+    """
+    One workflow step. The screenshot is the slide, so the header is kept
+    tight and the footer rule dropped: a shot letterboxed into a short box
+    ends up small and marooned in white space.
+    """
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    chrome(s, n, "How it works")
 
-    # Step numeral in a hairline square, left of the headline.
-    rect(s, L, Inches(0.95), Inches(0.62), Inches(0.62), NAVY)
-    tn = box(s, L, Inches(1.06), Inches(0.62), Inches(0.45))
-    para(tn, str(step), 22, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+    t = box(s, L, Inches(0.42), CW, Inches(0.3))
+    para(t, "HOW IT WORKS", 10.5, CRIMSON, bold=True, first=True)
 
-    tf = box(s, Inches(1.72), Inches(0.95), Inches(10.7), Inches(0.6))
-    para(tf, title, 28, NAVY, bold=True, first=True, line=1.05)
-    t2 = box(s, Inches(1.72), Inches(1.58), Inches(10.7), Inches(0.45))
-    para(t2, sub, 15, MUTED, first=True, line=1.3)
+    # Step numeral in a filled square, left of the headline.
+    rect(s, L, Inches(0.82), Inches(0.56), Inches(0.56), NAVY)
+    tn = box(s, L, Inches(0.92), Inches(0.56), Inches(0.4))
+    para(tn, str(step), 20, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
 
-    bottom = Inches(6.55) if not (note or link) else Inches(6.15)
-    shot(s, filename, L, Inches(2.25), CW, bottom - Inches(2.25))
+    tf = box(s, Inches(1.62), Inches(0.8), Inches(10.8), Inches(0.55))
+    para(tf, title, 26, NAVY, bold=True, first=True, line=1.05)
+    t2 = box(s, Inches(1.62), Inches(1.33), Inches(10.8), Inches(0.4))
+    para(t2, sub, 14, MUTED, first=True, line=1.25)
+
+    top = Inches(1.85)
+    bottom = Inches(7.22) if not (note or link) else Inches(6.82)
+    shot(s, filename, L, top, CW, bottom - top)
 
     if note or link:
-        tf3 = box(s, L, bottom + Inches(0.1), CW, Inches(0.4))
+        tf3 = box(s, L, bottom + Inches(0.12), CW, Inches(0.4))
         if note:
             para(tf3, note, 13, INK, bold=True, first=True)
         if link:
             para(tf3, "Read the full sample report", 13, CRIMSON, bold=True,
                  first=not note, link=link)
+
+    tp = box(s, Inches(12.3), Inches(7.05), Inches(0.6), Inches(0.3))
+    para(tp, str(n), 9, MUTED, first=True, align=PP_ALIGN.RIGHT)
     return s
 
 
@@ -243,11 +253,55 @@ def build(network="your network"):
                "Your member does nothing further. No forms, no reminders, no chasing.",
                "04_watchlist.png")
 
+    # Step 5 gets its own layout. The brief is the deliverable, so the page
+    # runs full height on the left with what is in it spelled out beside it.
     n += 1
-    step_slide(prs, n, 5, "The brief arrives when the reason they passed stops being true",
-               "Not on a schedule. Only when something crossed the bar they set.",
-               "05_report.png",
-               link=REPORT_LINK or None)
+    s = prs.slides.add_slide(blank)
+    t = box(s, L, Inches(0.42), CW, Inches(0.3))
+    para(t, "HOW IT WORKS", 10.5, CRIMSON, bold=True, first=True)
+    rect(s, L, Inches(0.82), Inches(0.56), Inches(0.56), NAVY)
+    tn = box(s, L, Inches(0.92), Inches(0.56), Inches(0.4))
+    para(tn, "5", 20, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+    tf = box(s, Inches(1.62), Inches(0.8), Inches(10.8), Inches(0.55))
+    para(tf, "The brief arrives when the reason they passed stops being true",
+         26, NAVY, bold=True, first=True, line=1.05)
+    t2 = box(s, Inches(1.62), Inches(1.33), Inches(10.8), Inches(0.4))
+    para(t2, "Not on a schedule. Only when something crossed the bar they set.",
+         14, MUTED, first=True, line=1.25)
+
+    shot(s, "05_report_page.png", L, Inches(1.9), Inches(4.6), Inches(5.2))
+
+    tx = Inches(6.0)
+    tw = Inches(6.6)
+    tf = box(s, tx, Inches(2.0), tw, Inches(4.2))
+    for i, (a, b) in enumerate([
+        ("Why you are getting this",
+         "Quoted from the note they wrote when they passed."),
+        ("Then versus now",
+         "The same metrics, at the pass and today, with the arithmetic shown."),
+        ("What changed and what did not",
+         "Durable drivers separated from seasonal luck."),
+        ("What we would still watch",
+         "The thing that could still go wrong."),
+    ]):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.space_after = Pt(3); p.line_spacing = 1.2
+        r = p.add_run(); r.text = a
+        r.font.size = Pt(15.5); r.font.bold = True; r.font.color.rgb = INK
+        r.font.name = "Calibri"
+        p2 = tf.add_paragraph(); p2.space_after = Pt(15); p2.line_spacing = 1.25
+        r2 = p2.add_run(); r2.text = b
+        r2.font.size = Pt(13.5); r2.font.color.rgb = MUTED; r2.font.name = "Calibri"
+
+    rect(s, tx, Inches(5.55), tw, Pt(0.75), RULE)
+    tf2 = box(s, tx, Inches(5.8), tw, Inches(1.0))
+    para(tf2, "Every brief ends: we explain, you decide.", 15.5, CRIMSON,
+         bold=True, first=True, after=8)
+    if REPORT_LINK:
+        para(tf2, "Read the full sample report", 14, NAVY, bold=True,
+             link=REPORT_LINK)
+    tp = box(s, Inches(12.3), Inches(7.05), Inches(0.6), Inches(0.3))
+    para(tp, str(n), 9, MUTED, first=True, align=PP_ALIGN.RIGHT)
 
     # 9 ── The three layers ────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "What happens in between")
