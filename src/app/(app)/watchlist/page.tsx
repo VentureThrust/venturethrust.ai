@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Star, Loader2, UserCheck, ExternalLink, FileBarChart } from 'lucide-react';
+import { Star, Loader2, UserCheck, ExternalLink, FileBarChart, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 /** Two-letter badge for a startup, matching the Spaces list. */
@@ -42,6 +42,7 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -81,6 +82,39 @@ export default function WatchlistPage() {
       }
     } finally {
       setAssigningId(null);
+    }
+  };
+
+  const unwatch = async (row: Row) => {
+    const name = row.startup_name || 'this startup';
+    if (!window.confirm(
+      `Remove ${name} from your watchlist?\n\n`
+      + 'We will stop monitoring it and you will not receive further briefs. '
+      + 'You can add it again from the data room at any time.')) return;
+
+    setRemovingId(row.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/deal-watch/unwatch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ id: row.id }),
+      });
+      if (res.ok) {
+        // Drop it locally rather than refetching, so the row disappears at once.
+        setRows((prev) => prev.filter((r) => r.id !== row.id));
+        toast({
+          title: `${name} removed from your watchlist`,
+          description: 'We have stopped monitoring it.',
+        });
+      } else {
+        toast({ variant: 'destructive', title: 'Could not remove it. Try again.' });
+      }
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -244,6 +278,18 @@ export default function WatchlistPage() {
                           </Button>
                         </>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => unwatch(r)}
+                        disabled={removingId === r.id}
+                        title="Stop watching this startup"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        {removingId === r.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Trash2 className="h-4 w-4" />}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
