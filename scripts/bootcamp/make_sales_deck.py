@@ -207,15 +207,42 @@ def build(network="your network"):
     n = 0
 
     # 1 ── Cover ───────────────────────────────────────────────────────────
+    # The first line has to say what the buyer gets, not what is wrong with
+    # their world. A B2B reader will not decode a clever hook, so the value
+    # is the headline and the mechanism is demoted to the line under it.
     s = prs.slides.add_slide(blank)
     rect(s, 0, 0, Inches(0.42), H, NAVY)
-    tf = box(s, Inches(1.5), Inches(2.15), Inches(10.4), Inches(3.5))
-    para(tf, "DEAL WATCH", 13, CRIMSON, bold=True, first=True, after=16)
-    para(tf, "The next unicorn already\npitched you.", 44, NAVY, bold=True, after=16, line=1.05)
-    para(tf, "Milestone monitoring for the startups an investor passed on.",
-         18, MUTED, after=28)
-    para(tf, "Prepared for %s" % network, 15, INK, bold=True, after=4)
-    para(tf, "Omprakash Borkar  ·  VentureThrust  ·  venturethrust.com", 13, MUTED)
+
+    tf = box(s, Inches(1.35), Inches(1.55), Inches(10.6), Inches(3.2))
+    para(tf, "DEAL WATCH", 12.5, CRIMSON, bold=True, first=True, after=18)
+    # Two paragraphs rather than one with a line break: a manual break does
+    # not take the paragraph line spacing, and the headline ends up airy.
+    para(tf, "Get a second chance at the", 42, NAVY, bold=True, after=0, line=0.92)
+    para(tf, "startups you passed on.", 42, NAVY, bold=True, after=22, line=0.92)
+    para(tf, "We watch them for you and write to you only when the reason "
+             "you said no is no longer true.", 17.5, MUTED, line=1.35)
+
+    # Three outcomes on a hairline band, so the value is unmissable even if
+    # nothing else on the page is read.
+    rect(s, Inches(1.35), Inches(4.62), Inches(10.6), Pt(0.75), RULE)
+    outcomes = [
+        ("Deal flow you already own", "No new sourcing. These are companies you have met."),
+        ("One click to start", "Nothing about how your members work changes."),
+        ("Silence by default", "Most months you hear nothing, and that is the point."),
+    ]
+    colw = Inches(3.53)
+    for i, (a, b) in enumerate(outcomes):
+        x = Inches(1.35) + i * colw
+        if i:
+            rect(s, x - Inches(0.16), Inches(4.85), Pt(0.75), Inches(0.86), RULE)
+        t = box(s, x, Inches(4.88), colw - Inches(0.35), Inches(1.0))
+        para(t, a, 13.5, NAVY, bold=True, first=True, after=5)
+        para(t, b, 11.5, MUTED, line=1.3)
+
+    rect(s, Inches(1.35), Inches(6.08), Inches(10.6), Pt(0.75), RULE)
+    tf2 = box(s, Inches(1.35), Inches(6.32), Inches(10.6), Inches(0.9))
+    para(tf2, "Prepared for %s" % network, 14.5, INK, bold=True, first=True, after=4)
+    para(tf2, "Omprakash Borkar  ·  VentureThrust  ·  venturethrust.com", 12.5, MUTED)
 
     # 2 ── The gap ─────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "The gap")
