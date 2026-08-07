@@ -35,6 +35,8 @@ export interface SharedFile {
   url: string;
   watermarkText: string | null;
   allowDownload: boolean;
+  /** False for a Deal Watch brief: there is nothing to watch on a report. */
+  watchable?: boolean;
 }
 
 function getDeviceInfo(): { device: string; os: string } {
@@ -375,8 +377,10 @@ export function SharedFileView({
       <header className="flex items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3 text-white">
         <span className="truncate text-sm font-medium">{file.name}</span>
         <div className="flex shrink-0 items-center gap-2">
-          {/* Investor plan accounts only; everyone else sees nothing. */}
-          <FileWatchlistButton fileId={file.id} startupName={file.name} />
+          {/* Investor plan accounts only, and never on a report we sent. */}
+          {file.watchable !== false && (
+            <FileWatchlistButton fileId={file.id} startupName={file.name} />
+          )}
           {file.allowDownload ? (
             <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
               <Button size="sm" variant="secondary">

@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
   // never reaches an unauthorized visitor. NDA / signature stay client-side
   // gates (acceptance + name capture), matching the space flow.
   let file:
-    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean; isAgreement: boolean }
+    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean; isAgreement: boolean; watchable: boolean }
     | null = null;
   if (link.file_id) {
     const { data: fileRow } = await supabase
@@ -134,6 +134,15 @@ export async function POST(req: NextRequest) {
       const { data: signed } = await supabase.storage
         .from('documents')
         .createSignedUrl(fileRow.storage_path as string, 3600);
+      // A Deal Watch brief is not a startup you can watch - it is the output
+      // of already watching one. Offering "Add to Watchlist" on a report reads
+      // as a broken button, so the viewer hides it for anything we have sent.
+      const { data: reportRow } = await supabase
+        .from('dw_reports')
+        .select('id')
+        .eq('storage_path', fileRow.storage_path as string)
+        .limit(1)
+        .maybeSingle();
       const wmRaw = link.watermark ? ((link.watermark_text as string | null) ?? null) : null;
       // For send-by-email recipient links the viewer never types an email, so
       // fall back to the recipient address we already know it was sent to.
@@ -149,6 +158,7 @@ export async function POST(req: NextRequest) {
         // Agreements (placed signature/name/date fields) must open in the
         // SIGNING experience, not the plain viewer - the client redirects.
         isAgreement: Array.isArray(fileRow.agreement_fields) && fileRow.agreement_fields.length > 0,
+        watchable: !reportRow,
       };
     }
   }
