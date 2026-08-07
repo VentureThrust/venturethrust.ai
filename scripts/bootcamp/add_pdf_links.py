@@ -28,8 +28,8 @@ DEMO = os.environ.get(
 ANCHORS = [
     ("Read the full report here", URL),
     (URL, URL),
-    ("Or see it working first: book a fifteen minute demo", DEMO),
-    ("Or see it working first: email me for a fifteen minute demo", DEMO),
+    ("Would you like to see it working first? Book fifteen minutes, whenever suits you.", DEMO),
+    ("Would you like to see it working first? Fifteen minutes on a call, whenever suits you.", DEMO),
 ]
 
 

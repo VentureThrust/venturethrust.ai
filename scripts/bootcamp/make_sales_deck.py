@@ -405,15 +405,15 @@ def build(network=""):
     tf = box(s, L, Inches(5.28), CW, Inches(1.5))
     para(tf, "If none of the three are worth a second look, you have lost nothing.",
          22, INK, first=True, after=18, line=1.3)
-    # A booking link converts better than "email me", so it wins when one is
-    # configured. Without it the mailto still opens a composed message, which
-    # is the next best thing to a calendar slot.
+    # An offer, not an instruction. "Email me for a demo" tells an investor to
+    # do something; a question invites a reply and costs nothing to decline.
+    # A booking link converts better than a mailto, so it wins when configured.
     if DEMO_LINK:
-        para(tf, "Or see it working first: book a fifteen minute demo", 19, NAVY,
-             bold=True, after=12, link=DEMO_LINK)
+        para(tf, "Would you like to see it working first? Book fifteen minutes, "
+                 "whenever suits you.", 19, NAVY, bold=True, after=12, link=DEMO_LINK)
     else:
-        para(tf, "Or see it working first: email me for a fifteen minute demo",
-             19, NAVY, bold=True, after=12,
+        para(tf, "Would you like to see it working first? Fifteen minutes on a call, "
+                 "whenever suits you.", 19, NAVY, bold=True, after=12,
              link="mailto:omprakash@venturethrust.com?subject=Deal%20Watch%20demo")
     para(tf, "Omprakash Borkar  ·  omprakash@venturethrust.com  ·  venturethrust.com",
          18, NAVY, bold=True)
