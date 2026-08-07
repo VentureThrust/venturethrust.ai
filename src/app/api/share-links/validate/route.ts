@@ -25,6 +25,7 @@ import bcrypt from 'bcryptjs';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
 import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
 import { recordExpiredAttempt } from '@/lib/expired-attempts';
+import { notifyLinkOpen } from '@/lib/link-open-notify';
 
 // Service-role client - we deliberately bypass RLS here because the visitor
 // is anonymous and needs to read a single share_links row by id. RLS would
@@ -167,6 +168,30 @@ export async function POST(req: NextRequest) {
   // bump the open counters, and on the FIRST open log a visit + alert the owner.
   if (link.recipient_email && link.file_id) {
     await recordRecipientOpen(link as Record<string, unknown>);
+  }
+
+  // Links carrying notify_email email the owner on every fresh open. This is
+  // the only signal on a link with no email gate, so it runs for anonymous
+  // visitors too. Counters are bumped here for links the recipient path above
+  // does not already cover, so "open number" in the mail is real.
+  if (link.notify_email) {
+    if (!(link.recipient_email && link.file_id)) {
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from('share_links')
+        .update({
+          open_count: (Number(link.open_count) || 0) + 1,
+          last_opened_at: nowIso,
+          opened_at: (link.opened_at as string | null) ?? nowIso,
+        })
+        .eq('id', link.id);
+    }
+    await notifyLinkOpen(supabase, {
+      req,
+      link: link as Record<string, unknown>,
+      visitorEmail: email || (link.recipient_email as string | null) || null,
+      documentName: file?.name ?? null,
+    });
   }
 
   return NextResponse.json({

@@ -105,16 +105,18 @@ def chrome(slide, n, kicker=None):
     tf2 = box(slide, Inches(11.6), Inches(7.02), Inches(0.85), Inches(0.3))
     para(tf2, str(n), 9, MUTED, first=True, align=PP_ALIGN.RIGHT)
     if kicker:
-        t = box(slide, L, Inches(0.6), CW, Inches(0.3))
-        para(t, kicker.upper(), 10.5, CRIMSON, bold=True, first=True)
+        # Read from across a room, so it carries the section on its own rather
+        # than sitting under the headline as a caption.
+        t = box(slide, L, Inches(0.52), CW, Inches(0.36))
+        para(t, kicker.upper(), 15, CRIMSON, bold=True, first=True)
 
 
-def head(slide, title, y=Inches(0.98), size=30, sub=None):
+def head(slide, title, y=Inches(0.98), size=30, sub=None, sub_size=15):
     tf = box(slide, L, y, CW, Inches(0.9))
     para(tf, title, size, NAVY, bold=True, first=True, line=1.05)
     if sub:
         t2 = box(slide, L, y + Inches(0.6), CW, Inches(0.5))
-        para(t2, sub, 15, MUTED, first=True, line=1.3)
+        para(t2, sub, sub_size, MUTED, first=True, line=1.3)
 
 
 def shot(slide, filename, x, y, w, h):
@@ -179,15 +181,18 @@ def build(network=""):
     rect(s, 0, 0, Inches(0.42), H, NAVY)
     tf = box(s, Inches(1.35), Inches(1.55), Inches(10.6), Inches(3.2))
     para(tf, "DEAL WATCH", 12.5, CRIMSON, bold=True, first=True, after=18)
-    para(tf, "Never lose track of the", 42, NAVY, bold=True, after=0, line=0.92)
-    para(tf, "startups you passed on.", 42, NAVY, bold=True, after=22, line=0.92)
-    para(tf, "You hear from us the day the reason you said no is no longer true.",
-         17.5, MUTED, line=1.35)
+    # "for now" is the whole scope of the product. An investor who passed
+    # because the business is wrong never wants to hear about it again; this is
+    # only for the pile that was a no on timing.
+    para(tf, "Never lose track of the startups", 42, NAVY, bold=True, after=0, line=0.92)
+    para(tf, "you passed on for now.", 42, NAVY, bold=True, after=22, line=0.92)
+    para(tf, "Not every no is forever. You hear from us the day the reason you said "
+             "no is no longer true.", 17.5, MUTED, line=1.35)
 
     rect(s, Inches(1.35), Inches(4.62), Inches(10.6), Pt(0.75), RULE)
     colw = Inches(3.53)
     for i, (a, b) in enumerate([
-        ("Deal flow you already own", "No new sourcing. These are companies you have met."),
+        ("Deal flow you already own", "No new sourcing. Companies you met and said not yet to."),
         ("One click to start", "Nothing about how you work changes."),
         ("Silence by default", "Most months you hear nothing, and that is the point."),
     ]):
@@ -217,7 +222,7 @@ def build(network=""):
     bullets(s, [
         ("The no is usually right.", "Too early, wrong economics, no clearance yet."),
         ("The startup keeps building anyway.", "Six months later the reason for the no is gone."),
-        ("Nobody tells the investor.", "They find out from a funding announcement, at a higher price."),
+        ("Nobody tells the investor.", "The news arrives as a funding announcement, at a higher price."),
         ("So the second look never happens.", "Not because the deal got worse, but because nobody was watching."),
     ], top=Inches(2.25))
     rect(s, L, Inches(5.6), CW, Pt(0.75), RULE)
@@ -259,20 +264,22 @@ def build(network=""):
 
     # 4 ── The whole flow on one page ──────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How it works")
-    head(s, "Four clicks, on the deck they already received",
+    head(s, "Four clicks, on the deck the investor already has",
          sub="No new inbox, no new login, no process for anyone to adopt.")
+    # Name the role in every step. A reader who has to work out who "they" is
+    # stops reading the flow and starts decoding the sentence.
     strip(s,
           ["01_email.png", "02_deck_watch.png", "03_note.png", "04_watchlist.png"],
           [("STEP 1", "The founder emails the deck, exactly as today."),
-           ("STEP 2", "Add to Watchlist sits on the page they are reading."),
-           ("STEP 3", "They note why they passed. Optional."),
-           ("STEP 4", "It is on their watchlist. They do nothing more.")],
+           ("STEP 2", "Add to Watchlist sits on the page the investor is reading."),
+           ("STEP 3", "The investor notes the reason for passing. Optional."),
+           ("STEP 4", "It sits on the investor watchlist. Nothing else to do.")],
           top=Inches(2.75))
 
     # 5 ── The brief ───────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "The deliverable")
     head(s, "Then this arrives, and only when it should",
-         sub="Not on a schedule. Only when the reason they passed stops being true.")
+         sub="Not on a schedule. Only when the reason you passed stops being true.")
     shot(s, "05_report_page.png", L, Inches(2.2), Inches(4.4), Inches(4.55))
 
     tx, tw = Inches(5.9), Inches(6.7)
@@ -335,14 +342,15 @@ def build(network=""):
     # No pricing anywhere. The only thing being asked for is three names, and
     # a price on the page turns a free trial into a purchase decision.
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How to start")
-    head(s, "Send three names. Get three reports. Free.",
+    head(s, "Send three names. Get three reports. Free.", size=34, sub_size=18,
          sub="Startups you passed on in the last year. We will show you where they are now.")
 
-    # Titles are kept to one line each. At this size a wrapped title pushes the
+    # This is the slide someone acts on, so it is set larger than the rest.
+    # Titles are kept to one line each: at this size a wrapped title pushes the
     # description into the rule below it.
     steps = [
         ("1", "You send three names",
-         "Startups you looked at and said no to, any time in the last year."),
+         "Ones you passed on for timing, not because the business was wrong."),
         ("2", "We check where they are",
          "Revenue, customers, funding, milestones. What changed since you passed."),
         ("3", "You get three briefs",
@@ -352,20 +360,20 @@ def build(network=""):
     for i, (num, title, desc) in enumerate(steps):
         x = L + i * colw3
         if i:
-            rect(s, x - Inches(0.22), Inches(2.55), Pt(0.75), Inches(1.9), RULE)
-        rect(s, x, Inches(2.5), Inches(0.58), Inches(0.58), NAVY)
-        tn = box(s, x, Inches(2.6), Inches(0.58), Inches(0.42))
-        para(tn, num, 21, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
-        tf = box(s, x, Inches(3.35), Emu(colw3 - Inches(0.45)), Inches(1.7))
-        para(tf, title, 19.5, NAVY, bold=True, first=True, after=9, line=1.15)
-        para(tf, desc, 16, MUTED, line=1.3)
+            rect(s, x - Inches(0.18), Inches(2.4), Pt(0.75), Inches(2.5), RULE)
+        rect(s, x, Inches(2.35), Inches(0.66), Inches(0.66), NAVY)
+        tn = box(s, x, Inches(2.47), Inches(0.66), Inches(0.48))
+        para(tn, num, 24, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+        tf = box(s, x, Inches(3.3), Emu(colw3 - Inches(0.3)), Inches(2.0))
+        para(tf, title, 22, NAVY, bold=True, first=True, after=10, line=1.15)
+        para(tf, desc, 18, MUTED, line=1.3)
 
     rect(s, L, Inches(5.35), CW, Pt(0.75), RULE)
     tf = box(s, L, Inches(5.65), CW, Inches(1.4))
     para(tf, "If none of the three are worth a second look, you have lost nothing.",
-         19, INK, first=True, after=20, line=1.3)
+         22, INK, first=True, after=22, line=1.3)
     para(tf, "Omprakash Borkar  ·  omprakash@venturethrust.com  ·  venturethrust.com",
-         16, NAVY, bold=True)
+         18, NAVY, bold=True)
 
     os.makedirs(SHOTS, exist_ok=True)
     prs.save(OUT)
