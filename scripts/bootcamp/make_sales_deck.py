@@ -346,9 +346,44 @@ def build(network="your network"):
     tp = box(s, Inches(12.3), Inches(7.05), Inches(0.6), Inches(0.3))
     para(tp, str(n), 9, MUTED, first=True, align=PP_ALIGN.RIGHT)
 
-    # 9 ── The three layers ────────────────────────────────────────────────
-    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "What happens in between")
-    head(s, "Software catches it. AI reads it. A human confirms it.")
+    # 9 ── The difference ──────────────────────────────────────────────────
+    # Straight out of the Zenefits playbook: put today beside the alternative
+    # and let the reader do the comparing. Their hourglass slide is the single
+    # most persuasive page in that deck.
+    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "The difference")
+    head(s, "The same startup, with and without us")
+
+    mid = Inches(6.66)
+    rect(s, mid, Inches(2.15), Pt(0.75), Inches(4.1), RULE)
+
+    colw = Inches(5.3)
+    tf = box(s, L, Inches(2.15), colw, Inches(0.4))
+    para(tf, "TODAY", 12, MUTED, bold=True, first=True)
+    tf = box(s, L, Inches(2.62), colw, Inches(3.6))
+    for i, line in enumerate([
+        "You pass on a startup, and it leaves your world entirely.",
+        "It keeps building. Nobody tells you.",
+        "You hear about it from a funding announcement.",
+        "By then the price is set by somebody else.",
+        "The relationship you had is worth nothing.",
+    ]):
+        para(tf, line, 15, MUTED, first=(i == 0), after=15, line=1.3)
+
+    tf = box(s, mid + Inches(0.42), Inches(2.15), colw, Inches(0.4))
+    para(tf, "WITH DEAL WATCH", 12, CRIMSON, bold=True, first=True)
+    tf = box(s, mid + Inches(0.42), Inches(2.62), colw, Inches(3.6))
+    for i, line in enumerate([
+        "You pass, and note why, in one click.",
+        "We read their documents, not the news.",
+        "You hear the day your own condition is met.",
+        "You are early again, at a price nobody has set.",
+        "The relationship you had is the reason you get the call.",
+    ]):
+        para(tf, line, 15, INK, bold=(i in (2, 3)), first=(i == 0), after=15, line=1.3)
+
+    # 10 ── The three layers ───────────────────────────────────────────────
+    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How we do it")
+    head(s, "High tech, and high touch")
     tf = box(s, L, Inches(2.15), CW, Inches(2.2))
     for i, (a, b) in enumerate([
         ("1. The software catches it", "A document changes in the founder's data room."),
@@ -368,7 +403,7 @@ def build(network="your network"):
         ("The third layer is the product.", "One useless alert and the investor stops reading the next one. So a person signs off on every brief."),
     ], top=Inches(4.7), size=15.5, gap=12)
 
-    # 10 ── Silence ────────────────────────────────────────────────────────
+    # 11 ── Silence ────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Why investors trust it")
     head(s, "Silence is the product")
     bullets(s, [
@@ -382,7 +417,7 @@ def build(network="your network"):
     para(tf, "Every brief ends the same way: we explain, the investor decides. "
              "We never say invest.", 17, NAVY, bold=True, first=True, line=1.3)
 
-    # 11 ── Pricing ────────────────────────────────────────────────────────
+    # 12 ── Pricing ────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Commercials")
     head(s, "What it costs")
     cols = [("$149", "per member, per month"),
@@ -403,7 +438,7 @@ def build(network="your network"):
         ("The economics are not subtle.", "One deal re-entered at the earlier price covers many years of this."),
     ], top=Inches(4.55), size=15.5, gap=11)
 
-    # 12 ── The offer ──────────────────────────────────────────────────────
+    # 13 ── The offer ──────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How to start")
     head(s, "Three names, no money")
     bullets(s, [
@@ -417,7 +452,7 @@ def build(network="your network"):
     para(tf, "This is a pilot, not a purchase. Nothing to approve and nothing to sign.",
          17, NAVY, bold=True, first=True)
 
-    # 13 ── Close ──────────────────────────────────────────────────────────
+    # 14 ── Close ──────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank)
     rect(s, 0, 0, W, H, NAVY)
     tf = box(s, Inches(1.5), Inches(2.5), Inches(10.4), Inches(2.8))
