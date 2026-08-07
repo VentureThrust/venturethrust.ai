@@ -41,12 +41,14 @@ OUT = os.path.join(os.path.expanduser("~"), "Desktop", "om",
 
 # The live demo report. Set this and the deck carries a clickable link under
 # the brief, so a reader can go from one page to the real thing.
-REPORT_LINK = os.environ.get("VT_REPORT_LINK", "")
+REPORT_LINK = os.environ.get(
+    "VT_REPORT_LINK",
+    "https://venturethrust.com/shared/0c4126bb89e54760bca1646ef9fc1d6a")
 
 NAVY = RGBColor(0x0D, 0x1B, 0x3E)
 INK = RGBColor(0x0F, 0x17, 0x29)
 CRIMSON = RGBColor(0x8B, 0x1E, 0x2D)
-MUTED = RGBColor(0x6B, 0x72, 0x80)
+MUTED = RGBColor(0x0F, 0x17, 0x29)   # was grey; nothing is dimmed now
 RULE = RGBColor(0xD8, 0xDD, 0xE4)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 PALE = RGBColor(0xF4, 0xF6, 0xF9)
@@ -291,11 +293,16 @@ def build(network=""):
         r2.font.size = Pt(13.5); r2.font.color.rgb = MUTED; r2.font.name = "Calibri"
 
     rect(s, tx, Inches(5.55), tw, Pt(0.75), RULE)
-    tf2 = box(s, tx, Inches(5.8), tw, Inches(1.0))
+    tf2 = box(s, tx, Inches(5.8), tw, Inches(1.1))
     para(tf2, "Every brief ends: we explain, you decide.", 15.5, CRIMSON,
-         bold=True, first=True, after=8)
+         bold=True, first=True, after=10)
+
+    # The whole brief is three pages. Rather than describe it, link to it, so
+    # the reader can go from this page straight to the real thing.
     if REPORT_LINK:
-        para(tf2, "Read the full sample report", 14, NAVY, bold=True, link=REPORT_LINK)
+        para(tf2, "Read the full report here", 15, NAVY, bold=True,
+             after=3, link=REPORT_LINK)
+        para(tf2, REPORT_LINK, 10.5, NAVY, link=REPORT_LINK)
 
     # 6 ── What they can rely on ───────────────────────────────────────────
     # Guarantees, not a description of how the machine works.
@@ -331,33 +338,34 @@ def build(network=""):
     head(s, "Send three names. Get three reports. Free.",
          sub="Startups you passed on in the last year. We will show you where they are now.")
 
+    # Titles are kept to one line each. At this size a wrapped title pushes the
+    # description into the rule below it.
     steps = [
         ("1", "You send three names",
          "Startups you looked at and said no to, any time in the last year."),
-        ("2", "We find out where they are now",
-         "Revenue, customers, funding, milestones. What has changed since you passed."),
-        ("3", "You get three briefs, in a week",
-         "Written exactly as the one you just saw. No charge, nothing to sign."),
+        ("2", "We check where they are",
+         "Revenue, customers, funding, milestones. What changed since you passed."),
+        ("3", "You get three briefs",
+         "Inside a week. Written exactly as the one you just saw, free."),
     ]
     colw3 = int(CW / 3)
     for i, (num, title, desc) in enumerate(steps):
         x = L + i * colw3
         if i:
             rect(s, x - Inches(0.22), Inches(2.55), Pt(0.75), Inches(1.9), RULE)
-        rect(s, x, Inches(2.55), Inches(0.5), Inches(0.5), NAVY)
-        tn = box(s, x, Inches(2.63), Inches(0.5), Inches(0.36))
-        para(tn, num, 18, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
-        tf = box(s, x, Inches(3.25), Emu(colw3 - Inches(0.45)), Inches(1.4))
-        para(tf, title, 16, NAVY, bold=True, first=True, after=7, line=1.15)
-        para(tf, desc, 13.5, MUTED, line=1.3)
+        rect(s, x, Inches(2.5), Inches(0.58), Inches(0.58), NAVY)
+        tn = box(s, x, Inches(2.6), Inches(0.58), Inches(0.42))
+        para(tn, num, 21, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+        tf = box(s, x, Inches(3.35), Emu(colw3 - Inches(0.45)), Inches(1.7))
+        para(tf, title, 19.5, NAVY, bold=True, first=True, after=9, line=1.15)
+        para(tf, desc, 16, MUTED, line=1.3)
 
-    rect(s, L, Inches(4.9), CW, Pt(0.75), RULE)
-    tf = box(s, L, Inches(5.18), CW, Inches(1.5))
-    para(tf, "If none of the three are worth a second look, you have lost nothing "
-             "but the time it took to type three names.",
-         17, INK, first=True, after=16, line=1.3)
+    rect(s, L, Inches(5.35), CW, Pt(0.75), RULE)
+    tf = box(s, L, Inches(5.65), CW, Inches(1.4))
+    para(tf, "If none of the three are worth a second look, you have lost nothing.",
+         19, INK, first=True, after=20, line=1.3)
     para(tf, "Omprakash Borkar  ·  omprakash@venturethrust.com  ·  venturethrust.com",
-         14.5, NAVY, bold=True)
+         16, NAVY, bold=True)
 
     os.makedirs(SHOTS, exist_ok=True)
     prs.save(OUT)
