@@ -20,18 +20,26 @@ PDF = os.path.join(os.path.expanduser("~"), "Desktop", "om",
 URL = os.environ.get(
     "VT_REPORT_LINK",
     "https://venturethrust.com/shared/0c4126bb89e54760bca1646ef9fc1d6a")
+DEMO = os.environ.get(
+    "VT_DEMO_LINK",
+    "mailto:omprakash@venturethrust.com?subject=Deal%20Watch%20demo")
 
-# Any text matching these gets the link laid over it.
-ANCHORS = ["Read the full report here", URL]
+# Anchor text -> where it goes. Each one is searched on every page.
+ANCHORS = [
+    ("Read the full report here", URL),
+    (URL, URL),
+    ("Or see it working first: book a fifteen minute demo", DEMO),
+    ("Or see it working first: email me for a fifteen minute demo", DEMO),
+]
 
 
-def main(path=PDF, url=URL):
+def main(path=PDF):
     doc = fitz.open(path)
     added = 0
     for page in doc:
-        for anchor in ANCHORS:
+        for anchor, uri in ANCHORS:
             for rect in page.search_for(anchor):
-                page.insert_link({"kind": fitz.LINK_URI, "from": rect, "uri": url})
+                page.insert_link({"kind": fitz.LINK_URI, "from": rect, "uri": uri})
                 added += 1
     if not added:
         print("WARNING: no anchor text found, no links added")

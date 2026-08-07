@@ -25,7 +25,9 @@ labelled placeholder so the deck is always presentable.
 """
 
 import os
+import shutil
 import sys
+import zipfile
 
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -45,6 +47,11 @@ REPORT_LINK = os.environ.get(
     "VT_REPORT_LINK",
     "https://venturethrust.com/shared/0c4126bb89e54760bca1646ef9fc1d6a")
 
+# A scheduling page (Cal.com, Calendly). Set VT_DEMO_LINK and the closing
+# slide asks for a booking instead of an email, which is one less step for
+# a reader who has to compose a message otherwise.
+DEMO_LINK = os.environ.get("VT_DEMO_LINK", "").strip()
+
 NAVY = RGBColor(0x0D, 0x1B, 0x3E)
 INK = RGBColor(0x0F, 0x17, 0x29)
 CRIMSON = RGBColor(0x8B, 0x1E, 0x2D)
@@ -56,6 +63,29 @@ PALE = RGBColor(0xF4, 0xF6, 0xF9)
 W, H = Inches(13.333), Inches(7.5)
 L = Inches(0.9)
 CW = Inches(11.53)
+
+
+def restyle_links(path, navy="0D1B3E"):
+    """Repaint the theme's hyperlink colour.
+
+    A run colour set in python-pptx loses to the theme's hlink colour the
+    moment the run carries a link, so every link renders in PowerPoint's
+    default blue and exports that way too. Changing it at the theme is the
+    only place that wins in both the deck and its PDF.
+    """
+    tmp = path + ".tmp"
+    with zipfile.ZipFile(path) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename.startswith("ppt/theme/"):
+                x = data.decode("utf8")
+                x = x.replace('<a:hlink><a:srgbClr val="0000FF"/></a:hlink>',
+                              '<a:hlink><a:srgbClr val="%s"/></a:hlink>' % navy)
+                x = x.replace('<a:folHlink><a:srgbClr val="800080"/></a:folHlink>',
+                              '<a:folHlink><a:srgbClr val="%s"/></a:folHlink>' % navy)
+                data = x.encode("utf8")
+            zout.writestr(item, data)
+    shutil.move(tmp, path)
 
 
 def box(slide, x, y, w, h):
@@ -82,6 +112,9 @@ def para(tf, text, size, color, bold=False, first=False, after=0, before=0,
     r.font.name = "Calibri"
     if link:
         r.hyperlink.address = link
+        # The underline is the theme's too. Weight and colour already mark
+        # this as a link; an underline on a 19pt line just adds noise.
+        r.font.underline = False
     return p
 
 
@@ -360,23 +393,34 @@ def build(network=""):
     for i, (num, title, desc) in enumerate(steps):
         x = L + i * colw3
         if i:
-            rect(s, x - Inches(0.18), Inches(2.4), Pt(0.75), Inches(2.5), RULE)
-        rect(s, x, Inches(2.35), Inches(0.66), Inches(0.66), NAVY)
-        tn = box(s, x, Inches(2.47), Inches(0.66), Inches(0.48))
+            rect(s, x - Inches(0.18), Inches(2.2), Pt(0.75), Inches(2.3), RULE)
+        rect(s, x, Inches(2.15), Inches(0.66), Inches(0.66), NAVY)
+        tn = box(s, x, Inches(2.27), Inches(0.66), Inches(0.48))
         para(tn, num, 24, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
-        tf = box(s, x, Inches(3.3), Emu(colw3 - Inches(0.3)), Inches(2.0))
+        tf = box(s, x, Inches(3.1), Emu(colw3 - Inches(0.3)), Inches(2.0))
         para(tf, title, 22, NAVY, bold=True, first=True, after=10, line=1.15)
         para(tf, desc, 18, MUTED, line=1.3)
 
-    rect(s, L, Inches(5.35), CW, Pt(0.75), RULE)
-    tf = box(s, L, Inches(5.65), CW, Inches(1.4))
+    rect(s, L, Inches(5.02), CW, Pt(0.75), RULE)
+    tf = box(s, L, Inches(5.28), CW, Inches(1.5))
     para(tf, "If none of the three are worth a second look, you have lost nothing.",
-         22, INK, first=True, after=22, line=1.3)
+         22, INK, first=True, after=18, line=1.3)
+    # A booking link converts better than "email me", so it wins when one is
+    # configured. Without it the mailto still opens a composed message, which
+    # is the next best thing to a calendar slot.
+    if DEMO_LINK:
+        para(tf, "Or see it working first: book a fifteen minute demo", 19, NAVY,
+             bold=True, after=12, link=DEMO_LINK)
+    else:
+        para(tf, "Or see it working first: email me for a fifteen minute demo",
+             19, NAVY, bold=True, after=12,
+             link="mailto:omprakash@venturethrust.com?subject=Deal%20Watch%20demo")
     para(tf, "Omprakash Borkar  ·  omprakash@venturethrust.com  ·  venturethrust.com",
          18, NAVY, bold=True)
 
     os.makedirs(SHOTS, exist_ok=True)
     prs.save(OUT)
+    restyle_links(OUT)
 
     needed = ["01_email.png", "02_deck_watch.png", "03_note.png",
               "04_watchlist.png", "05_report_page.png"]

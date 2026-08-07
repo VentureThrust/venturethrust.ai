@@ -25,24 +25,6 @@ function whereFrom(req: NextRequest): string {
   return parts.length ? parts.join(', ') : 'Location not available';
 }
 
-/** Enough of the user agent to be useful, without pretending to fingerprint. */
-function device(req: NextRequest): string {
-  const ua = req.headers.get('user-agent') ?? '';
-  if (!ua) return 'Unknown device';
-  const os = /Windows/i.test(ua) ? 'Windows'
-    : /Android/i.test(ua) ? 'Android'
-    : /iPhone|iPad|iPod/i.test(ua) ? 'iOS'
-    : /Mac OS X/i.test(ua) ? 'macOS'
-    : /Linux/i.test(ua) ? 'Linux' : 'Unknown OS';
-  const browser = /Edg\//i.test(ua) ? 'Edge'
-    : /OPR\//i.test(ua) ? 'Opera'
-    : /Chrome\//i.test(ua) ? 'Chrome'
-    : /Firefox\//i.test(ua) ? 'Firefox'
-    : /Safari\//i.test(ua) ? 'Safari' : 'Unknown browser';
-  const mobile = /Mobile/i.test(ua) ? 'Mobile' : 'Desktop';
-  return `${browser} on ${os} (${mobile})`;
-}
-
 export async function notifyLinkOpen(
   admin: SupabaseClient,
   opts: {
@@ -78,13 +60,12 @@ export async function notifyLinkOpen(
     const openNo = (Number(opts.link.open_count) || 0) + 1;
     const who = (opts.visitorEmail ?? '').trim();
 
-    // Count opens across the whole link so the owner sees traction, not just
-    // this one event. Falls back to the counter on the row.
+    // A notification, not a report. Four facts a person acts on, nothing that
+    // needs interpreting.
     const rows: Array<[string, string]> = [
       ['Document', docName],
       ['Opened at', `${when} IST`],
       ['Location', whereFrom(opts.req)],
-      ['Device', device(opts.req)],
       ['Open number', String(openNo)],
     ];
     if (who) rows.splice(1, 0, ['Visitor', who]);
