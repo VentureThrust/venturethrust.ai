@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-The sales deck for an angel network evaluating Deal Watch.
+The sales deck for an investor evaluating Deal Watch.
 
 Eight slides. The Zenefits deck this was benchmarked against runs to seven,
 and length is a cost: every slide past the point of decision is a slide the
@@ -20,7 +20,8 @@ labelled placeholder so the deck is always presentable.
   04_watchlist.png    the watchlist
   05_report_page.png  the brief itself, cropped out of the viewer
 
-  python scripts/bootcamp/make_sales_deck.py "Malabar Angel Network"
+  python scripts/bootcamp/make_sales_deck.py            no recipient named
+  python scripts/bootcamp/make_sales_deck.py "Ravi Menon"   names one
 """
 
 import os
@@ -163,7 +164,7 @@ def strip(slide, files, captions, top=Inches(2.6), h=Inches(1.5)):
         para(tf, cap, 13, INK, line=1.3)
 
 
-def build(network="your network"):
+def build(network=""):
     prs = Presentation()
     prs.slide_width, prs.slide_height = W, H
     blank = prs.slide_layouts[6]
@@ -176,16 +177,16 @@ def build(network="your network"):
     rect(s, 0, 0, Inches(0.42), H, NAVY)
     tf = box(s, Inches(1.35), Inches(1.55), Inches(10.6), Inches(3.2))
     para(tf, "DEAL WATCH", 12.5, CRIMSON, bold=True, first=True, after=18)
-    para(tf, "Get a second chance at the", 42, NAVY, bold=True, after=0, line=0.92)
+    para(tf, "Never lose track of the", 42, NAVY, bold=True, after=0, line=0.92)
     para(tf, "startups you passed on.", 42, NAVY, bold=True, after=22, line=0.92)
-    para(tf, "You hear from us only when the reason you said no is no longer true.",
+    para(tf, "You hear from us the day the reason you said no is no longer true.",
          17.5, MUTED, line=1.35)
 
     rect(s, Inches(1.35), Inches(4.62), Inches(10.6), Pt(0.75), RULE)
     colw = Inches(3.53)
     for i, (a, b) in enumerate([
         ("Deal flow you already own", "No new sourcing. These are companies you have met."),
-        ("One click to start", "Nothing about how your members work changes."),
+        ("One click to start", "Nothing about how you work changes."),
         ("Silence by default", "Most months you hear nothing, and that is the point."),
     ]):
         x = Inches(1.35) + i * colw
@@ -197,8 +198,16 @@ def build(network="your network"):
 
     rect(s, Inches(1.35), Inches(6.08), Inches(10.6), Pt(0.75), RULE)
     tf2 = box(s, Inches(1.35), Inches(6.32), Inches(10.6), Inches(0.9))
-    para(tf2, "Prepared for %s" % network, 14.5, INK, bold=True, first=True, after=4)
-    para(tf2, "Omprakash Borkar  ·  VentureThrust  ·  venturethrust.com", 12.5, MUTED)
+    # Only name a recipient when one was actually given. A generic
+    # "prepared for your network" reads like a template and also assumes who
+    # is reading, which we never know once a deck is forwarded.
+    if network:
+        para(tf2, "Prepared for %s" % network, 14.5, INK, bold=True, first=True, after=4)
+        para(tf2, "Omprakash Borkar  ·  VentureThrust  ·  venturethrust.com", 12.5, MUTED)
+    else:
+        para(tf2, "Omprakash Borkar  ·  VentureThrust", 14.5, INK, bold=True,
+             first=True, after=4)
+        para(tf2, "omprakash@venturethrust.com  ·  venturethrust.com", 12.5, MUTED)
 
     # 2 ── The gap ─────────────────────────────────────────────────────────
     n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "The gap")
@@ -211,7 +220,7 @@ def build(network="your network"):
     ], top=Inches(2.25))
     rect(s, L, Inches(5.6), CW, Pt(0.75), RULE)
     tf = box(s, L, Inches(5.85), CW, Inches(0.9))
-    para(tf, "A network of a hundred members passes on hundreds of startups a year. "
+    para(tf, "An active investor passes on dozens of startups a year. "
              "Not one of them is being watched.", 17, NAVY, bold=True, first=True, line=1.3)
 
     # 3 ── The difference ──────────────────────────────────────────────────
@@ -315,41 +324,40 @@ def build(network="your network"):
     para(tf, "The startup keeps its data room on VentureThrust and controls what is shared.",
          14.5, MUTED, line=1.3)
 
-    # 7 ── Pricing ─────────────────────────────────────────────────────────
-    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "Commercials")
-    head(s, "What it costs")
+    # 7 ── The ask ─────────────────────────────────────────────────────────
+    # No pricing anywhere. The only thing being asked for is three names, and
+    # a price on the page turns a free trial into a purchase decision.
+    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How to start")
+    head(s, "Send three names. Get three reports. Free.",
+         sub="Startups you passed on in the last year. We will show you where they are now.")
+
+    steps = [
+        ("1", "You send three names",
+         "Startups you looked at and said no to, any time in the last year."),
+        ("2", "We find out where they are now",
+         "Revenue, customers, funding, milestones. What has changed since you passed."),
+        ("3", "You get three briefs, in a week",
+         "Written exactly as the one you just saw. No charge, nothing to sign."),
+    ]
     colw3 = int(CW / 3)
-    for i, (v, lab) in enumerate([("$149", "per member, per month"),
-                                  ("Rs 1.5 lakh", "per member, per year"),
-                                  ("One", "recovered deal pays for a decade")]):
+    for i, (num, title, desc) in enumerate(steps):
         x = L + i * colw3
         if i:
-            rect(s, x - Inches(0.2), Inches(2.3), Pt(0.75), Inches(1.5), RULE)
-        tf = box(s, x, Inches(2.3), Emu(colw3 - Inches(0.4)), Inches(1.6))
-        para(tf, v, 38, NAVY, bold=True, first=True, after=6)
-        para(tf, lab, 13, MUTED, line=1.25)
-    rect(s, L, Inches(4.25), CW, Pt(0.75), RULE)
-    bullets(s, [
-        ("Network pricing.", "Volume terms where a network takes seats for its members."),
-        ("No setup fee, no lock in.", "Monthly, cancel whenever."),
-        ("The economics are not subtle.", "One deal re-entered at the earlier price covers many years of this."),
-    ], top=Inches(4.55), size=15.5, gap=11)
+            rect(s, x - Inches(0.22), Inches(2.55), Pt(0.75), Inches(1.9), RULE)
+        rect(s, x, Inches(2.55), Inches(0.5), Inches(0.5), NAVY)
+        tn = box(s, x, Inches(2.63), Inches(0.5), Inches(0.36))
+        para(tn, num, 18, WHITE, bold=True, first=True, align=PP_ALIGN.CENTER)
+        tf = box(s, x, Inches(3.25), Emu(colw3 - Inches(0.45)), Inches(1.4))
+        para(tf, title, 16, NAVY, bold=True, first=True, after=7, line=1.15)
+        para(tf, desc, 13.5, MUTED, line=1.3)
 
-    # 8 ── The ask ─────────────────────────────────────────────────────────
-    n += 1; s = prs.slides.add_slide(blank); chrome(s, n, "How to start")
-    head(s, "Three names, no money")
-    bullets(s, [
-        ("Send me three startups.", "Ones you or your members passed on in the last year."),
-        ("I will send briefs on all three, free.", "Written exactly as you saw, inside one week."),
-        ("Show them to your members.", "If nobody finds them useful, you have lost nothing."),
-        ("Then we talk about seats.", "Not before."),
-    ], top=Inches(2.25))
-    rect(s, L, Inches(5.3), CW, Pt(0.75), RULE)
-    tf = box(s, L, Inches(5.6), CW, Inches(1.2))
-    para(tf, "This is a pilot, not a purchase. Nothing to approve and nothing to sign.",
-         17, NAVY, bold=True, first=True, after=14)
+    rect(s, L, Inches(4.9), CW, Pt(0.75), RULE)
+    tf = box(s, L, Inches(5.18), CW, Inches(1.5))
+    para(tf, "If none of the three are worth a second look, you have lost nothing "
+             "but the time it took to type three names.",
+         17, INK, first=True, after=16, line=1.3)
     para(tf, "Omprakash Borkar  ·  omprakash@venturethrust.com  ·  venturethrust.com",
-         14, MUTED)
+         14.5, NAVY, bold=True)
 
     os.makedirs(SHOTS, exist_ok=True)
     prs.save(OUT)
@@ -367,4 +375,4 @@ def build(network="your network"):
 
 
 if __name__ == "__main__":
-    build(sys.argv[1] if len(sys.argv) > 1 else "your network")
+    build(sys.argv[1] if len(sys.argv) > 1 else "")
