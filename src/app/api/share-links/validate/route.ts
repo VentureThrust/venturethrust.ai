@@ -138,12 +138,19 @@ export async function POST(req: NextRequest) {
       // A Deal Watch brief is not a startup you can watch - it is the output
       // of already watching one. Offering "Add to Watchlist" on a report reads
       // as a broken button, so the viewer hides it for anything we have sent.
-      const { data: reportRow } = await supabase
-        .from('dw_reports')
-        .select('id')
-        .eq('storage_path', fileRow.storage_path as string)
-        .limit(1)
-        .maybeSingle();
+      // Two ways to be a report: a row in dw_reports (one we delivered to an
+      // investor), or filed under a reports folder (samples shared publicly,
+      // which were never delivered to anyone and so have no row).
+      const path = fileRow.storage_path as string;
+      const filedAsReport = /(^|\/)reports\//i.test(path);
+      const { data: reportRow } = filedAsReport
+        ? { data: { id: 'path' } }
+        : await supabase
+            .from('dw_reports')
+            .select('id')
+            .eq('storage_path', path)
+            .limit(1)
+            .maybeSingle();
       const wmRaw = link.watermark ? ((link.watermark_text as string | null) ?? null) : null;
       // For send-by-email recipient links the viewer never types an email, so
       // fall back to the recipient address we already know it was sent to.
