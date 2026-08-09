@@ -19,7 +19,7 @@
  * Rate-limited to 20 requests / IP / minute to slow down passcode guessing.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
@@ -81,6 +81,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'EXPIRED' }, { status: 403 });
   }
 
+  // The file row is fetched alongside the owner-plan check rather than after
+  // it. Nothing from it is returned unless every gate below passes, and
+  // overlapping the two round trips is worth ~300ms on a cold link.
+  const filePromise = link.file_id
+    ? supabase
+        .from('files')
+        .select('id, name, type, storage_path, agreement_fields')
+        .eq('id', link.file_id)
+        .maybeSingle()
+    : null;
+
   // Owner-plan gate: a lapsed workspace owner's links stop working entirely.
   // Record the attempt and (throttled) nudge the owner to renew.
   const ownerId = await getSpaceOwner(supabase, link.space_id);
@@ -125,12 +136,8 @@ export async function POST(req: NextRequest) {
   let file:
     | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean; isAgreement: boolean; watchable: boolean }
     | null = null;
-  if (link.file_id) {
-    const { data: fileRow } = await supabase
-      .from('files')
-      .select('id, name, type, storage_path, agreement_fields')
-      .eq('id', link.file_id)
-      .maybeSingle();
+  if (filePromise) {
+    const { data: fileRow } = await filePromise;
     if (fileRow?.storage_path) {
       const { data: signed } = await supabase.storage
         .from('documents')
@@ -171,35 +178,42 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Send-by-email recipient links: attribute this open to the known recipient,
-  // bump the open counters, and on the FIRST open log a visit + alert the owner.
-  if (link.recipient_email && link.file_id) {
-    await recordRecipientOpen(link as Record<string, unknown>);
-  }
+  // Everything below is bookkeeping: counters, alerts, the "someone opened your
+  // link" email. None of it is needed to render the document, and the SMTP
+  // handshake alone was adding well over a second to a page a stranger is
+  // waiting on. after() runs it once the response has already gone out.
+  after(async () => {
+    try {
+      // Send-by-email recipient links: attribute this open to the known
+      // recipient, bump the counters, and on the FIRST open log a visit and
+      // alert the owner.
+      if (link.recipient_email && link.file_id) {
+        await recordRecipientOpen(link as Record<string, unknown>);
+      }
 
-  // Links carrying notify_email email the owner on every fresh open. This is
-  // the only signal on a link with no email gate, so it runs for anonymous
-  // visitors too. Counters are bumped here for links the recipient path above
-  // does not already cover, so "open number" in the mail is real.
-  if (link.notify_email || link.link_name) {
-    if (!(link.recipient_email && link.file_id)) {
-      const nowIso = new Date().toISOString();
-      await supabase
-        .from('share_links')
-        .update({
-          open_count: (Number(link.open_count) || 0) + 1,
-          last_opened_at: nowIso,
-          opened_at: (link.opened_at as string | null) ?? nowIso,
-        })
-        .eq('id', link.id);
+      if (link.notify_email || link.link_name) {
+        if (!(link.recipient_email && link.file_id)) {
+          const nowIso = new Date().toISOString();
+          await supabase
+            .from('share_links')
+            .update({
+              open_count: (Number(link.open_count) || 0) + 1,
+              last_opened_at: nowIso,
+              opened_at: (link.opened_at as string | null) ?? nowIso,
+            })
+            .eq('id', link.id);
+        }
+        await notifyLinkOpen(supabase, {
+          req,
+          link: link as Record<string, unknown>,
+          visitorEmail: email || (link.recipient_email as string | null) || null,
+          documentName: file?.name ?? null,
+        });
+      }
+    } catch (e) {
+      console.warn('[validate] post-response bookkeeping failed:', e);
     }
-    await notifyLinkOpen(supabase, {
-      req,
-      link: link as Record<string, unknown>,
-      visitorEmail: email || (link.recipient_email as string | null) || null,
-      documentName: file?.name ?? null,
-    });
-  }
+  });
 
   return NextResponse.json({
     status: 'OK',

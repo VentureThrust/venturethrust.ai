@@ -28,7 +28,14 @@ export async function GET(
 ) {
   const { code } = await ctx.params;
   const clean = (code ?? '').trim().toLowerCase();
-  const origin = new URL(req.url).origin;
+  // The site canonicalises to www, so redirecting to the apex costs the visitor
+  // a second round trip before anything renders. Go straight to the host we
+  // know is final.
+  const raw = new URL(req.url);
+  const host = raw.host.startsWith('www.') || raw.hostname === 'localhost'
+    ? raw.host
+    : `www.${raw.host}`;
+  const origin = `${raw.protocol}//${host}`;
 
   if (!clean || clean.length > 64) {
     return NextResponse.redirect(`${origin}/`, 302);
