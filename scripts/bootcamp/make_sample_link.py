@@ -2,14 +2,14 @@
 """
 The US sample brief and its short link, for the investor outreach email.
 
-Uploads the Larkspur Data priority brief and opens a public share link named
-"larkspur", which makes it reachable at venturethrust.com/r/larkspur. No email
+Uploads the Nomi priority brief and opens a public share link named
+"nomi", which makes it reachable at venturethrust.com/r/nomi. No email
 gate and no expiry: a link in a cold email has to open on the first click.
 
 The link name is also what the open-notification keys off, so opening it mails
 omprakashborkar611@gmail.com.
 
-  python scripts/bootcamp/make_larkspur_link.py
+  python scripts/bootcamp/make_sample_link.py
 """
 
 import os
@@ -24,15 +24,15 @@ from build import env  # noqa: E402
 
 OWNER_EMAIL = "omprakash@venturethrust.com"
 SPACE_NAME = "Deal Watch sample brief"
-LINK_NAME = "larkspur"
+LINK_NAME = "nomi"
 PDF = os.path.join(os.path.expanduser("~"), "Desktop", "om", "report_generator",
-                   "DealWatch_Priority_Larkspur_Data_sample_company.pdf")
+                   "DealWatch_Priority_Nomi_sample_company.pdf")
 # Space files live in vdr-files, but a FILE scoped share link signs against
 # the documents bucket, so the brief has to go there or validate returns an
 # empty url and the viewer sits on "Loading PDF" forever.
 BUCKET = "documents"
-STORAGE_PATH = "demo/reports/Larkspur Data - Priority brief - Aug 2026.pdf"
-FILE_NAME = "Larkspur Data - Deal Watch brief.pdf"
+STORAGE_PATH = "demo/reports/Nomi - Priority brief - Aug 2026.pdf"
+FILE_NAME = "Nomi - Deal Watch brief.pdf"
 SITE = "https://venturethrust.com"
 
 e = env()

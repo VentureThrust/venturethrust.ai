@@ -31,8 +31,8 @@ function whereFrom(req: NextRequest): string {
  * outbound sales links working without waiting on a migration.
  */
 const NOTIFY_BY_TOKEN: Record<string, string> = {
-  // Larkspur Data sample brief, the link in the investor outreach email.
-  larkspur: 'omprakashborkar611@gmail.com',
+  // Nomi sample brief, the link in the investor outreach email.
+  nomi: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(
