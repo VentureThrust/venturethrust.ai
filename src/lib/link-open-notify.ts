@@ -25,6 +25,16 @@ function whereFrom(req: NextRequest): string {
   return parts.length ? parts.join(', ') : 'Location not available';
 }
 
+/**
+ * Fallback for links that should alert someone before share_links.notify_email
+ * exists in the database. The column is the real mechanism; this keeps the
+ * outbound sales links working without waiting on a migration.
+ */
+const NOTIFY_BY_TOKEN: Record<string, string> = {
+  // Larkspur Data sample brief, the link in the investor outreach email.
+  larkspur: 'omprakashborkar611@gmail.com',
+};
+
 export async function notifyLinkOpen(
   admin: SupabaseClient,
   opts: {
@@ -35,7 +45,8 @@ export async function notifyLinkOpen(
     documentName?: string | null;
   },
 ): Promise<void> {
-  const to = String(opts.link.notify_email ?? '').trim();
+  const named = String(opts.link.link_name ?? '').trim().toLowerCase();
+  const to = String(opts.link.notify_email ?? '').trim() || NOTIFY_BY_TOKEN[named] || '';
   if (!to) return;
 
   const linkId = String(opts.link.id ?? '');

@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
   // the only signal on a link with no email gate, so it runs for anonymous
   // visitors too. Counters are bumped here for links the recipient path above
   // does not already cover, so "open number" in the mail is real.
-  if (link.notify_email) {
+  if (link.notify_email || link.link_name) {
     if (!(link.recipient_email && link.file_id)) {
       const nowIso = new Date().toISOString();
       await supabase
