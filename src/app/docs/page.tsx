@@ -105,7 +105,7 @@ export default function DocsIndexPage() {
               'One controlled link per document or data room, page level analytics, NDAs, e-signatures, watermarks, file requests',
               'A private watchlist, a note on every startup, continuous monitoring, one brief at real milestones',
             ],
-            ['Price', 'Free trial, then from $12 a month', 'From $149 a month, ₹12,499 in India'],
+            ['Price', 'Free trial, then from $12 a month', 'Quoted per watchlist'],
             [
               'Start here',
               'Data rooms documentation',
@@ -169,7 +169,7 @@ export default function DocsIndexPage() {
             'VentureThrust is a virtual data room for founders and a startup monitoring service for investors, in one product.',
             'Founders stop sending blind attachments and start seeing exactly who engages with every page.',
             'Investors stop losing the startups they said not now to: Deal Watch watches them and reports at real milestones.',
-            'Investors pay from $149 a month; the founders they invite always join free.',
+            'Investor pricing is quoted per watchlist; the founders they invite always join free.',
             'Nothing here gives investment advice. We explain. You decide.',
           ]}
         />

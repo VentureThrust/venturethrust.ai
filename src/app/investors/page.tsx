@@ -48,12 +48,9 @@ const investorsJsonLd = {
       url: 'https://www.venturethrust.com/investors',
       description:
         'Investors pin the startups they passed on. Software catches every document update, AI reads what changed, and a human account manager confirms it matters. One brief the moment a startup hits a real milestone, before the market knows.',
-      offers: {
-        '@type': 'Offer',
-        price: '149',
-        priceCurrency: 'USD',
-        description: 'From $149 a month (₹12,499 in India), sized by how many startups you watch.',
-      },
+      // No public price. Cost tracks how many startups are watched and how
+      // often a human checks them, so a headline number would misprice most
+      // enquiries in one direction or the other.
     },
     {
       '@type': 'FAQPage',
@@ -104,7 +101,7 @@ const investorsJsonLd = {
           name: 'What does Deal Watch cost?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'From $149 a month, ₹12,499 in India, sized by how many startups you watch. The founders you invite join free, always. Cancel any time.',
+            text: 'It is sized by how many startups you watch and how often we check them, so we quote once we know those two numbers. Tell us how many you have in mind and we will come back the same day. The founders you invite join free, always.',
           },
         },
       ],
@@ -362,7 +359,7 @@ export default function InvestorsPage() {
               ],
               [
                 'What does it cost?',
-                'From $149 a month, ₹12,499 in India, sized by how many startups you watch. The founders you invite join free, always. Cancel any time.',
+                'It is sized by how many startups you watch and how often we check them, so we quote once we know those two numbers. Tell us how many you have in mind and we will come back the same day. The founders you invite join free, always.',
               ],
             ].map(([q, a]) => (
               <div key={q} className="grid gap-2 py-7 sm:grid-cols-[280px_1fr] sm:gap-10">

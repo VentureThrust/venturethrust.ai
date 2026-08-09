@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 
 // Structured data so search engines and AI assistants can understand the
 // product: the organization, the app, and both sides of the pricing
-// (founder data room plans from $12, Deal Watch investor plans from $149).
+// (founder data room plans from $12, Deal Watch investor pricing on request).
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [

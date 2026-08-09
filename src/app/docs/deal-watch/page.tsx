@@ -62,7 +62,7 @@ const FAQ_ITEMS: [string, string][] = [
   ],
   [
     'What does Deal Watch cost?',
-    'From $149 a month, ₹12,499 in India, sized by how many startups you watch. Founders you invite join free, always. Cancel any time.',
+    'It is sized by how many startups you watch and how often we check them, so we quote once we know those two numbers. Founders you invite join free, always.',
   ],
 ];
 
@@ -240,7 +240,7 @@ export default function DealWatchDocsPage() {
             ['Catches updates the day they happen', 'Yes', 'No', 'No', 'Late, from public data', 'No'],
             ['Human judgment on every alert', 'Yes', 'No', 'No', 'No', 'Yes'],
             ['Effort required from the investor', 'One click and a note', 'Constant upkeep', 'Constant upkeep', 'Reading noise', 'Managing a hire'],
-            ['Monthly cost', 'From $149', 'Free but blind', '$60 to $200 per seat', '$500 and up', 'A salary'],
+            ['Monthly cost', 'Quoted per watchlist', 'Free but blind', '$60 to $200 per seat', '$500 and up', 'A salary'],
           ]}
         />
       </Section>

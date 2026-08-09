@@ -183,8 +183,9 @@ export default function NeverLoseADealPage() {
             Your next fund returner may already be in your inbox.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-base text-gray-600">
-            Deal Watch starts at $149 per month, including your own account manager. Free for 7
-            days, and we set everything up for you personally.
+            Every plan comes with your own account manager. Tell us how many startups you want
+            watched and we will send pricing the same day, and we set everything up for you
+            personally.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
