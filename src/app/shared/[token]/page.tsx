@@ -33,6 +33,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { GatesFlow } from './gates-flow';
 import { InactiveLink } from './inactive-link';
 import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
+import { buildSharedFile, isUngated } from '@/lib/shared-file';
+import { notifyLinkOpen } from '@/lib/link-open-notify';
+import { after, type NextRequest } from 'next/server';
+import { headers } from 'next/headers';
 
 // Mark the route as dynamic - every request must hit the server to fetch
 // the latest share_link state (active/expired/etc.). Without this Next.js
@@ -70,7 +74,9 @@ export default async function SharedTokenPage({ params }: PageProps) {
     // Only the columns we need. Crucially we do NOT include password_hash
     // or allow_block_emails - those stay on the server and are checked
     // via /api/share-links/validate at gate-submit time.
-    'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text';
+    // watermark / allow_download are here so an ungated file link can be
+    // resolved on this request instead of costing the browser another one.
+    'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text, watermark, watermark_text, allow_download';
   // recipient_email etc. power the send-by-email flow; retry without them on
   // databases that have not run that migration so ordinary links never break.
   let { data: link, error } = await supabase
@@ -144,12 +150,50 @@ export default async function SharedTokenPage({ params }: PageProps) {
     }
   }
 
-  // ── 3. Render the interactive client component ─────────────────────────
+  // ── 3. Resolve the file here when there is no gate left to pass ────────
+  // An ungated file link has nothing for the browser to ask about: every check
+  // (active, not expired, owner's plan) has already run above. Doing the work
+  // here means the document starts downloading as the page paints, instead of
+  // after the JS bundle has loaded and made a round trip of its own.
+  const preloadedFile =
+    link.file_id && isUngated(linkRec)
+      ? await buildSharedFile(supabase, linkRec, (linkRec.recipient_email as string | null) ?? null)
+      : null;
+
+  // These links no longer reach /api/share-links/validate, which is where the
+  // open notification used to fire from, so it moves here. after() keeps the
+  // SMTP send off the path the reader is waiting on.
+  if (preloadedFile) {
+    after(async () => {
+      try {
+        const nowIso = new Date().toISOString();
+        await supabase
+          .from('share_links')
+          .update({
+            open_count: (Number(linkRec.open_count) || 0) + 1,
+            last_opened_at: nowIso,
+            opened_at: (linkRec.opened_at as string | null) ?? nowIso,
+          })
+          .eq('id', link.id as string);
+        await notifyLinkOpen(supabase, {
+          req: { headers: await headers() } as unknown as NextRequest,
+          link: linkRec,
+          visitorEmail: (linkRec.recipient_email as string | null) ?? null,
+          documentName: preloadedFile.name,
+        });
+      } catch (e) {
+        console.warn('[shared] open notification failed:', e);
+      }
+    });
+  }
+
+  // ── 4. Render the interactive client component ─────────────────────────
   // Pass ONLY the minimum needed to draw the UI. The password hash, NDA
   // body, etc. that the client doesn't need are intentionally omitted.
   return (
     <GatesFlow
       token={token}
+      preloadedFile={preloadedFile}
       link={{
         id: link.id as string,
         space_id: link.space_id as string,

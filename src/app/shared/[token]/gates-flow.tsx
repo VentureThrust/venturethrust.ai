@@ -53,6 +53,12 @@ interface LinkInfo {
 interface GatesFlowProps {
   link: LinkInfo;
   token: string;
+  /**
+   * An ungated file link already resolved on the server. When it is here there
+   * is nothing left to ask for, so the viewer renders on first paint instead of
+   * waiting for the bundle to load and make its own round trip.
+   */
+  preloadedFile?: SharedFile | null;
 }
 
 type Step = 'detecting' | 'email' | 'password' | 'blocked' | 'nda' | 'signature' | 'redirecting' | 'file';
@@ -91,7 +97,7 @@ function getDeviceInfo(): { device: string; os: string } {
   return { device, os };
 }
 
-export function GatesFlow({ link, token }: GatesFlowProps) {
+export function GatesFlow({ link, token, preloadedFile = null }: GatesFlowProps) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -110,13 +116,17 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
   // 'detecting' state, read the Supabase session, and if an email is there we
   // validate it server-side exactly like a typed one (allow/block list still
   // runs). Only anonymous visitors ever see the email form.
-  const [step, setStep] = useState<Step>(firstStep === 'email' ? 'detecting' : firstStep);
+  const [step, setStep] = useState<Step>(
+    preloadedFile ? 'file' : firstStep === 'email' ? 'detecting' : firstStep,
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [ndaAccepted, setNdaAccepted] = useState(false);
   const [signatureName, setSignatureName] = useState('');
-  const [fileView, setFileView] = useState<SharedFile | null>(null);
-  const [fileVisitorEmail, setFileVisitorEmail] = useState<string | null>(null);
+  const [fileView, setFileView] = useState<SharedFile | null>(preloadedFile);
+  const [fileVisitorEmail, setFileVisitorEmail] = useState<string | null>(
+    preloadedFile ? link.recipientEmail ?? null : null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ranInitial = useRef(false);
 
@@ -190,6 +200,12 @@ export function GatesFlow({ link, token }: GatesFlowProps) {
       const recipient = link.recipientEmail ?? null;
       // No gates: a file link opens the file directly; a space link redirects.
       if (link.fileId) {
+        // Already resolved server-side and on screen. Only the audit entry is
+        // still owed, and that must not hold up anything the reader can see.
+        if (preloadedFile) {
+          logAccess(recipient);
+          return;
+        }
         openFile(recipient);
       } else {
         if (recipient) {

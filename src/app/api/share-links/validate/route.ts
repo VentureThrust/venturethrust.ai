@@ -26,6 +26,7 @@ import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
 import { getSpaceOwner, isOwnerPlanActive } from '@/lib/owner-plan';
 import { recordExpiredAttempt } from '@/lib/expired-attempts';
 import { notifyLinkOpen } from '@/lib/link-open-notify';
+import { buildSharedFile } from '@/lib/shared-file';
 
 // Service-role client - we deliberately bypass RLS here because the visitor
 // is anonymous and needs to read a single share_links row by id. RLS would
@@ -133,50 +134,15 @@ export async function POST(req: NextRequest) {
   // password / allow-block / expiry / owner-plan all passed above, so the URL
   // never reaches an unauthorized visitor. NDA / signature stay client-side
   // gates (acceptance + name capture), matching the space flow.
-  let file:
-    | { id: string; name: string; type: string; url: string; watermarkText: string | null; allowDownload: boolean; isAgreement: boolean; watchable: boolean }
-    | null = null;
-  if (filePromise) {
-    const { data: fileRow } = await filePromise;
-    if (fileRow?.storage_path) {
-      const { data: signed } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(fileRow.storage_path as string, 3600);
-      // A Deal Watch brief is not a startup you can watch - it is the output
-      // of already watching one. Offering "Add to Watchlist" on a report reads
-      // as a broken button, so the viewer hides it for anything we have sent.
-      // Two ways to be a report: a row in dw_reports (one we delivered to an
-      // investor), or filed under a reports folder (samples shared publicly,
-      // which were never delivered to anyone and so have no row).
-      const path = fileRow.storage_path as string;
-      const filedAsReport = /(^|\/)reports\//i.test(path);
-      const { data: reportRow } = filedAsReport
-        ? { data: { id: 'path' } }
-        : await supabase
-            .from('dw_reports')
-            .select('id')
-            .eq('storage_path', path)
-            .limit(1)
-            .maybeSingle();
-      const wmRaw = link.watermark ? ((link.watermark_text as string | null) ?? null) : null;
-      // For send-by-email recipient links the viewer never types an email, so
-      // fall back to the recipient address we already know it was sent to.
-      const viewerEmail = email || (link.recipient_email as string | null) || null;
-      const wm = wmRaw ? wmRaw.replace(/\{\{\s*email\s*\}\}/gi, viewerEmail || 'Confidential') : null;
-      file = {
-        id: fileRow.id as string,
-        name: (fileRow.name as string) ?? 'Document',
-        type: (fileRow.type as string) ?? 'Doc',
-        url: signed?.signedUrl ?? '',
-        watermarkText: wm,
-        allowDownload: link.allow_download !== false,
-        // Agreements (placed signature/name/date fields) must open in the
-        // SIGNING experience, not the plain viewer - the client redirects.
-        isAgreement: Array.isArray(fileRow.agreement_fields) && fileRow.agreement_fields.length > 0,
-        watchable: !reportRow,
-      };
-    }
-  }
+  // For send-by-email recipient links the viewer never types an email, so fall
+  // back to the recipient address we already know it was sent to.
+  const viewerEmail = email || (link.recipient_email as string | null) || null;
+  const file = await buildSharedFile(
+    supabase,
+    link as Record<string, unknown>,
+    viewerEmail,
+    filePromise,
+  );
 
   // Everything below is bookkeeping: counters, alerts, the "someone opened your
   // link" email. None of it is needed to render the document, and the SMTP
