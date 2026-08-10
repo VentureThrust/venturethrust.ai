@@ -33,7 +33,7 @@ function whereFrom(req: NextRequest): string {
 const NOTIFY_BY_TOKEN: Record<string, string> = {
   // Sample briefs used in investor outreach, one per sector.
   nomi: 'omprakashborkar611@gmail.com',
-  vaani: 'omprakashborkar611@gmail.com',
+  cheeku: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(
