@@ -31,8 +31,9 @@ function whereFrom(req: NextRequest): string {
  * outbound sales links working without waiting on a migration.
  */
 const NOTIFY_BY_TOKEN: Record<string, string> = {
-  // Nomi sample brief, the link in the investor outreach email.
+  // Sample briefs used in investor outreach, one per sector.
   nomi: 'omprakashborkar611@gmail.com',
+  vaani: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(

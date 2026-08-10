@@ -24,15 +24,15 @@ from build import env  # noqa: E402
 
 OWNER_EMAIL = "omprakash@venturethrust.com"
 SPACE_NAME = "Deal Watch sample brief"
-LINK_NAME = "nomi"
+LINK_NAME = os.environ.get("VT_SAMPLE_LINK", "nomi")
 PDF = os.path.join(os.path.expanduser("~"), "Desktop", "om", "report_generator",
-                   "DealWatch_Priority_Nomi_sample_company.pdf")
+                   os.environ.get("VT_SAMPLE_PDF", "DealWatch_Priority_Nomi_sample_company.pdf"))
 # Space files live in vdr-files, but a FILE scoped share link signs against
 # the documents bucket, so the brief has to go there or validate returns an
 # empty url and the viewer sits on "Loading PDF" forever.
 BUCKET = "documents"
-STORAGE_PATH = "demo/reports/Nomi - Priority brief - Aug 2026.pdf"
-FILE_NAME = "Nomi - Deal Watch brief.pdf"
+STORAGE_PATH = os.environ.get("VT_SAMPLE_PATH", "demo/reports/Nomi - Priority brief - Aug 2026.pdf")
+FILE_NAME = os.environ.get("VT_SAMPLE_FILE", "Nomi - Deal Watch brief.pdf")
 SITE = "https://venturethrust.com"
 
 e = env()
