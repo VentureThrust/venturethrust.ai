@@ -79,11 +79,20 @@ export default async function SharedTokenPage({ params }: PageProps) {
     'id, space_id, file_id, token, is_active, expires_at, email_required, password_hash, require_nda, require_signature, nda_text, watermark, watermark_text, allow_download';
   // recipient_email etc. power the send-by-email flow; retry without them on
   // databases that have not run that migration so ordinary links never break.
+  // Three tiers, widest first. show_demo_cta arrives with sql/demo_requests.sql
+  // and must not take recipient_email down with it if that has not been run.
   let { data: link, error } = await supabase
     .from('share_links')
-    .select(`${BASE_COLS}, recipient_email, opened_at, open_count`)
+    .select(`${BASE_COLS}, recipient_email, opened_at, open_count, show_demo_cta`)
     .eq('token', token)
     .maybeSingle();
+  if (error) {
+    ({ data: link, error } = await supabase
+      .from('share_links')
+      .select(`${BASE_COLS}, recipient_email, opened_at, open_count`)
+      .eq('token', token)
+      .maybeSingle());
+  }
   if (error) {
     ({ data: link, error } = await supabase
       .from('share_links')

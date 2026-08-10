@@ -27,6 +27,7 @@ import { Download, FileWarning, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PdfViewer from '@/components/PdfViewer';
 import { FileWatchlistButton } from '@/components/file-watchlist-button';
+import { BookDemoButton } from '@/components/book-demo-button';
 
 export interface SharedFile {
   id: string;
@@ -37,6 +38,9 @@ export interface SharedFile {
   allowDownload: boolean;
   /** False for a Deal Watch brief: there is nothing to watch on a report. */
   watchable?: boolean;
+  /** Our own marketing links only. Never on a customer's document. */
+  showDemoCta?: boolean;
+  shareLinkId?: string;
 }
 
 function getDeviceInfo(): { device: string; os: string } {
@@ -380,6 +384,14 @@ export function SharedFileView({
           {/* Investor plan accounts only, and never on a report we sent. */}
           {file.watchable !== false && (
             <FileWatchlistButton fileId={file.id} startupName={file.name} />
+          )}
+          {/* Opt-in per link, so this never appears on a customer's deck. */}
+          {file.showDemoCta && (
+            <BookDemoButton
+              shareLinkId={file.shareLinkId ?? null}
+              fileId={file.id}
+              documentName={file.name}
+            />
           )}
           {file.allowDownload ? (
             <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">

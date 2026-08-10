@@ -24,6 +24,10 @@ export type ResolvedFile = {
   isAgreement: boolean;
   /** False for a Deal Watch brief: there is nothing to watch on a report. */
   watchable: boolean;
+  /** Our own marketing links only. Never on a customer's document. */
+  showDemoCta: boolean;
+  /** Carried so a demo request can say which document prompted it. */
+  shareLinkId: string;
 };
 
 export async function buildSharedFile(
@@ -73,6 +77,10 @@ export async function buildSharedFile(
     isAgreement:
       Array.isArray(fileRow!.agreement_fields) && (fileRow!.agreement_fields as unknown[]).length > 0,
     watchable: !reportRes.data,
+    // Explicit opt-in. A missing column reads as undefined, which is false,
+    // which is the safe answer.
+    showDemoCta: link.show_demo_cta === true,
+    shareLinkId: (link.id as string) ?? '',
   };
 }
 
