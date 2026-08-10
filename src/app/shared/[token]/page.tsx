@@ -200,26 +200,35 @@ export default async function SharedTokenPage({ params }: PageProps) {
   // Pass ONLY the minimum needed to draw the UI. The password hash, NDA
   // body, etc. that the client doesn't need are intentionally omitted.
   return (
-    <GatesFlow
-      token={token}
-      preloadedFile={preloadedFile}
-      link={{
-        id: link.id as string,
-        space_id: link.space_id as string,
-        emailRequired: !!link.email_required,
-        // Send a boolean - never the hash itself.
-        hasPassword: !!link.password_hash,
-        requireNda: !!link.require_nda,
-        requireSignature: !!link.require_signature,
-        // NDA text is fine to send because it's already shown to the user once they get to that gate
-        ndaText: (link.nda_text as string | null) ?? null,
-        // File-scoped link: GatesFlow renders just this one file after the gates pass.
-        fileId: (link.file_id as string | null) ?? null,
-        // Send-by-email links: the known recipient. The viewer is never asked
-        // for their email; views are attributed to this address.
-        recipientEmail: ((link as Record<string, unknown>).recipient_email as string | null) ?? null,
-      }}
-    />
+    <>
+      {/* Putting the signed URL in the markup is not enough on its own: the
+          viewer only requests it once React has mounted, which is after the
+          whole bundle has loaded. This starts the download as the HTML is
+          parsed, so the document and the JavaScript arrive in parallel. */}
+      {preloadedFile?.url && (
+        <link rel="preload" as="fetch" href={preloadedFile.url} crossOrigin="anonymous" />
+      )}
+      <GatesFlow
+        token={token}
+        preloadedFile={preloadedFile}
+        link={{
+          id: link.id as string,
+          space_id: link.space_id as string,
+          emailRequired: !!link.email_required,
+          // Send a boolean - never the hash itself.
+          hasPassword: !!link.password_hash,
+          requireNda: !!link.require_nda,
+          requireSignature: !!link.require_signature,
+          // NDA text is fine to send because it's already shown to the user once they get to that gate
+          ndaText: (link.nda_text as string | null) ?? null,
+          // File-scoped link: GatesFlow renders just this one file after the gates pass.
+          fileId: (link.file_id as string | null) ?? null,
+          // Send-by-email links: the known recipient. The viewer is never asked
+          // for their email; views are attributed to this address.
+          recipientEmail: ((link as Record<string, unknown>).recipient_email as string | null) ?? null,
+        }}
+      />
+    </>
   );
 }
 
