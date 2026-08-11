@@ -35,6 +35,8 @@ const NOTIFY_BY_TOKEN: Record<string, string> = {
   nomi: 'omprakashborkar611@gmail.com',
   nuzzle: 'omprakashborkar611@gmail.com',
   yantra: 'omprakashborkar611@gmail.com',
+  // Personalised copies, one per named prospect.
+  ivycap: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(
