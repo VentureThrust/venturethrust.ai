@@ -87,12 +87,16 @@ def main():
                         "description": "Sample Deal Watch briefs, shared publicly.",
                         "created_by": owner})
 
-    # Re-runnable: drop any previous link and file for this brief only.
+    # Re-runnable, but only for THIS link. Deleting files by name took out a
+    # different brief that happened to share a filename, and the share link
+    # went with it. Find the file this link points at and remove only that one.
+    prev = get("share_links?select=id,file_id&link_name=eq.%s" % LINK_NAME)
     requests.delete("%s/rest/v1/share_links?link_name=eq.%s" % (BASE, LINK_NAME),
                     headers=H, timeout=60)
-    requests.delete("%s/rest/v1/files?space_id=eq.%s&name=eq.%s"
-                    % (BASE, space_id, requests.utils.quote(FILE_NAME)),
-                    headers=H, timeout=60)
+    for row in prev:
+        if row.get("file_id"):
+            requests.delete("%s/rest/v1/files?id=eq.%s" % (BASE, row["file_id"]),
+                            headers=H, timeout=60)
 
     folder = get("folders?select=id&space_id=eq.%s&limit=1" % space_id)
     if folder:
