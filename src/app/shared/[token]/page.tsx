@@ -206,7 +206,13 @@ export default async function SharedTokenPage({ params }: PageProps) {
           whole bundle has loaded. This starts the download as the HTML is
           parsed, so the document and the JavaScript arrive in parallel. */}
       {preloadedFile?.url && (
-        <link rel="preload" as="fetch" href={preloadedFile.url} crossOrigin="anonymous" />
+        <link
+          rel="preload"
+          as="fetch"
+          href={preloadedFile.url}
+          crossOrigin="anonymous"
+          fetchPriority="high"
+        />
       )}
       <GatesFlow
         token={token}
