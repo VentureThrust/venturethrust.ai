@@ -39,6 +39,7 @@ const NOTIFY_BY_TOKEN: Record<string, string> = {
   ivycap: 'omprakashborkar611@gmail.com',
   ayu: 'omprakashborkar611@gmail.com',
   policybazaar: 'omprakashborkar611@gmail.com',
+  bessemer: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(
