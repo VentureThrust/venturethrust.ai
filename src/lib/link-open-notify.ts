@@ -37,6 +37,7 @@ const NOTIFY_BY_TOKEN: Record<string, string> = {
   yantra: 'omprakashborkar611@gmail.com',
   // Personalised copies, one per named prospect.
   ivycap: 'omprakashborkar611@gmail.com',
+  ayu: 'omprakashborkar611@gmail.com',
 };
 
 export async function notifyLinkOpen(
