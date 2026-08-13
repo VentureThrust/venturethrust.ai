@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, FileWarning, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, FileWarning, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // ── PDF.js types (minimal - we only use a few APIs) ──────────────────────
@@ -144,6 +144,11 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
     setPaged(window.matchMedia('(max-width: 767px)').matches);
   }, []);
 
+  // Zoom, as a multiplier on the fitted size. 1 means the whole page fits the
+  // window, which is what a reader should see first. Fitting a page small must
+  // not leave them stuck there, so the controls go up to 3x.
+  const [zoom, setZoom] = useState(1);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const pageWrapperRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const pageCanvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
@@ -246,7 +251,8 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
         const containerHeight = (containerRef.current?.clientHeight ?? 900) - vpad;
         const byWidth = containerWidth / initial.width;
         const byHeight = containerHeight / initial.height;
-        const cssScale = Math.min(2, paged ? byWidth : Math.min(byWidth, byHeight));
+        const fit = paged ? byWidth : Math.min(byWidth, byHeight);
+        const cssScale = Math.min(3, fit * zoom);
 
         // RETINA FIX: render the canvas backing store at devicePixelRatio,
         // but display it at CSS size. Without this, high-density screens
@@ -256,12 +262,23 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
           (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1,
           3,
         );
-        const viewport = page.getViewport({ scale: cssScale * dpr });
+
+        // SUPERSAMPLE: how many pixels the page is drawn with must not be
+        // decided by how small it is being displayed. Fitting a whole A4 page
+        // into a short window can put it at 0.35 scale, and on a monitor
+        // reporting dpr 1 that rendered 400 pixels of width for a document
+        // meant to be read. The floor keeps the raster sharp at any fit, and
+        // the browser downsamples cleanly.
+        // The ceiling is memory, not looks: every page in the document holds
+        // its own canvas, and past about 4x there is nothing more to see.
+        const RENDER_FLOOR = paged ? 2 : 2.5;
+        const renderScale = Math.min(4, Math.max(cssScale * dpr, RENDER_FLOOR));
+        const viewport = page.getViewport({ scale: renderScale });
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width / dpr}px`;
-        canvas.style.height = `${viewport.height / dpr}px`;
+        canvas.style.width = `${initial.width * cssScale}px`;
+        canvas.style.height = `${initial.height * cssScale}px`;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -270,7 +287,7 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
         console.error(`Failed to render PDF page ${pageNum}:`, err);
       }
     },
-    [pdf, paged]
+    [pdf, paged, zoom]
   );
 
   useEffect(() => {
@@ -415,6 +432,39 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
           </button>
         </>
       )}
+      {/* Zoom. The page opens fitted to the window, which on a short window is
+          small, so there has to be a way out of that. Bottom right: the top
+          right already carries the page-number badge and the sides carry the
+          page arrows. */}
+      <div
+        className={`absolute right-2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-1 py-1 text-white backdrop-blur-sm ${
+          numPages > 1 ? 'bottom-16' : 'bottom-4'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.25) * 100) / 100))}
+          disabled={zoom <= 1}
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        <span className="min-w-[3rem] text-center text-xs tabular-nums">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          type="button"
+          onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.25) * 100) / 100))}
+          disabled={zoom >= 3}
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
       <div
         ref={containerRef}
         className="flex-1 overflow-auto py-6 flex flex-col items-center gap-4"
