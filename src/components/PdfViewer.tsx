@@ -236,7 +236,17 @@ export default function PdfViewer({ url, onPageView, onDocumentLoad, watermarkTe
         const sidePad = paged ? 16 : 64;
         const containerWidth = (containerRef.current?.clientWidth ?? 800) - sidePad;
         const initial = page.getViewport({ scale: 1 });
-        const cssScale = Math.min(2, containerWidth / initial.width);
+
+        // Fit the WHOLE page, not just its width. Scaling to width alone made
+        // a portrait page taller than the window on any wide screen, so a
+        // reader opening a link landed on the top half of page one and had to
+        // work out that there was more below. Fit to whichever dimension is
+        // tighter and the first page arrives whole.
+        const vpad = paged ? 24 : 72;
+        const containerHeight = (containerRef.current?.clientHeight ?? 900) - vpad;
+        const byWidth = containerWidth / initial.width;
+        const byHeight = containerHeight / initial.height;
+        const cssScale = Math.min(2, paged ? byWidth : Math.min(byWidth, byHeight));
 
         // RETINA FIX: render the canvas backing store at devicePixelRatio,
         // but display it at CSS size. Without this, high-density screens
