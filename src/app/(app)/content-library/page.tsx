@@ -2123,6 +2123,35 @@ function ContentLibraryPageComponent() {
     window.history.replaceState({}, '', `/content-library?folderId=${encodeURIComponent(id)}`);
   }, []);
 
+  // Files that just finished uploading. The destination folder is opened for
+  // the user the moment an upload lands, and these ids briefly highlight the
+  // new rows inside it - otherwise a file dropped into a folder that was not
+  // already open finished with the pane still reading "Select a folder to view
+  // its contents", and the only evidence anything happened was a toast that
+  // disappeared.
+  const [justUploadedIds, setJustUploadedIds] = useState<string[]>([]);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const revealUploads = useCallback((folderId: string, fileIds: string[]) => {
+    handleSelectFolder(folderId);
+    setJustUploadedIds(fileIds);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setJustUploadedIds([]), 6000);
+  }, [handleSelectFolder]);
+
+  useEffect(() => () => {
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+  }, []);
+
+  // A folder with many files can push the new one below the fold, so the first
+  // highlighted row pulls itself into view.
+  const scrolledTo = useRef<string>('');
+  const scrollNewIntoView = useCallback((el: HTMLDivElement | null) => {
+    if (!el || scrolledTo.current === justUploadedIds[0]) return;
+    scrolledTo.current = justUploadedIds[0] ?? '';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [justUploadedIds]);
+
   // All dialog-opening handlers are deferred via setTimeout(0) so that the
   // DropdownMenu that triggered them has time to fully close (and release focus)
   // before the dialog mounts. Without this, Radix UI blocks aria-hidden on the
@@ -2366,7 +2395,18 @@ function ContentLibraryPageComponent() {
 
       if (newDocs.length > 0) {
         await addFilesToFolder(targetFolderId, newDocs);
-        toast({ title: `${newDocs.length} file(s) uploaded successfully.` });
+
+        // Open the folder the files landed in. Without this the upload
+        // succeeded silently: the file was in the folder, but the folder was
+        // not the one on screen, so nothing visibly changed.
+        const destination = findFolder(targetFolderId, contentLibraryFolders);
+        revealUploads(targetFolderId, newDocs.map((d) => d.id));
+        toast({
+          title: newDocs.length === 1
+            ? `"${newDocs[0].name}" uploaded`
+            : `${newDocs.length} files uploaded`,
+          description: destination ? `Saved to ${destination.name}` : undefined,
+        });
 
         // ONE summary alert per upload batch - was previously firing one
         // alert per file inside the loop, which produced N duplicate-looking
@@ -2444,6 +2484,8 @@ function ContentLibraryPageComponent() {
         }
       }
       if (newDocs.length > 0) await addFilesToFolder(newFolderObj.id, newDocs);
+      // Same reason as a plain file upload: open what was just created.
+      revealUploads(newFolderObj.id, newDocs.map((d) => d.id));
       toast({ title: `Folder "${folderName}" uploaded with ${newDocs.length} file(s).` });
       setUploadedFolder([]);
     } catch (error) {
@@ -2769,12 +2811,24 @@ function ContentLibraryPageComponent() {
                           // list reads visually (red PDF / blue doc / pink
                           // image) instead of a wall of grey.
                           const { Icon, text } = getFileTypeStyle(file.name, file.id.startsWith('agreement_'));
+                          const isNew = justUploadedIds.includes(file.id);
                           return (
-                            <div key={file.id}>
+                            <div key={file.id} ref={isNew ? scrollNewIntoView : undefined}>
                               <div className="border-t border-gray-200" />
-                              <div className="flex items-center gap-3 py-2.5 px-2 hover:bg-gray-50 cursor-pointer group" onClick={() => handleFileClick(file)}>
+                              <div
+                                className={cn(
+                                  'flex items-center gap-3 py-2.5 px-2 cursor-pointer group transition-colors duration-700',
+                                  isNew ? 'bg-green-50' : 'hover:bg-gray-50'
+                                )}
+                                onClick={() => handleFileClick(file)}
+                              >
                                 <Icon className={cn('h-5 w-5 shrink-0', text)} />
                                 <span className="flex-1 text-base font-medium truncate min-w-0" title={file.name}>{file.name}</span>
+                                {isNew && (
+                                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                    Just uploaded
+                                  </span>
+                                )}
                                 <span className="w-28 text-right text-xs text-muted-foreground shrink-0">{new Date(file.createdAt).toLocaleDateString()}</span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
