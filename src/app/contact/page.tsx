@@ -1,18 +1,16 @@
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ContactForm } from '@/components/contact-form';
-import { Mail, Phone, Clock, MessageSquare } from 'lucide-react';
+import { Mail, Clock, MessageSquare } from 'lucide-react';
 
 export const metadata = {
   title: 'Contact us · VentureThrust',
-  description: 'Talk to the VentureThrust team about sales, support, or anything else. Email info@venturethrust.com or call +91 8530329552.',
+  description: 'Talk to the VentureThrust team about sales, support, or anything else. Email info@venturethrust.com and we will come back to you the same working day.',
   alternates: { canonical: '/contact' },
 };
 
 const BLUE = '#4285F4';
 const EMAIL = 'info@venturethrust.com';
-const PHONE_DISPLAY = '+91 8530329552';
-const PHONE_TEL = '+918530329552';
 
 export default function ContactPage() {
   return (
@@ -52,19 +50,6 @@ export default function ContactPage() {
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-gray-900">Email</span>
                   <span className="block break-all text-sm text-gray-600">{EMAIL}</span>
-                </span>
-              </a>
-
-              <a
-                href={`tel:${PHONE_TEL}`}
-                className="flex items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-              >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#F0F5FF]" style={{ color: BLUE }}>
-                  <Phone className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-gray-900">Phone</span>
-                  <span className="block text-sm text-gray-600">{PHONE_DISPLAY}</span>
                 </span>
               </a>
 
